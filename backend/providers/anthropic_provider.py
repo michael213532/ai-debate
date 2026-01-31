@@ -27,8 +27,8 @@ class AnthropicProvider(BaseProvider):
             async for text in stream.text_stream:
                 yield text
 
-    async def test_connection(self) -> bool:
-        """Test Anthropic API connection."""
+    async def test_connection(self) -> tuple[bool, str]:
+        """Test Anthropic API connection. Returns (success, error_message)."""
         try:
             # Use claude-3-haiku as it's cheapest and most available
             await self.client.messages.create(
@@ -36,7 +36,6 @@ class AnthropicProvider(BaseProvider):
                 max_tokens=10,
                 messages=[{"role": "user", "content": "Hi"}]
             )
-            return True
+            return True, ""
         except Exception as e:
-            print(f"Anthropic test error: {type(e).__name__}: {e}")
-            return False
+            return False, f"{type(e).__name__}: {e}"

@@ -200,8 +200,16 @@ async def test_api_key(
     try:
         provider_class = ProviderRegistry.get(provider)
         provider_instance = provider_class(api_keys[provider])
-        is_valid = await provider_instance.test_connection()
-        return {"valid": is_valid, "provider": provider}
+        result = await provider_instance.test_connection()
+
+        # Handle both bool and tuple returns
+        if isinstance(result, tuple):
+            is_valid, error_msg = result
+            if error_msg:
+                return {"valid": is_valid, "provider": provider, "error": error_msg}
+            return {"valid": is_valid, "provider": provider}
+        else:
+            return {"valid": result, "provider": provider}
     except Exception as e:
         return {"valid": False, "provider": provider, "error": str(e)}
 

@@ -33,10 +33,10 @@ class OpenAIProvider(BaseProvider):
             if chunk.choices[0].delta.content:
                 yield chunk.choices[0].delta.content
 
-    async def test_connection(self) -> bool:
-        """Test OpenAI API connection."""
+    async def test_connection(self) -> tuple[bool, str]:
+        """Test OpenAI API connection. Returns (success, error_message)."""
         try:
             await self.client.models.list()
-            return True
-        except Exception:
-            return False
+            return True, ""
+        except Exception as e:
+            return False, f"{type(e).__name__}: {e}"

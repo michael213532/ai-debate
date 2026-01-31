@@ -50,8 +50,8 @@ class XAIProvider(BaseProvider):
                         if chunk["choices"][0]["delta"].get("content"):
                             yield chunk["choices"][0]["delta"]["content"]
 
-    async def test_connection(self) -> bool:
-        """Test xAI API connection."""
+    async def test_connection(self) -> tuple[bool, str]:
+        """Test xAI API connection. Returns (success, error_message)."""
         try:
             async with httpx.AsyncClient() as client:
                 response = await client.post(
@@ -67,6 +67,8 @@ class XAIProvider(BaseProvider):
                     },
                     timeout=30.0
                 )
-                return response.status_code == 200
-        except Exception:
-            return False
+                if response.status_code == 200:
+                    return True, ""
+                return False, f"HTTP {response.status_code}: {response.text}"
+        except Exception as e:
+            return False, f"{type(e).__name__}: {e}"

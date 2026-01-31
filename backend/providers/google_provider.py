@@ -44,11 +44,11 @@ class GoogleProvider(BaseProvider):
             if chunk.text:
                 yield chunk.text
 
-    async def test_connection(self) -> bool:
-        """Test Google API connection."""
+    async def test_connection(self) -> tuple[bool, str]:
+        """Test Google API connection. Returns (success, error_message)."""
         try:
             model = genai.GenerativeModel("gemini-pro")
             await model.generate_content_async("Hi", stream=False)
-            return True
-        except Exception:
-            return False
+            return True, ""
+        except Exception as e:
+            return False, f"{type(e).__name__}: {e}"
