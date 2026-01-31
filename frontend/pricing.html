@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Debate Arena - Pricing</title>
+    <link rel="stylesheet" href="/css/styles.css">
+    <style>
+        .pricing-container {
+            min-height: 100vh;
+            padding: 60px 20px;
+        }
+
+        .pricing-header {
+            text-align: center;
+            margin-bottom: 48px;
+        }
+
+        .pricing-title {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 16px;
+        }
+
+        .pricing-subtitle {
+            font-size: 1.1rem;
+            color: var(--text-secondary);
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .pricing-cards {
+            display: flex;
+            justify-content: center;
+            gap: 32px;
+            flex-wrap: wrap;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .pricing-card {
+            background: var(--surface);
+            border: 2px solid var(--border-color);
+            border-radius: 16px;
+            padding: 32px;
+            width: 100%;
+            max-width: 380px;
+            position: relative;
+        }
+
+        .pricing-card.featured {
+            border-color: var(--primary-color);
+            transform: scale(1.05);
+        }
+
+        .popular-badge {
+            position: absolute;
+            top: -12px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: linear-gradient(135deg, var(--primary-color), #8b5cf6);
+            color: white;
+            padding: 6px 20px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .plan-name {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .plan-description {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            margin-bottom: 24px;
+        }
+
+        .plan-price {
+            margin-bottom: 24px;
+        }
+
+        .price-amount {
+            font-size: 3rem;
+            font-weight: 700;
+        }
+
+        .price-period {
+            color: var(--text-secondary);
+            font-size: 1rem;
+        }
+
+        .plan-features {
+            list-style: none;
+            margin-bottom: 32px;
+        }
+
+        .plan-features li {
+            padding: 12px 0;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .plan-features li:last-child {
+            border-bottom: none;
+        }
+
+        .feature-icon {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.7rem;
+            flex-shrink: 0;
+        }
+
+        .feature-icon.check {
+            background: rgba(34, 197, 94, 0.2);
+            color: var(--success-color);
+        }
+
+        .feature-icon.x {
+            background: rgba(239, 68, 68, 0.1);
+            color: var(--error-color);
+        }
+
+        .feature-text {
+            font-size: 0.95rem;
+        }
+
+        .feature-text.disabled {
+            color: var(--text-secondary);
+            text-decoration: line-through;
+        }
+
+        .plan-cta {
+            width: 100%;
+            padding: 14px;
+            font-size: 1rem;
+        }
+
+        .pricing-card.featured .plan-cta {
+            background: linear-gradient(135deg, var(--primary-color), #8b5cf6);
+        }
+
+        .faq-section {
+            max-width: 700px;
+            margin: 80px auto 0;
+        }
+
+        .faq-title {
+            text-align: center;
+            font-size: 1.75rem;
+            margin-bottom: 32px;
+        }
+
+        .faq-item {
+            background: var(--surface);
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius);
+            margin-bottom: 16px;
+            padding: 20px 24px;
+        }
+
+        .faq-question {
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .faq-answer {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            line-height: 1.6;
+        }
+
+        .back-link {
+            display: inline-block;
+            margin-bottom: 32px;
+            color: var(--text-secondary);
+        }
+
+        .back-link:hover {
+            color: var(--primary-color);
+        }
+
+        @media (max-width: 768px) {
+            .pricing-card.featured {
+                transform: none;
+            }
+
+            .pricing-title {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="pricing-container">
+        <div class="container">
+            <a href="/app" class="back-link">← Back to App</a>
+
+            <div class="pricing-header">
+                <h1 class="pricing-title">Choose Your Plan</h1>
+                <p class="pricing-subtitle">Start free with 5 debates per month, or go Pro for unlimited access and premium features.</p>
+            </div>
+
+            <div class="pricing-cards">
+                <!-- Free Plan -->
+                <div class="pricing-card">
+                    <h2 class="plan-name">Free</h2>
+                    <p class="plan-description">Perfect for trying out AI debates</p>
+
+                    <div class="plan-price">
+                        <span class="price-amount">$0</span>
+                        <span class="price-period">/month</span>
+                    </div>
+
+                    <ul class="plan-features">
+                        <li>
+                            <span class="feature-icon check">✓</span>
+                            <span class="feature-text">5 debates per month</span>
+                        </li>
+                        <li>
+                            <span class="feature-icon check">✓</span>
+                            <span class="feature-text">Up to 6 AI models per debate</span>
+                        </li>
+                        <li>
+                            <span class="feature-icon check">✓</span>
+                            <span class="feature-text">Up to 5 rounds</span>
+                        </li>
+                        <li>
+                            <span class="feature-icon x">✗</span>
+                            <span class="feature-text disabled">Priority response speed</span>
+                        </li>
+                        <li>
+                            <span class="feature-icon x">✗</span>
+                            <span class="feature-text disabled">Export debates to PDF</span>
+                        </li>
+                        <li>
+                            <span class="feature-icon x">✗</span>
+                            <span class="feature-text disabled">Custom AI personalities</span>
+                        </li>
+                        <li>
+                            <span class="feature-icon x">✗</span>
+                            <span class="feature-text disabled">Early access to new features</span>
+                        </li>
+                    </ul>
+
+                    <a href="/app" class="btn btn-secondary plan-cta">Get Started Free</a>
+                </div>
+
+                <!-- Pro Plan -->
+                <div class="pricing-card featured">
+                    <span class="popular-badge">MOST POPULAR</span>
+                    <h2 class="plan-name">Pro</h2>
+                    <p class="plan-description">For power users and enthusiasts</p>
+
+                    <div class="plan-price">
+                        <span class="price-amount">$5</span>
+                        <span class="price-period">/month</span>
+                    </div>
+
+                    <ul class="plan-features">
+                        <li>
+                            <span class="feature-icon check">✓</span>
+                            <span class="feature-text"><strong>Unlimited</strong> debates</span>
+                        </li>
+                        <li>
+                            <span class="feature-icon check">✓</span>
+                            <span class="feature-text">Up to 6 AI models per debate</span>
+                        </li>
+                        <li>
+                            <span class="feature-icon check">✓</span>
+                            <span class="feature-text">Up to 5 rounds</span>
+                        </li>
+                        <li>
+                            <span class="feature-icon check">✓</span>
+                            <span class="feature-text">Priority response speed</span>
+                        </li>
+                        <li>
+                            <span class="feature-icon check">✓</span>
+                            <span class="feature-text">Export debates to PDF</span>
+                        </li>
+                        <li>
+                            <span class="feature-icon check">✓</span>
+                            <span class="feature-text">Custom AI personalities</span>
+                        </li>
+                        <li>
+                            <span class="feature-icon check">✓</span>
+                            <span class="feature-text">Early access to new features</span>
+                        </li>
+                    </ul>
+
+                    <button id="upgrade-btn" class="btn btn-primary plan-cta">Upgrade to Pro</button>
+                </div>
+            </div>
+
+            <!-- FAQ Section -->
+            <div class="faq-section">
+                <h2 class="faq-title">Frequently Asked Questions</h2>
+
+                <div class="faq-item">
+                    <div class="faq-question">Do I need my own API keys?</div>
+                    <div class="faq-answer">Yes, you'll need to connect your own API keys from providers like OpenAI, Anthropic, or Google. This means you only pay for what you use, and your keys stay private and secure.</div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-question">What counts as one debate?</div>
+                    <div class="faq-answer">One debate is a complete session with your chosen topic and AI models, regardless of how many rounds or models you use.</div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-question">Can I cancel anytime?</div>
+                    <div class="faq-answer">Yes, you can cancel your Pro subscription anytime. You'll keep Pro access until the end of your billing period.</div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-question">Do unused free debates roll over?</div>
+                    <div class="faq-answer">No, free debates reset at the beginning of each month. Pro users have unlimited debates so this doesn't apply.</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = '';
+
+        function getAuthHeaders() {
+            const token = localStorage.getItem('token');
+            return {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            };
+        }
+
+        document.getElementById('upgrade-btn').addEventListener('click', async () => {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                window.location.href = '/?redirect=pricing';
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/api/billing/checkout`, {
+                    method: 'POST',
+                    headers: getAuthHeaders()
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    alert(error.detail || 'Failed to start checkout');
+                    return;
+                }
+
+                const data = await response.json();
+                window.location.href = data.checkout_url;
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Failed to start checkout. Please try again.');
+            }
+        });
+    </script>
+</body>
+</html>

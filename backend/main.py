@@ -71,6 +71,12 @@ async def serve_app():
     return FileResponse(frontend_path / "app.html")
 
 
+@app.get("/pricing")
+async def serve_pricing():
+    """Serve the pricing page."""
+    return FileResponse(frontend_path / "pricing.html")
+
+
 @app.get("/health")
 async def health_check():
     """Health check endpoint."""

@@ -2,13 +2,43 @@
  * Settings modal and API key management
  */
 
-const PROVIDER_NAMES = {
-    openai: 'OpenAI',
-    anthropic: 'Anthropic',
-    google: 'Google',
-    deepseek: 'Deepseek',
-    xai: 'xAI'
+const PROVIDER_INFO = {
+    openai: {
+        name: 'OpenAI',
+        description: 'GPT-5, GPT-4o, o1 models',
+        keyUrl: 'https://platform.openai.com/api-keys',
+        keyHelp: 'Create account → API Keys → Create new key'
+    },
+    anthropic: {
+        name: 'Anthropic',
+        description: 'Claude Sonnet, Claude Opus models',
+        keyUrl: 'https://console.anthropic.com/settings/keys',
+        keyHelp: 'Create account → API Keys → Create Key'
+    },
+    google: {
+        name: 'Google',
+        description: 'Gemini Pro models (Free tier available)',
+        keyUrl: 'https://aistudio.google.com/app/apikey',
+        keyHelp: 'Sign in with Google → Create API Key'
+    },
+    deepseek: {
+        name: 'Deepseek',
+        description: 'Deepseek Chat (Very affordable)',
+        keyUrl: 'https://platform.deepseek.com/api_keys',
+        keyHelp: 'Create account → API Keys → Create'
+    },
+    xai: {
+        name: 'xAI',
+        description: 'Grok models',
+        keyUrl: 'https://console.x.ai',
+        keyHelp: 'Create account → API Keys → Create'
+    }
 };
+
+// Keep old format for backwards compatibility
+const PROVIDER_NAMES = Object.fromEntries(
+    Object.entries(PROVIDER_INFO).map(([k, v]) => [k, v.name])
+);
 
 // Open settings modal
 function openSettingsModal() {
@@ -60,16 +90,25 @@ async function loadProviderSettings() {
 function renderProviderList(providers) {
     const list = document.getElementById('provider-list');
 
-    list.innerHTML = providers.map(provider => `
+    list.innerHTML = providers.map(provider => {
+        const info = PROVIDER_INFO[provider.provider] || { name: provider.provider, description: '', keyUrl: '#', keyHelp: '' };
+        return `
         <div class="provider-item" data-provider="${provider.provider}">
             <div class="provider-header">
-                <span class="provider-name">${PROVIDER_NAMES[provider.provider] || provider.provider}</span>
+                <div>
+                    <span class="provider-name">${info.name}</span>
+                    <div class="provider-description">${info.description}</div>
+                </div>
                 <span class="provider-status ${provider.configured ? 'configured' : 'not-configured'}">
-                    ${provider.configured ? 'Configured' : 'Not configured'}
+                    ${provider.configured ? '✓ Connected' : 'Not connected'}
                 </span>
             </div>
+            <div class="provider-help">
+                <a href="${info.keyUrl}" target="_blank" class="get-key-link">Get API Key →</a>
+                <span class="key-help-text">${info.keyHelp}</span>
+            </div>
             <div class="provider-actions">
-                <input type="password" class="form-input api-key-input" placeholder="Enter API key..."
+                <input type="password" class="form-input api-key-input" placeholder="Paste your API key here..."
                        value="${provider.configured ? '••••••••••••••••' : ''}">
                 <button class="btn btn-primary btn-small save-key-btn">Save</button>
                 ${provider.configured ? `
@@ -78,7 +117,7 @@ function renderProviderList(providers) {
                 ` : ''}
             </div>
         </div>
-    `).join('');
+    `}).join('');
 
     // Add event listeners
     list.querySelectorAll('.provider-item').forEach(item => {

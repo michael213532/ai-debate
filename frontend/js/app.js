@@ -113,26 +113,9 @@ function renderSubscriptionStatus() {
     }
 }
 
-// Handle upgrade button
-document.getElementById('upgrade-btn').addEventListener('click', async () => {
-    try {
-        const response = await fetch(`${API_BASE}/api/billing/checkout`, {
-            method: 'POST',
-            headers: getAuthHeaders()
-        });
-
-        if (!response.ok) {
-            const error = await response.json();
-            alert(error.detail || 'Failed to start checkout');
-            return;
-        }
-
-        const data = await response.json();
-        window.location.href = data.checkout_url;
-    } catch (error) {
-        console.error('Error starting checkout:', error);
-        alert('Failed to start checkout');
-    }
+// Handle upgrade button - go to pricing page
+document.getElementById('upgrade-btn').addEventListener('click', () => {
+    window.location.href = '/pricing';
 });
 
 // Render models grid

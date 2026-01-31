@@ -625,6 +625,35 @@ a:hover {
     color: var(--error-color);
 }
 
+.provider-description {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    margin-top: 4px;
+}
+
+.provider-help {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+}
+
+.get-key-link {
+    color: var(--primary-color);
+    font-size: 0.85rem;
+    font-weight: 500;
+}
+
+.get-key-link:hover {
+    text-decoration: underline;
+}
+
+.key-help-text {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+}
+
 .provider-actions {
     display: flex;
     gap: 8px;
