@@ -37,6 +37,14 @@ async function startDebate() {
             })
         });
 
+        if (response.status === 402) {
+            // Payment required - show upgrade prompt
+            if (confirm('You\'ve used all your free debates. Upgrade to Pro for unlimited debates?')) {
+                document.getElementById('upgrade-btn').click();
+            }
+            return;
+        }
+
         if (!response.ok) throw new Error('Failed to create debate');
 
         const debate = await response.json();
@@ -50,8 +58,9 @@ async function startDebate() {
         // Connect WebSocket
         connectWebSocket(debate.id);
 
-        // Reload history
+        // Reload history and subscription status
         loadDebateHistory();
+        loadSubscriptionStatus();
     } catch (error) {
         console.error('Error starting debate:', error);
         alert('Failed to start debate');

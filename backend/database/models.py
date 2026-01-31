@@ -10,6 +10,10 @@ class User:
     id: str
     email: str
     password_hash: str
+    stripe_customer_id: Optional[str] = None
+    subscription_status: str = "free"  # free, active, cancelled
+    subscription_end: Optional[datetime] = None
+    debates_used: int = 0
     created_at: Optional[datetime] = None
 
     @classmethod
@@ -18,8 +22,18 @@ class User:
             id=row["id"],
             email=row["email"],
             password_hash=row["password_hash"],
+            stripe_customer_id=row["stripe_customer_id"] if "stripe_customer_id" in row.keys() else None,
+            subscription_status=row["subscription_status"] if "subscription_status" in row.keys() else "free",
+            subscription_end=row["subscription_end"] if "subscription_end" in row.keys() else None,
+            debates_used=row["debates_used"] if "debates_used" in row.keys() else 0,
             created_at=row["created_at"]
         )
+
+    def can_create_debate(self, free_limit: int) -> bool:
+        """Check if user can create a new debate."""
+        if self.subscription_status == "active":
+            return True
+        return self.debates_used < free_limit
 
 
 @dataclass

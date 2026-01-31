@@ -5,7 +5,7 @@ import asyncio
 from typing import Dict
 from fastapi import APIRouter, HTTPException, status, Depends, WebSocket, WebSocketDisconnect
 from cryptography.fernet import Fernet
-from backend.config import AI_MODELS, ENCRYPTION_KEY, GLOBAL_API_KEYS
+from backend.config import AI_MODELS, ENCRYPTION_KEY, GLOBAL_API_KEYS, FREE_DEBATE_LIMIT
 from backend.auth.dependencies import get_current_user
 from backend.auth.jwt import verify_token
 from backend.database import get_db, User, Debate, Message
@@ -189,14 +189,28 @@ async def create_debate(
     current_user: User = Depends(get_current_user)
 ):
     """Create and start a new debate."""
+    # Check if user can create a debate
+    if not current_user.can_create_debate(FREE_DEBATE_LIMIT):
+        raise HTTPException(
+            status_code=status.HTTP_402_PAYMENT_REQUIRED,
+            detail="Free trial limit reached. Please subscribe to continue."
+        )
+
     debate_id = str(uuid.uuid4())
     config_json = json.dumps(request.config.model_dump())
 
     async with get_db() as db:
+        # Create debate
         await db.execute(
             "INSERT INTO debates (id, user_id, topic, config, status) VALUES (?, ?, ?, ?, ?)",
             (debate_id, current_user.id, request.topic, config_json, "pending")
         )
+        # Increment debates_used for free users
+        if current_user.subscription_status != "active":
+            await db.execute(
+                "UPDATE users SET debates_used = debates_used + 1 WHERE id = ?",
+                (current_user.id,)
+            )
         await db.commit()
 
     return DebateResponse(

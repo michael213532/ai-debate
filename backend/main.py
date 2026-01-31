@@ -15,6 +15,7 @@ from backend.config import HOST, PORT
 from backend.database import init_db
 from backend.auth import auth_router
 from backend.debate import debate_router
+from backend.billing import billing_router
 
 
 @asynccontextmanager
@@ -46,6 +47,7 @@ app.add_middleware(
 # Include routers
 app.include_router(auth_router)
 app.include_router(debate_router)
+app.include_router(billing_router)
 
 # Serve frontend static files
 frontend_path = Path(__file__).parent.parent / "frontend"

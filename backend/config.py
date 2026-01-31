@@ -24,6 +24,15 @@ DATABASE_PATH = Path(os.getenv("DATABASE_PATH", Path(__file__).parent / "ai_deba
 HOST = os.getenv("HOST", "0.0.0.0")
 PORT = int(os.getenv("PORT", "8000"))
 
+# Stripe
+STRIPE_SECRET_KEY = os.getenv("STRIPE_SECRET_KEY", "")
+STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET", "")
+STRIPE_PRICE_ID = os.getenv("STRIPE_PRICE_ID", "")  # Monthly subscription price ID
+APP_URL = os.getenv("APP_URL", "http://localhost:8000")
+
+# Free trial limits
+FREE_DEBATE_LIMIT = 5
+
 # Global API Keys (set these in Railway environment variables)
 GLOBAL_API_KEYS = {
     "openai": os.getenv("OPENAI_API_KEY", ""),

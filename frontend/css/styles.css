@@ -687,6 +687,44 @@ a:hover {
     border-radius: 4px;
 }
 
+/* Subscription Badge */
+.subscription-badge {
+    font-size: 0.75rem;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-weight: 600;
+}
+
+.subscription-badge.free {
+    background-color: rgba(100, 116, 139, 0.2);
+    color: var(--text-secondary);
+}
+
+.subscription-badge.pro {
+    background-color: rgba(99, 102, 241, 0.2);
+    color: var(--primary-color);
+}
+
+.upgrade-banner {
+    background: linear-gradient(135deg, var(--primary-color) 0%, #8b5cf6 100%);
+    color: white;
+    padding: 12px 20px;
+    border-radius: var(--border-radius);
+    margin-bottom: 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.upgrade-banner-text {
+    font-size: 0.9rem;
+}
+
+.upgrade-banner .btn {
+    background: white;
+    color: var(--primary-color);
+}
+
 /* Tabs */
 .tabs {
     display: flex;

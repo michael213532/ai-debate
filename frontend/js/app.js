@@ -7,6 +7,7 @@ let currentUser = null;
 let availableModels = [];
 let selectedModels = [];
 let configuredProviders = new Set();
+let subscriptionStatus = null;
 
 // Auth helper
 function getAuthHeaders() {
@@ -78,6 +79,61 @@ async function loadConfiguredProviders() {
         console.error('Error loading providers:', error);
     }
 }
+
+// Load subscription status
+async function loadSubscriptionStatus() {
+    try {
+        const response = await fetch(`${API_BASE}/api/billing/status`, {
+            headers: getAuthHeaders()
+        });
+
+        if (!response.ok) throw new Error('Failed to load subscription');
+
+        subscriptionStatus = await response.json();
+        renderSubscriptionStatus();
+    } catch (error) {
+        console.error('Error loading subscription:', error);
+    }
+}
+
+// Render subscription status in header
+function renderSubscriptionStatus() {
+    const badge = document.getElementById('subscription-status');
+    const upgradeBtn = document.getElementById('upgrade-btn');
+
+    if (subscriptionStatus.status === 'active') {
+        badge.textContent = 'PRO';
+        badge.className = 'subscription-badge pro';
+        upgradeBtn.style.display = 'none';
+    } else {
+        const remaining = subscriptionStatus.debates_limit - subscriptionStatus.debates_used;
+        badge.textContent = `${remaining} free left`;
+        badge.className = 'subscription-badge free';
+        upgradeBtn.style.display = 'inline-flex';
+    }
+}
+
+// Handle upgrade button
+document.getElementById('upgrade-btn').addEventListener('click', async () => {
+    try {
+        const response = await fetch(`${API_BASE}/api/billing/checkout`, {
+            method: 'POST',
+            headers: getAuthHeaders()
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            alert(error.detail || 'Failed to start checkout');
+            return;
+        }
+
+        const data = await response.json();
+        window.location.href = data.checkout_url;
+    } catch (error) {
+        console.error('Error starting checkout:', error);
+        alert('Failed to start checkout');
+    }
+});
 
 // Render models grid
 function renderModelsGrid() {
@@ -264,8 +320,17 @@ document.getElementById('settings-btn').addEventListener('click', () => {
         await Promise.all([
             loadModels(),
             loadConfiguredProviders(),
-            loadDebateHistory()
+            loadDebateHistory(),
+            loadSubscriptionStatus()
         ]);
+
+        // Check for subscription success/cancel from URL
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('subscription') === 'success') {
+            alert('Subscription activated! You now have unlimited debates.');
+            window.history.replaceState({}, '', '/app');
+            loadSubscriptionStatus();
+        }
     }
 })();
 

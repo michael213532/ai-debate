@@ -14,6 +14,10 @@ async def init_db():
                 id TEXT PRIMARY KEY,
                 email TEXT UNIQUE NOT NULL,
                 password_hash TEXT NOT NULL,
+                stripe_customer_id TEXT,
+                subscription_status TEXT DEFAULT 'free',
+                subscription_end TIMESTAMP,
+                debates_used INTEGER DEFAULT 0,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             );
 
