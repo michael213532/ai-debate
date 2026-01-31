@@ -67,7 +67,15 @@ async def get_user_api_keys(user_id: str) -> dict[str, str]:
             (user_id,)
         )
         rows = await cursor.fetchall()
-        return {row["provider"]: decrypt_api_key(row["api_key_encrypted"]) for row in rows}
+        keys = {}
+        for row in rows:
+            try:
+                keys[row["provider"]] = decrypt_api_key(row["api_key_encrypted"])
+            except Exception:
+                # Key was encrypted with different key, skip it
+                # User will need to re-enter this key
+                pass
+        return keys
 
 
 # Models endpoints
@@ -133,13 +141,9 @@ async def delete_api_key(
 @router.get("/api/keys", response_model=list[ProviderStatus])
 async def list_configured_providers(current_user: User = Depends(get_current_user)):
     """List all providers and whether they have API keys configured."""
-    async with get_db() as db:
-        cursor = await db.execute(
-            "SELECT provider FROM user_api_keys WHERE user_id = ?",
-            (current_user.id,)
-        )
-        rows = await cursor.fetchall()
-        configured = {row["provider"] for row in rows}
+    # Get keys that can actually be decrypted
+    valid_keys = await get_user_api_keys(current_user.id)
+    configured = set(valid_keys.keys())
 
     return [
         ProviderStatus(provider=provider_id, configured=provider_id in configured)
