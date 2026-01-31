@@ -5,7 +5,7 @@ import asyncio
 from typing import Dict
 from fastapi import APIRouter, HTTPException, status, Depends, WebSocket, WebSocketDisconnect
 from cryptography.fernet import Fernet
-from backend.config import AI_MODELS, ENCRYPTION_KEY
+from backend.config import AI_MODELS, ENCRYPTION_KEY, GLOBAL_API_KEYS
 from backend.auth.dependencies import get_current_user
 from backend.auth.jwt import verify_token
 from backend.database import get_db, User, Debate, Message
@@ -60,14 +60,21 @@ def decrypt_api_key(encrypted_key: str) -> str:
 
 
 async def get_user_api_keys(user_id: str) -> dict[str, str]:
-    """Get all decrypted API keys for a user."""
+    """Get API keys - uses global keys if set, otherwise user keys."""
+    # Start with global keys
+    keys = {k: v for k, v in GLOBAL_API_KEYS.items() if v}
+
+    # Add user keys (can override global if user has their own)
     async with get_db() as db:
         cursor = await db.execute(
             "SELECT provider, api_key_encrypted FROM user_api_keys WHERE user_id = ?",
             (user_id,)
         )
         rows = await cursor.fetchall()
-        return {row["provider"]: decrypt_api_key(row["api_key_encrypted"]) for row in rows}
+        for row in rows:
+            keys[row["provider"]] = decrypt_api_key(row["api_key_encrypted"])
+
+    return keys
 
 
 # Models endpoints

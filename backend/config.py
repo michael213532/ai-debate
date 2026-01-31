@@ -24,6 +24,15 @@ DATABASE_PATH = Path(os.getenv("DATABASE_PATH", Path(__file__).parent / "ai_deba
 HOST = os.getenv("HOST", "0.0.0.0")
 PORT = int(os.getenv("PORT", "8000"))
 
+# Global API Keys (set these in Railway environment variables)
+GLOBAL_API_KEYS = {
+    "openai": os.getenv("OPENAI_API_KEY", ""),
+    "anthropic": os.getenv("ANTHROPIC_API_KEY", ""),
+    "google": os.getenv("GOOGLE_API_KEY", ""),
+    "deepseek": os.getenv("DEEPSEEK_API_KEY", ""),
+    "xai": os.getenv("XAI_API_KEY", ""),
+}
+
 # Available AI models by provider
 AI_MODELS = {
     "openai": {
