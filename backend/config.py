@@ -38,10 +38,12 @@ AI_MODELS = {
     "openai": {
         "name": "OpenAI",
         "models": [
-            {"id": "gpt-4", "name": "GPT-4"},
+            {"id": "gpt-5.2", "name": "GPT-5.2"},
+            {"id": "gpt-5", "name": "GPT-5"},
             {"id": "gpt-4o", "name": "GPT-4o"},
             {"id": "gpt-4o-mini", "name": "GPT-4o Mini"},
-            {"id": "gpt-3.5-turbo", "name": "GPT-3.5 Turbo"},
+            {"id": "o1", "name": "o1"},
+            {"id": "o1-mini", "name": "o1-mini"},
         ]
     },
     "anthropic": {
