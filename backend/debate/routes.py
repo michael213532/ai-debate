@@ -5,7 +5,7 @@ import asyncio
 from typing import Dict
 from fastapi import APIRouter, HTTPException, status, Depends, WebSocket, WebSocketDisconnect
 from cryptography.fernet import Fernet
-from backend.config import AI_MODELS, ENCRYPTION_KEY, GLOBAL_API_KEYS, FREE_DEBATE_LIMIT
+from backend.config import AI_MODELS, ENCRYPTION_KEY, FREE_DEBATE_LIMIT
 from backend.auth.dependencies import get_current_user
 from backend.auth.jwt import verify_token
 from backend.database import get_db, User, Debate, Message
@@ -60,21 +60,14 @@ def decrypt_api_key(encrypted_key: str) -> str:
 
 
 async def get_user_api_keys(user_id: str) -> dict[str, str]:
-    """Get API keys - uses global keys if set, otherwise user keys."""
-    # Start with global keys
-    keys = {k: v for k, v in GLOBAL_API_KEYS.items() if v}
-
-    # Add user keys (can override global if user has their own)
+    """Get user's API keys."""
     async with get_db() as db:
         cursor = await db.execute(
             "SELECT provider, api_key_encrypted FROM user_api_keys WHERE user_id = ?",
             (user_id,)
         )
         rows = await cursor.fetchall()
-        for row in rows:
-            keys[row["provider"]] = decrypt_api_key(row["api_key_encrypted"])
-
-    return keys
+        return {row["provider"]: decrypt_api_key(row["api_key_encrypted"]) for row in rows}
 
 
 # Models endpoints
@@ -189,28 +182,35 @@ async def create_debate(
     current_user: User = Depends(get_current_user)
 ):
     """Create and start a new debate."""
-    # Check if user can create a debate
+    # Check if user can create a debate (free users limited to FREE_DEBATE_LIMIT)
     if not current_user.can_create_debate(FREE_DEBATE_LIMIT):
         raise HTTPException(
             status_code=status.HTTP_402_PAYMENT_REQUIRED,
-            detail="Free trial limit reached. Please subscribe to continue."
+            detail=f"Free trial limit ({FREE_DEBATE_LIMIT} debates) reached. Upgrade to Pro for unlimited debates."
         )
 
     debate_id = str(uuid.uuid4())
     config_json = json.dumps(request.config.model_dump())
 
     async with get_db() as db:
-        # Create debate
         await db.execute(
             "INSERT INTO debates (id, user_id, topic, config, status) VALUES (?, ?, ?, ?, ?)",
             (debate_id, current_user.id, request.topic, config_json, "pending")
         )
         # Increment debates_used for free users
         if current_user.subscription_status != "active":
-            await db.execute(
-                "UPDATE users SET debates_used = debates_used + 1 WHERE id = ?",
-                (current_user.id,)
-            )
+            current_month = current_user.get_current_month()
+            if current_user.debates_reset_month != current_month:
+                # New month - reset counter
+                await db.execute(
+                    "UPDATE users SET debates_used = 1, debates_reset_month = ? WHERE id = ?",
+                    (current_month, current_user.id)
+                )
+            else:
+                await db.execute(
+                    "UPDATE users SET debates_used = debates_used + 1 WHERE id = ?",
+                    (current_user.id,)
+                )
         await db.commit()
 
     return DebateResponse(

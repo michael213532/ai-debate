@@ -107,7 +107,7 @@ function renderSubscriptionStatus() {
         upgradeBtn.style.display = 'none';
     } else {
         const remaining = subscriptionStatus.debates_limit - subscriptionStatus.debates_used;
-        badge.textContent = `${remaining} free left`;
+        badge.textContent = `${remaining}/${subscriptionStatus.debates_limit} this month`;
         badge.className = 'subscription-badge free';
         upgradeBtn.style.display = 'inline-flex';
     }

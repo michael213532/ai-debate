@@ -27,9 +27,10 @@ class CheckoutResponse(BaseModel):
 async def get_subscription_status(current_user: User = Depends(get_current_user)):
     """Get current user's subscription status."""
     is_active = current_user.subscription_status == "active"
+    debates_used = current_user.get_debates_used_this_month()
     return SubscriptionStatus(
         status=current_user.subscription_status,
-        debates_used=current_user.debates_used,
+        debates_used=debates_used,
         debates_limit=None if is_active else FREE_DEBATE_LIMIT,
         can_debate=current_user.can_create_debate(FREE_DEBATE_LIMIT)
     )

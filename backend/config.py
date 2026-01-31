@@ -30,17 +30,8 @@ STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET", "")
 STRIPE_PRICE_ID = os.getenv("STRIPE_PRICE_ID", "")  # Monthly subscription price ID
 APP_URL = os.getenv("APP_URL", "http://localhost:8000")
 
-# Free trial limits
-FREE_DEBATE_LIMIT = 5
-
-# Global API Keys (set these in Railway environment variables)
-GLOBAL_API_KEYS = {
-    "openai": os.getenv("OPENAI_API_KEY", ""),
-    "anthropic": os.getenv("ANTHROPIC_API_KEY", ""),
-    "google": os.getenv("GOOGLE_API_KEY", ""),
-    "deepseek": os.getenv("DEEPSEEK_API_KEY", ""),
-    "xai": os.getenv("XAI_API_KEY", ""),
-}
+# Free tier limits
+FREE_DEBATE_LIMIT = 5  # Free users get 5 debates total
 
 # Available AI models by provider
 AI_MODELS = {

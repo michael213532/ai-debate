@@ -14,6 +14,7 @@ class User:
     subscription_status: str = "free"  # free, active, cancelled
     subscription_end: Optional[datetime] = None
     debates_used: int = 0
+    debates_reset_month: Optional[str] = None
     created_at: Optional[datetime] = None
 
     @classmethod
@@ -26,14 +27,26 @@ class User:
             subscription_status=row["subscription_status"] if "subscription_status" in row.keys() else "free",
             subscription_end=row["subscription_end"] if "subscription_end" in row.keys() else None,
             debates_used=row["debates_used"] if "debates_used" in row.keys() else 0,
+            debates_reset_month=row["debates_reset_month"] if "debates_reset_month" in row.keys() else None,
             created_at=row["created_at"]
         )
+
+    def get_current_month(self) -> str:
+        """Get current month as string (YYYY-MM)."""
+        return datetime.now().strftime("%Y-%m")
+
+    def get_debates_used_this_month(self) -> int:
+        """Get debates used this month (resets if new month)."""
+        current_month = self.get_current_month()
+        if self.debates_reset_month != current_month:
+            return 0  # New month, counter resets
+        return self.debates_used
 
     def can_create_debate(self, free_limit: int) -> bool:
         """Check if user can create a new debate."""
         if self.subscription_status == "active":
             return True
-        return self.debates_used < free_limit
+        return self.get_debates_used_this_month() < free_limit
 
 
 @dataclass

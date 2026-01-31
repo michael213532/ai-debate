@@ -18,6 +18,7 @@ async def init_db():
                 subscription_status TEXT DEFAULT 'free',
                 subscription_end TIMESTAMP,
                 debates_used INTEGER DEFAULT 0,
+                debates_reset_month TEXT,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             );
 
