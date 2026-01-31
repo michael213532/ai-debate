@@ -30,27 +30,13 @@ class AnthropicProvider(BaseProvider):
     async def test_connection(self) -> bool:
         """Test Anthropic API connection."""
         try:
+            # Use claude-3-haiku as it's cheapest and most available
             await self.client.messages.create(
-                model="claude-3-5-sonnet-20241022",
+                model="claude-3-haiku-20240307",
                 max_tokens=10,
                 messages=[{"role": "user", "content": "Hi"}]
             )
             return True
-        except anthropic.AuthenticationError:
-            return False
-        except anthropic.PermissionDeniedError:
-            return False
-        except anthropic.NotFoundError:
-            # Model not found, try older model
-            try:
-                await self.client.messages.create(
-                    model="claude-3-sonnet-20240229",
-                    max_tokens=10,
-                    messages=[{"role": "user", "content": "Hi"}]
-                )
-                return True
-            except:
-                return False
         except Exception as e:
-            print(f"Anthropic test error: {e}")
+            print(f"Anthropic test error: {type(e).__name__}: {e}")
             return False
