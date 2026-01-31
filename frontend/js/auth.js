@@ -111,6 +111,7 @@ document.getElementById('register-form').addEventListener('submit', async (e) =>
     const email = document.getElementById('register-email').value;
     const password = document.getElementById('register-password').value;
     const confirm = document.getElementById('register-confirm').value;
+    const privacyAccepted = document.getElementById('privacy-checkbox').checked;
 
     if (password !== confirm) {
         showAlert('Passwords do not match');
@@ -122,13 +123,18 @@ document.getElementById('register-form').addEventListener('submit', async (e) =>
         return;
     }
 
+    if (!privacyAccepted) {
+        showAlert('You must accept the Privacy Policy to create an account');
+        return;
+    }
+
     setLoading(form, true);
 
     try {
         const response = await fetch(`${API_BASE}/api/auth/register`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email, password })
+            body: JSON.stringify({ email, password, privacy_accepted: privacyAccepted })
         });
 
         const data = await response.json();

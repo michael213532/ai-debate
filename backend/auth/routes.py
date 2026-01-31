@@ -1,8 +1,10 @@
 """Authentication routes."""
 import uuid
 import bcrypt
+from datetime import datetime
 from fastapi import APIRouter, HTTPException, status, Depends
 from pydantic import BaseModel, EmailStr
+from typing import Optional
 from .jwt import create_access_token
 from .dependencies import get_current_user
 from backend.database import get_db, User
@@ -23,6 +25,7 @@ def verify_password(password: str, hashed: str) -> bool:
 class RegisterRequest(BaseModel):
     email: EmailStr
     password: str
+    privacy_accepted: bool = False
 
 
 class LoginRequest(BaseModel):
@@ -38,11 +41,19 @@ class TokenResponse(BaseModel):
 class UserResponse(BaseModel):
     id: str
     email: str
+    privacy_accepted: bool = False
 
 
 @router.post("/register", response_model=TokenResponse)
 async def register(request: RegisterRequest):
     """Register a new user."""
+    # Require privacy acceptance at registration
+    if not request.privacy_accepted:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="You must accept the privacy policy to create an account"
+        )
+
     async with get_db() as db:
         # Check if email already exists
         cursor = await db.execute(
@@ -58,10 +69,12 @@ async def register(request: RegisterRequest):
         # Create new user
         user_id = str(uuid.uuid4())
         password_hash = hash_password(request.password)
+        now = datetime.utcnow().isoformat()
 
         await db.execute(
-            "INSERT INTO users (id, email, password_hash) VALUES (?, ?, ?)",
-            (user_id, request.email, password_hash)
+            """INSERT INTO users (id, email, password_hash, privacy_accepted, privacy_accepted_at)
+               VALUES (?, ?, ?, 1, ?)""",
+            (user_id, request.email, password_hash, now)
         )
         await db.commit()
 
@@ -101,4 +114,21 @@ async def login(request: LoginRequest):
 @router.get("/me", response_model=UserResponse)
 async def get_me(current_user: User = Depends(get_current_user)):
     """Get current user info."""
-    return UserResponse(id=current_user.id, email=current_user.email)
+    return UserResponse(
+        id=current_user.id,
+        email=current_user.email,
+        privacy_accepted=current_user.privacy_accepted
+    )
+
+
+@router.post("/accept-privacy")
+async def accept_privacy(current_user: User = Depends(get_current_user)):
+    """Accept the privacy policy (for existing users)."""
+    async with get_db() as db:
+        now = datetime.utcnow().isoformat()
+        await db.execute(
+            "UPDATE users SET privacy_accepted = 1, privacy_accepted_at = ? WHERE id = ?",
+            (now, current_user.id)
+        )
+        await db.commit()
+    return {"success": True}

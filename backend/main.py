@@ -77,6 +77,12 @@ async def serve_pricing():
     return FileResponse(frontend_path / "pricing.html")
 
 
+@app.get("/privacy")
+async def serve_privacy():
+    """Serve the privacy policy page."""
+    return FileResponse(frontend_path / "privacy.html")
+
+
 @app.get("/health")
 async def health_check():
     """Health check endpoint."""

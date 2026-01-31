@@ -135,6 +135,36 @@
         </div>
     </div>
 
+    <!-- Privacy Policy Modal (for existing users) -->
+    <div id="privacy-modal" class="modal-overlay" style="display: none;">
+        <div class="modal" style="max-width: 500px;">
+            <div class="modal-header">
+                <h2 class="modal-title">Privacy Policy Update</h2>
+            </div>
+            <div class="modal-body">
+                <p style="color: var(--text-secondary); margin-bottom: 16px;">
+                    We've updated our privacy policy to better explain how we handle your data, especially your API keys.
+                </p>
+                <div style="background: rgba(99, 102, 241, 0.1); border: 1px solid rgba(99, 102, 241, 0.3); border-radius: var(--border-radius); padding: 16px; margin-bottom: 20px;">
+                    <p style="font-size: 0.9rem; color: var(--text-secondary); margin: 0;">
+                        <strong style="color: var(--text-primary);">Your API keys are secure:</strong><br>
+                        All keys are encrypted with AES-256 encryption, stored securely, and never exposed to your browser or third parties.
+                    </p>
+                </div>
+                <p style="color: var(--text-secondary); margin-bottom: 20px;">
+                    Please review and accept our <a href="/privacy" target="_blank" style="color: var(--primary-color);">Privacy Policy</a> to continue using Ensemble AI.
+                </p>
+                <label style="display: flex; align-items: flex-start; gap: 10px; cursor: pointer; margin-bottom: 20px;">
+                    <input type="checkbox" id="privacy-modal-checkbox" style="margin-top: 4px; width: 18px; height: 18px; cursor: pointer;">
+                    <span style="font-size: 0.9rem; color: var(--text-secondary);">
+                        I have read and accept the <a href="/privacy" target="_blank" style="color: var(--primary-color);">Privacy Policy</a>
+                    </span>
+                </label>
+                <button id="privacy-accept-btn" class="btn btn-primary" style="width: 100%;" disabled>Accept and Continue</button>
+            </div>
+        </div>
+    </div>
+
     <script src="/js/app.js"></script>
     <script src="/js/settings.js"></script>
     <script src="/js/debate.js"></script>

@@ -37,12 +37,58 @@ async function checkAuth() {
 
         currentUser = await response.json();
         document.getElementById('user-email').textContent = currentUser.email;
+
+        // Check if user has accepted privacy policy
+        if (!currentUser.privacy_accepted) {
+            showPrivacyModal();
+        }
+
         return true;
     } catch (error) {
         localStorage.removeItem('token');
         window.location.href = '/';
         return false;
     }
+}
+
+// Show privacy policy modal for existing users
+function showPrivacyModal() {
+    const modal = document.getElementById('privacy-modal');
+    const checkbox = document.getElementById('privacy-modal-checkbox');
+    const acceptBtn = document.getElementById('privacy-accept-btn');
+
+    modal.style.display = 'flex';
+
+    // Enable/disable accept button based on checkbox
+    checkbox.addEventListener('change', () => {
+        acceptBtn.disabled = !checkbox.checked;
+    });
+
+    // Handle accept button click
+    acceptBtn.addEventListener('click', async () => {
+        if (!checkbox.checked) return;
+
+        acceptBtn.disabled = true;
+        acceptBtn.textContent = 'Accepting...';
+
+        try {
+            const response = await fetch(`${API_BASE}/api/auth/accept-privacy`, {
+                method: 'POST',
+                headers: getAuthHeaders()
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to accept privacy policy');
+            }
+
+            currentUser.privacy_accepted = true;
+            modal.style.display = 'none';
+        } catch (error) {
+            alert('Failed to save privacy acceptance. Please try again.');
+            acceptBtn.disabled = false;
+            acceptBtn.textContent = 'Accept and Continue';
+        }
+    });
 }
 
 // Load available models

@@ -58,6 +58,19 @@ async def init_db():
         """)
         await db.commit()
 
+        # Add privacy columns if they don't exist (for existing databases)
+        try:
+            await db.execute("ALTER TABLE users ADD COLUMN privacy_accepted INTEGER DEFAULT 0")
+            await db.commit()
+        except:
+            pass  # Column already exists
+
+        try:
+            await db.execute("ALTER TABLE users ADD COLUMN privacy_accepted_at TIMESTAMP")
+            await db.commit()
+        except:
+            pass  # Column already exists
+
 
 @asynccontextmanager
 async def get_db():

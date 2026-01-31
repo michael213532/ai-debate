@@ -15,6 +15,8 @@ class User:
     subscription_end: Optional[datetime] = None
     debates_used: int = 0
     debates_reset_month: Optional[str] = None
+    privacy_accepted: bool = False
+    privacy_accepted_at: Optional[datetime] = None
     created_at: Optional[datetime] = None
 
     @classmethod
@@ -28,6 +30,8 @@ class User:
             subscription_end=row["subscription_end"] if "subscription_end" in row.keys() else None,
             debates_used=row["debates_used"] if "debates_used" in row.keys() else 0,
             debates_reset_month=row["debates_reset_month"] if "debates_reset_month" in row.keys() else None,
+            privacy_accepted=bool(row["privacy_accepted"]) if "privacy_accepted" in row.keys() else False,
+            privacy_accepted_at=row["privacy_accepted_at"] if "privacy_accepted_at" in row.keys() else None,
             created_at=row["created_at"]
         )
 
