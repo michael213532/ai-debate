@@ -13,6 +13,15 @@ document.getElementById('start-btn').addEventListener('click', startDebate);
 // Stop debate button
 document.getElementById('stop-btn').addEventListener('click', stopDebate);
 
+// Export debate button
+document.getElementById('export-btn').addEventListener('click', exportDebate);
+
+// Export debate to PDF
+function exportDebate() {
+    if (!currentDebateId) return;
+    window.open(`${API_BASE}/api/debates/${currentDebateId}/export`, '_blank');
+}
+
 // Start a new debate
 async function startDebate() {
     const topic = document.getElementById('topic').value.trim();
@@ -207,6 +216,10 @@ function handleWebSocketMessage(message) {
             document.getElementById('debate-status').textContent = message.status === 'completed' ? 'Completed' : 'Stopped';
             document.getElementById('debate-status').className = `status-value status-${message.status}`;
             document.getElementById('stop-btn').style.display = 'none';
+            // Show export button for Pro users
+            if (subscriptionStatus && subscriptionStatus.status === 'active') {
+                document.getElementById('export-btn').style.display = 'inline-flex';
+            }
             loadDebateHistory();
             break;
 

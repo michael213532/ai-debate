@@ -100,17 +100,25 @@ async function loadSubscriptionStatus() {
 function renderSubscriptionStatus() {
     const badge = document.getElementById('subscription-status');
     const upgradeBtn = document.getElementById('upgrade-btn');
+    const personalitiesSection = document.getElementById('personalities-section');
 
     if (subscriptionStatus.status === 'active') {
         badge.textContent = 'PRO';
         badge.className = 'subscription-badge pro';
         upgradeBtn.style.display = 'none';
+        // Show personalities section for Pro users
+        if (personalitiesSection) personalitiesSection.style.display = 'block';
     } else {
         const remaining = subscriptionStatus.debates_limit - subscriptionStatus.debates_used;
         badge.textContent = `${remaining}/${subscriptionStatus.debates_limit} this month`;
         badge.className = 'subscription-badge free';
         upgradeBtn.style.display = 'inline-flex';
+        // Hide personalities section for free users
+        if (personalitiesSection) personalitiesSection.style.display = 'none';
     }
+
+    // Update personalities list when subscription status loads
+    renderPersonalitiesList();
 }
 
 // Handle upgrade button - go to pricing page
@@ -156,12 +164,44 @@ function toggleModel(model) {
         selectedModels.push({
             provider: model.provider,
             model_id: model.id,
-            model_name: model.name
+            model_name: model.name,
+            role: ''  // Custom personality
         });
     }
 
     renderModelsGrid();
+    renderPersonalitiesList();
     updateStartButton();
+}
+
+// Render personalities list for Pro users
+function renderPersonalitiesList() {
+    const list = document.getElementById('personalities-list');
+    if (!list) return;
+
+    if (selectedModels.length === 0) {
+        list.innerHTML = '<p style="color: var(--text-secondary); font-size: 0.9rem;">Select models above to assign personalities</p>';
+        return;
+    }
+
+    list.innerHTML = selectedModels.map((model, index) => `
+        <div class="personality-item">
+            <span class="personality-model-name">${model.model_name}</span>
+            <input type="text"
+                   class="form-input personality-input"
+                   placeholder="e.g., Devil's advocate, Optimist, Skeptic..."
+                   value="${model.role || ''}"
+                   data-index="${index}">
+        </div>
+    `).join('');
+
+    // Add event listeners
+    list.querySelectorAll('.personality-input').forEach(input => {
+        input.addEventListener('input', (e) => {
+            const index = parseInt(e.target.dataset.index);
+            selectedModels[index].role = e.target.value;
+        });
+    });
 }
 
 // Update start button state

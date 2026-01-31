@@ -292,6 +292,109 @@ async def get_debate(
     return DebateDetailResponse(debate=debate, messages=messages)
 
 
+@router.get("/api/debates/{debate_id}/export")
+async def export_debate(
+    debate_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Export debate as printable HTML (Pro feature)."""
+    # Check if user is Pro
+    if current_user.subscription_status != "active":
+        raise HTTPException(
+            status_code=status.HTTP_402_PAYMENT_REQUIRED,
+            detail="Export to PDF is a Pro feature. Please upgrade to access."
+        )
+
+    async with get_db() as db:
+        cursor = await db.execute(
+            "SELECT * FROM debates WHERE id = ? AND user_id = ?",
+            (debate_id, current_user.id)
+        )
+        debate_row = await cursor.fetchone()
+
+        if not debate_row:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Debate not found"
+            )
+
+        cursor = await db.execute(
+            "SELECT * FROM messages WHERE debate_id = ? ORDER BY round, created_at",
+            (debate_id,)
+        )
+        message_rows = await cursor.fetchall()
+
+    config = json.loads(debate_row["config"]) if isinstance(debate_row["config"], str) else debate_row["config"]
+
+    # Build HTML
+    html = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Debate: {debate_row["topic"]}</title>
+        <style>
+            body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 800px; margin: 40px auto; padding: 20px; }}
+            h1 {{ font-size: 24px; border-bottom: 2px solid #6366f1; padding-bottom: 10px; }}
+            .meta {{ color: #666; margin-bottom: 30px; }}
+            .round {{ margin: 30px 0; }}
+            .round-title {{ font-size: 14px; color: #6366f1; font-weight: 600; text-transform: uppercase; margin-bottom: 15px; }}
+            .message {{ background: #f8f9fa; border-radius: 8px; padding: 20px; margin-bottom: 15px; }}
+            .model-name {{ font-weight: 600; color: #333; margin-bottom: 10px; }}
+            .content {{ line-height: 1.7; white-space: pre-wrap; }}
+            .summary {{ background: #f0f0ff; border: 2px solid #6366f1; border-radius: 8px; padding: 20px; margin-top: 30px; }}
+            .summary-title {{ font-size: 18px; font-weight: 600; margin-bottom: 15px; }}
+            @media print {{ body {{ margin: 20px; }} }}
+        </style>
+    </head>
+    <body>
+        <h1>{debate_row["topic"]}</h1>
+        <div class="meta">
+            <strong>Models:</strong> {', '.join(m.get('model_name', '') for m in config.get('models', []))}<br>
+            <strong>Rounds:</strong> {config.get('rounds', 3)}<br>
+            <strong>Date:</strong> {debate_row["created_at"]}
+        </div>
+    """
+
+    # Group messages by round
+    rounds = {}
+    summary = None
+    for row in message_rows:
+        if row["round"] == 0:
+            summary = row
+        else:
+            if row["round"] not in rounds:
+                rounds[row["round"]] = []
+            rounds[row["round"]].append(row)
+
+    for round_num in sorted(rounds.keys()):
+        html += f'<div class="round"><div class="round-title">Round {round_num}</div>'
+        for msg in rounds[round_num]:
+            html += f'''
+            <div class="message">
+                <div class="model-name">{msg["model_name"]}</div>
+                <div class="content">{msg["content"]}</div>
+            </div>
+            '''
+        html += '</div>'
+
+    if summary:
+        html += f'''
+        <div class="summary">
+            <div class="summary-title">Summary by {summary["model_name"]}</div>
+            <div class="content">{summary["content"]}</div>
+        </div>
+        '''
+
+    html += """
+        <script>window.onload = function() { window.print(); }</script>
+    </body>
+    </html>
+    """
+
+    from fastapi.responses import HTMLResponse
+    return HTMLResponse(content=html)
+
+
 @router.post("/api/debates/{debate_id}/stop")
 async def stop_debate(
     debate_id: str,

@@ -55,6 +55,18 @@
                                 <!-- Models will be loaded here -->
                             </div>
                         </div>
+
+                        <!-- Personalities Section (Pro Feature) -->
+                        <div id="personalities-section" class="form-group" style="margin-top: 16px; display: none;">
+                            <label class="form-label">
+                                Custom Personalities
+                                <span class="pro-badge">PRO</span>
+                            </label>
+                            <p class="form-hint">Assign perspectives or roles to each model (optional)</p>
+                            <div id="personalities-list" class="personalities-list">
+                                <!-- Personality inputs will be added here -->
+                            </div>
+                        </div>
                     </div>
                 </section>
 
@@ -71,6 +83,7 @@
                                 <span id="debate-status" class="status-value status-running">Starting...</span>
                             </div>
                         </div>
+                        <button id="export-btn" class="btn btn-secondary btn-small" style="display: none;">Export PDF</button>
                         <button id="stop-btn" class="btn btn-danger btn-small">Stop Debate</button>
                     </div>
 
