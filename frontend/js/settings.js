@@ -1,0 +1,207 @@
+/**
+ * Settings modal and API key management
+ */
+
+const PROVIDER_NAMES = {
+    openai: 'OpenAI',
+    anthropic: 'Anthropic',
+    google: 'Google',
+    deepseek: 'Deepseek',
+    xai: 'xAI'
+};
+
+// Open settings modal
+function openSettingsModal() {
+    const modal = document.getElementById('settings-modal');
+    modal.classList.add('active');
+    loadProviderSettings();
+}
+
+// Close settings modal
+function closeSettingsModal() {
+    const modal = document.getElementById('settings-modal');
+    modal.classList.remove('active');
+}
+
+// Modal close button
+document.querySelector('.modal-close').addEventListener('click', closeSettingsModal);
+
+// Close on overlay click
+document.getElementById('settings-modal').addEventListener('click', (e) => {
+    if (e.target === e.currentTarget) {
+        closeSettingsModal();
+    }
+});
+
+// Close on Escape key
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+        closeSettingsModal();
+    }
+});
+
+// Load provider settings
+async function loadProviderSettings() {
+    try {
+        const response = await fetch(`${API_BASE}/api/keys`, {
+            headers: getAuthHeaders()
+        });
+
+        if (!response.ok) throw new Error('Failed to load settings');
+
+        const providers = await response.json();
+        renderProviderList(providers);
+    } catch (error) {
+        console.error('Error loading settings:', error);
+    }
+}
+
+// Render provider list
+function renderProviderList(providers) {
+    const list = document.getElementById('provider-list');
+
+    list.innerHTML = providers.map(provider => `
+        <div class="provider-item" data-provider="${provider.provider}">
+            <div class="provider-header">
+                <span class="provider-name">${PROVIDER_NAMES[provider.provider] || provider.provider}</span>
+                <span class="provider-status ${provider.configured ? 'configured' : 'not-configured'}">
+                    ${provider.configured ? 'Configured' : 'Not configured'}
+                </span>
+            </div>
+            <div class="provider-actions">
+                <input type="password" class="form-input api-key-input" placeholder="Enter API key..."
+                       value="${provider.configured ? '••••••••••••••••' : ''}">
+                <button class="btn btn-primary btn-small save-key-btn">Save</button>
+                ${provider.configured ? `
+                    <button class="btn btn-secondary btn-small test-key-btn">Test</button>
+                    <button class="btn btn-danger btn-small delete-key-btn">Delete</button>
+                ` : ''}
+            </div>
+        </div>
+    `).join('');
+
+    // Add event listeners
+    list.querySelectorAll('.provider-item').forEach(item => {
+        const provider = item.dataset.provider;
+        const input = item.querySelector('.api-key-input');
+        const saveBtn = item.querySelector('.save-key-btn');
+        const testBtn = item.querySelector('.test-key-btn');
+        const deleteBtn = item.querySelector('.delete-key-btn');
+
+        // Clear placeholder on focus
+        input.addEventListener('focus', () => {
+            if (input.value.startsWith('••')) {
+                input.value = '';
+            }
+        });
+
+        // Save key
+        saveBtn.addEventListener('click', () => saveApiKey(provider, input.value));
+
+        // Test key
+        if (testBtn) {
+            testBtn.addEventListener('click', () => testApiKey(provider, testBtn));
+        }
+
+        // Delete key
+        if (deleteBtn) {
+            deleteBtn.addEventListener('click', () => deleteApiKey(provider));
+        }
+    });
+}
+
+// Save API key
+async function saveApiKey(provider, apiKey) {
+    if (!apiKey || apiKey.startsWith('••')) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`${API_BASE}/api/keys/${provider}`, {
+            method: 'POST',
+            headers: getAuthHeaders(),
+            body: JSON.stringify({ api_key: apiKey })
+        });
+
+        if (!response.ok) throw new Error('Failed to save API key');
+
+        // Reload settings and models
+        await loadProviderSettings();
+        await loadConfiguredProviders();
+
+        // Show success feedback
+        const item = document.querySelector(`[data-provider="${provider}"]`);
+        const status = item.querySelector('.provider-status');
+        status.className = 'provider-status configured';
+        status.textContent = 'Saved!';
+        setTimeout(() => {
+            status.textContent = 'Configured';
+        }, 2000);
+    } catch (error) {
+        console.error('Error saving API key:', error);
+        alert('Failed to save API key');
+    }
+}
+
+// Test API key
+async function testApiKey(provider, button) {
+    const originalText = button.textContent;
+    button.textContent = 'Testing...';
+    button.disabled = true;
+
+    try {
+        const response = await fetch(`${API_BASE}/api/keys/${provider}/test`, {
+            method: 'POST',
+            headers: getAuthHeaders()
+        });
+
+        const data = await response.json();
+
+        if (data.valid) {
+            button.textContent = 'Valid!';
+            button.classList.remove('btn-secondary');
+            button.classList.add('btn-primary');
+        } else {
+            button.textContent = 'Invalid';
+            button.classList.remove('btn-secondary');
+            button.classList.add('btn-danger');
+        }
+
+        setTimeout(() => {
+            button.textContent = originalText;
+            button.classList.remove('btn-primary', 'btn-danger');
+            button.classList.add('btn-secondary');
+            button.disabled = false;
+        }, 2000);
+    } catch (error) {
+        console.error('Error testing API key:', error);
+        button.textContent = 'Error';
+        setTimeout(() => {
+            button.textContent = originalText;
+            button.disabled = false;
+        }, 2000);
+    }
+}
+
+// Delete API key
+async function deleteApiKey(provider) {
+    if (!confirm(`Are you sure you want to delete the ${PROVIDER_NAMES[provider]} API key?`)) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`${API_BASE}/api/keys/${provider}`, {
+            method: 'DELETE',
+            headers: getAuthHeaders()
+        });
+
+        if (!response.ok) throw new Error('Failed to delete API key');
+
+        // Reload settings and models
+        await loadProviderSettings();
+        await loadConfiguredProviders();
+    } catch (error) {
+        console.error('Error deleting API key:', error);
+        alert('Failed to delete API key');
+    }
+}

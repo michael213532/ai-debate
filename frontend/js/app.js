@@ -1,0 +1,283 @@
+/**
+ * Main application logic
+ */
+
+const API_BASE = '';
+let currentUser = null;
+let availableModels = [];
+let selectedModels = [];
+let configuredProviders = new Set();
+
+// Auth helper
+function getAuthHeaders() {
+    const token = localStorage.getItem('token');
+    return {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+    };
+}
+
+// Check authentication
+async function checkAuth() {
+    const token = localStorage.getItem('token');
+    if (!token) {
+        window.location.href = '/';
+        return false;
+    }
+
+    try {
+        const response = await fetch(`${API_BASE}/api/auth/me`, {
+            headers: getAuthHeaders()
+        });
+
+        if (!response.ok) {
+            throw new Error('Not authenticated');
+        }
+
+        currentUser = await response.json();
+        document.getElementById('user-email').textContent = currentUser.email;
+        return true;
+    } catch (error) {
+        localStorage.removeItem('token');
+        window.location.href = '/';
+        return false;
+    }
+}
+
+// Load available models
+async function loadModels() {
+    try {
+        const response = await fetch(`${API_BASE}/api/models`, {
+            headers: getAuthHeaders()
+        });
+
+        if (!response.ok) throw new Error('Failed to load models');
+
+        availableModels = await response.json();
+        renderModelsGrid();
+    } catch (error) {
+        console.error('Error loading models:', error);
+    }
+}
+
+// Load configured providers
+async function loadConfiguredProviders() {
+    try {
+        const response = await fetch(`${API_BASE}/api/keys`, {
+            headers: getAuthHeaders()
+        });
+
+        if (!response.ok) throw new Error('Failed to load providers');
+
+        const providers = await response.json();
+        configuredProviders = new Set(
+            providers.filter(p => p.configured).map(p => p.provider)
+        );
+        renderModelsGrid();
+    } catch (error) {
+        console.error('Error loading providers:', error);
+    }
+}
+
+// Render models grid
+function renderModelsGrid() {
+    const grid = document.getElementById('models-grid');
+    grid.innerHTML = '';
+
+    availableModels.forEach(model => {
+        const isConfigured = configuredProviders.has(model.provider);
+        const isSelected = selectedModels.some(m => m.id === model.id && m.provider === model.provider);
+
+        const checkbox = document.createElement('label');
+        checkbox.className = `model-checkbox ${isSelected ? 'selected' : ''} ${!isConfigured ? 'disabled' : ''}`;
+        checkbox.innerHTML = `
+            <input type="checkbox" ${isSelected ? 'checked' : ''} ${!isConfigured ? 'disabled' : ''}>
+            <div class="model-info">
+                <div class="model-name">${model.name}</div>
+                <div class="model-provider">${model.provider_name}${!isConfigured ? ' (no key)' : ''}</div>
+            </div>
+            <div class="checkmark"></div>
+        `;
+
+        if (isConfigured) {
+            checkbox.addEventListener('click', () => toggleModel(model));
+        }
+
+        grid.appendChild(checkbox);
+    });
+}
+
+// Toggle model selection
+function toggleModel(model) {
+    const index = selectedModels.findIndex(m => m.id === model.id && m.provider === model.provider);
+
+    if (index >= 0) {
+        selectedModels.splice(index, 1);
+    } else if (selectedModels.length < 6) {
+        selectedModels.push({
+            provider: model.provider,
+            model_id: model.id,
+            model_name: model.name
+        });
+    }
+
+    renderModelsGrid();
+    updateStartButton();
+}
+
+// Update start button state
+function updateStartButton() {
+    const startBtn = document.getElementById('start-btn');
+    const topic = document.getElementById('topic').value.trim();
+    const canStart = topic && selectedModels.length >= 2 && selectedModels.length <= 6;
+    startBtn.disabled = !canStart;
+}
+
+// Load debate history
+async function loadDebateHistory() {
+    try {
+        const response = await fetch(`${API_BASE}/api/debates`, {
+            headers: getAuthHeaders()
+        });
+
+        if (!response.ok) throw new Error('Failed to load debates');
+
+        const debates = await response.json();
+        renderDebateHistory(debates);
+    } catch (error) {
+        console.error('Error loading debates:', error);
+    }
+}
+
+// Render debate history
+function renderDebateHistory(debates) {
+    const list = document.getElementById('history-list');
+
+    if (debates.length === 0) {
+        list.innerHTML = `
+            <div class="empty-state">
+                <div class="empty-state-icon">&#128172;</div>
+                <p>No debates yet. Start one above!</p>
+            </div>
+        `;
+        return;
+    }
+
+    list.innerHTML = debates.map(debate => `
+        <div class="history-item" data-id="${debate.id}">
+            <div class="history-info">
+                <div class="history-topic">${escapeHtml(debate.topic)}</div>
+                <div class="history-meta">
+                    ${debate.config.models?.length || 0} models &bull;
+                    ${debate.config.rounds || 3} rounds &bull;
+                    ${formatDate(debate.created_at)}
+                </div>
+            </div>
+            <span class="history-status status-${debate.status}">${debate.status}</span>
+        </div>
+    `).join('');
+
+    // Add click handlers
+    list.querySelectorAll('.history-item').forEach(item => {
+        item.addEventListener('click', () => viewDebate(item.dataset.id));
+    });
+}
+
+// View a completed debate
+async function viewDebate(debateId) {
+    try {
+        const response = await fetch(`${API_BASE}/api/debates/${debateId}`, {
+            headers: getAuthHeaders()
+        });
+
+        if (!response.ok) throw new Error('Failed to load debate');
+
+        const data = await response.json();
+        displayCompletedDebate(data);
+    } catch (error) {
+        console.error('Error viewing debate:', error);
+    }
+}
+
+// Display a completed debate
+function displayCompletedDebate(data) {
+    const { debate, messages } = data;
+
+    // Set topic
+    document.getElementById('topic').value = debate.topic;
+    document.getElementById('rounds').value = debate.config.rounds || 3;
+
+    // Select models
+    selectedModels = debate.config.models || [];
+    renderModelsGrid();
+    updateStartButton();
+
+    // Show arena
+    const arena = document.getElementById('debate-arena');
+    arena.style.display = 'block';
+
+    // Update status bar
+    document.getElementById('current-round').textContent = `${debate.config.rounds}/${debate.config.rounds}`;
+    document.getElementById('debate-status').textContent = debate.status;
+    document.getElementById('debate-status').className = `status-value status-${debate.status}`;
+    document.getElementById('stop-btn').style.display = 'none';
+
+    // Create panels
+    createModelPanels(debate.config.models);
+
+    // Populate messages
+    messages.forEach(msg => {
+        if (msg.round === 0) {
+            // Summary
+            document.getElementById('summary-section').style.display = 'block';
+            document.getElementById('summary-model').textContent = `by ${msg.model_name}`;
+            document.getElementById('summary-content').textContent = msg.content;
+        } else {
+            const panel = document.querySelector(`[data-model="${msg.model_name}"]`);
+            if (panel) {
+                addResponseToPanel(panel, msg.round, msg.content);
+            }
+        }
+    });
+
+    // Scroll to arena
+    arena.scrollIntoView({ behavior: 'smooth' });
+}
+
+// Logout
+document.getElementById('logout-btn').addEventListener('click', () => {
+    localStorage.removeItem('token');
+    window.location.href = '/';
+});
+
+// Topic input handler
+document.getElementById('topic').addEventListener('input', updateStartButton);
+
+// Settings button
+document.getElementById('settings-btn').addEventListener('click', () => {
+    openSettingsModal();
+});
+
+// Initialize
+(async function init() {
+    if (await checkAuth()) {
+        await Promise.all([
+            loadModels(),
+            loadConfiguredProviders(),
+            loadDebateHistory()
+        ]);
+    }
+})();
+
+// Utility functions
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+function formatDate(dateStr) {
+    if (!dateStr) return '';
+    const date = new Date(dateStr);
+    return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+}

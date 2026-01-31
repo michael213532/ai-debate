@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Debate Arena</title>
+    <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+    <div class="app-layout">
+        <!-- Header -->
+        <header class="header">
+            <div class="container header-content">
+                <div class="logo">
+                    <span class="logo-icon">&#9881;</span>
+                    <span>AI Debate Arena</span>
+                </div>
+                <div class="header-actions">
+                    <span id="user-email" class="user-email"></span>
+                    <button id="settings-btn" class="btn btn-secondary btn-small">Settings</button>
+                    <button id="logout-btn" class="btn btn-secondary btn-small">Logout</button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="container">
+                <!-- Debate Configuration -->
+                <section class="config-section">
+                    <div class="card">
+                        <div class="config-row">
+                            <div class="form-group topic-input">
+                                <label class="form-label" for="topic">Debate Topic</label>
+                                <input type="text" id="topic" class="form-input" placeholder="Enter a topic for the AI models to debate...">
+                            </div>
+                            <div class="form-group rounds-select">
+                                <label class="form-label" for="rounds">Rounds</label>
+                                <select id="rounds" class="form-input">
+                                    <option value="1">1</option>
+                                    <option value="2">2</option>
+                                    <option value="3" selected>3</option>
+                                    <option value="4">4</option>
+                                    <option value="5">5</option>
+                                </select>
+                            </div>
+                            <button id="start-btn" class="btn btn-primary" disabled>Start Debate</button>
+                        </div>
+
+                        <div class="form-group" style="margin-top: 16px;">
+                            <label class="form-label">Select Models (2-6)</label>
+                            <div id="models-grid" class="models-grid">
+                                <!-- Models will be loaded here -->
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Debate Arena -->
+                <section id="debate-arena" class="debate-arena" style="display: none;">
+                    <div class="debate-status-bar">
+                        <div class="status-info">
+                            <div class="status-item">
+                                <span class="status-label">Round:</span>
+                                <span id="current-round" class="status-value">0/0</span>
+                            </div>
+                            <div class="status-item">
+                                <span class="status-label">Status:</span>
+                                <span id="debate-status" class="status-value status-running">Starting...</span>
+                            </div>
+                        </div>
+                        <button id="stop-btn" class="btn btn-danger btn-small">Stop Debate</button>
+                    </div>
+
+                    <div id="model-panels" class="model-panels">
+                        <!-- Model panels will be added here -->
+                    </div>
+
+                    <!-- Summary Section -->
+                    <div id="summary-section" class="summary-section" style="display: none;">
+                        <div class="summary-panel">
+                            <div class="summary-header">
+                                <span class="summary-title">Debate Summary</span>
+                                <span id="summary-model" class="panel-provider"></span>
+                            </div>
+                            <div id="summary-content" class="summary-content"></div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Debate History -->
+                <section class="history-section">
+                    <h2 class="history-title">Recent Debates</h2>
+                    <div id="history-list" class="history-list">
+                        <div class="empty-state">
+                            <div class="empty-state-icon">&#128172;</div>
+                            <p>No debates yet. Start one above!</p>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </main>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settings-modal" class="modal-overlay">
+        <div class="modal">
+            <div class="modal-header">
+                <h2 class="modal-title">API Key Settings</h2>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p style="color: var(--text-secondary); margin-bottom: 16px;">
+                    Add your API keys to enable AI models. Keys are encrypted and stored securely.
+                </p>
+                <div id="provider-list" class="provider-list">
+                    <!-- Providers will be loaded here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/js/app.js"></script>
+    <script src="/js/settings.js"></script>
+    <script src="/js/debate.js"></script>
+</body>
+</html>
