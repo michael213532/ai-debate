@@ -30,33 +30,48 @@ debate_connections: Dict[str, list[WebSocket]] = {}
 
 # Persistent cipher for the application lifetime
 _cipher = None
+_generated_key = None
 
 def get_cipher():
     """Get Fernet cipher for API key encryption."""
-    global _cipher
+    global _cipher, _generated_key
     if _cipher is not None:
         return _cipher
 
-    if ENCRYPTION_KEY:
-        key = ENCRYPTION_KEY.encode() if isinstance(ENCRYPTION_KEY, str) else ENCRYPTION_KEY
-    else:
-        # Generate and store a key for development (persists for app lifetime)
-        key = Fernet.generate_key()
+    try:
+        if ENCRYPTION_KEY:
+            key = ENCRYPTION_KEY.encode() if isinstance(ENCRYPTION_KEY, str) else ENCRYPTION_KEY
+        else:
+            # Generate and store a key for development (persists for app lifetime)
+            if _generated_key is None:
+                _generated_key = Fernet.generate_key()
+            key = _generated_key
 
-    _cipher = Fernet(key)
-    return _cipher
+        _cipher = Fernet(key)
+        return _cipher
+    except Exception as e:
+        print(f"Error creating cipher: {e}")
+        raise
 
 
 def encrypt_api_key(api_key: str) -> str:
     """Encrypt an API key."""
-    cipher = get_cipher()
-    return cipher.encrypt(api_key.encode()).decode()
+    try:
+        cipher = get_cipher()
+        return cipher.encrypt(api_key.encode()).decode()
+    except Exception as e:
+        print(f"Error encrypting API key: {e}")
+        raise
 
 
 def decrypt_api_key(encrypted_key: str) -> str:
     """Decrypt an API key."""
-    cipher = get_cipher()
-    return cipher.decrypt(encrypted_key.encode()).decode()
+    try:
+        cipher = get_cipher()
+        return cipher.decrypt(encrypted_key.encode()).decode()
+    except Exception as e:
+        print(f"Error decrypting API key: {e}")
+        raise
 
 
 async def get_user_api_keys(user_id: str) -> dict[str, str]:
@@ -108,16 +123,28 @@ async def save_api_key(
             detail=f"Unknown provider: {provider}"
         )
 
-    encrypted_key = encrypt_api_key(request.api_key)
-
-    async with get_db() as db:
-        await db.execute(
-            """INSERT INTO user_api_keys (user_id, provider, api_key_encrypted)
-               VALUES (?, ?, ?)
-               ON CONFLICT(user_id, provider) DO UPDATE SET api_key_encrypted = ?""",
-            (current_user.id, provider, encrypted_key, encrypted_key)
+    try:
+        encrypted_key = encrypt_api_key(request.api_key)
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Encryption error: {str(e)}"
         )
-        await db.commit()
+
+    try:
+        async with get_db() as db:
+            await db.execute(
+                """INSERT INTO user_api_keys (user_id, provider, api_key_encrypted)
+                   VALUES (?, ?, ?)
+                   ON CONFLICT(user_id, provider) DO UPDATE SET api_key_encrypted = ?""",
+                (current_user.id, provider, encrypted_key, encrypted_key)
+            )
+            await db.commit()
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Database error: {str(e)}"
+        )
 
     return {"status": "ok", "provider": provider}
 

@@ -162,7 +162,10 @@ async function saveApiKey(provider, apiKey) {
             body: JSON.stringify({ api_key: apiKey })
         });
 
-        if (!response.ok) throw new Error('Failed to save API key');
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.detail || 'Failed to save API key');
+        }
 
         // Reload settings and models
         await loadProviderSettings();
@@ -178,7 +181,7 @@ async function saveApiKey(provider, apiKey) {
         }, 2000);
     } catch (error) {
         console.error('Error saving API key:', error);
-        alert('Failed to save API key');
+        alert('Failed to save API key: ' + error.message);
     }
 }
 
