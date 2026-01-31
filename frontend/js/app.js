@@ -177,12 +177,13 @@ function renderModelsGrid() {
     const grid = document.getElementById('models-grid');
     grid.innerHTML = '';
 
-    availableModels.forEach(model => {
+    availableModels.forEach((model, index) => {
         const isConfigured = configuredProviders.has(model.provider);
         const isSelected = selectedModels.some(m => m.id === model.id && m.provider === model.provider);
 
         const checkbox = document.createElement('div');
         checkbox.className = `model-checkbox ${isSelected ? 'selected' : ''} ${!isConfigured ? 'disabled' : ''}`;
+        checkbox.dataset.modelIndex = index;
         checkbox.innerHTML = `
             <div class="model-info">
                 <div class="model-name">${model.name}</div>
@@ -191,17 +192,20 @@ function renderModelsGrid() {
             <div class="checkmark">${isSelected ? '✓' : ''}</div>
         `;
 
-        if (isConfigured) {
-            checkbox.addEventListener('click', (e) => {
-                e.preventDefault();
-                toggleModel(model);
-            });
-            checkbox.style.cursor = 'pointer';
-        }
-
         grid.appendChild(checkbox);
     });
 }
+
+// Handle model grid clicks (event delegation)
+document.getElementById('models-grid').addEventListener('click', function(e) {
+    const checkbox = e.target.closest('.model-checkbox');
+    if (!checkbox || checkbox.classList.contains('disabled')) return;
+
+    const index = parseInt(checkbox.dataset.modelIndex);
+    if (!isNaN(index) && availableModels[index]) {
+        toggleModel(availableModels[index]);
+    }
+});
 
 // Toggle model selection
 function toggleModel(model) {
