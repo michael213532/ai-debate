@@ -347,10 +347,6 @@ a:hover {
 .model-checkbox.selected .checkmark {
     background-color: var(--primary-color);
     border-color: var(--primary-color);
-}
-
-.model-checkbox.selected .checkmark::after {
-    content: '\2713';
     color: white;
     font-size: 0.8rem;
 }

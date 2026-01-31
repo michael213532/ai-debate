@@ -181,19 +181,22 @@ function renderModelsGrid() {
         const isConfigured = configuredProviders.has(model.provider);
         const isSelected = selectedModels.some(m => m.id === model.id && m.provider === model.provider);
 
-        const checkbox = document.createElement('label');
+        const checkbox = document.createElement('div');
         checkbox.className = `model-checkbox ${isSelected ? 'selected' : ''} ${!isConfigured ? 'disabled' : ''}`;
         checkbox.innerHTML = `
-            <input type="checkbox" ${isSelected ? 'checked' : ''} ${!isConfigured ? 'disabled' : ''}>
             <div class="model-info">
                 <div class="model-name">${model.name}</div>
                 <div class="model-provider">${model.provider_name}${!isConfigured ? ' (no key)' : ''}</div>
             </div>
-            <div class="checkmark"></div>
+            <div class="checkmark">${isSelected ? '✓' : ''}</div>
         `;
 
         if (isConfigured) {
-            checkbox.addEventListener('click', () => toggleModel(model));
+            checkbox.addEventListener('click', (e) => {
+                e.preventDefault();
+                toggleModel(model);
+            });
+            checkbox.style.cursor = 'pointer';
         }
 
         grid.appendChild(checkbox);

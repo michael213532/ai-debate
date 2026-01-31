@@ -36,5 +36,21 @@ class AnthropicProvider(BaseProvider):
                 messages=[{"role": "user", "content": "Hi"}]
             )
             return True
-        except Exception:
+        except anthropic.AuthenticationError:
+            return False
+        except anthropic.PermissionDeniedError:
+            return False
+        except anthropic.NotFoundError:
+            # Model not found, try older model
+            try:
+                await self.client.messages.create(
+                    model="claude-3-sonnet-20240229",
+                    max_tokens=10,
+                    messages=[{"role": "user", "content": "Hi"}]
+                )
+                return True
+            except:
+                return False
+        except Exception as e:
+            print(f"Anthropic test error: {e}")
             return False
