@@ -28,13 +28,13 @@
         <!-- Main Content -->
         <main class="main-content">
             <div class="container">
-                <!-- Debate Configuration -->
+                <!-- Configuration -->
                 <section class="config-section">
                     <div class="card">
                         <div class="config-row">
                             <div class="form-group topic-input">
-                                <label class="form-label" for="topic">Debate Topic</label>
-                                <input type="text" id="topic" class="form-input" placeholder="Enter a topic for the AI models to debate...">
+                                <label class="form-label" for="topic">Topic</label>
+                                <input type="text" id="topic" class="form-input" placeholder="Enter a topic for the AI models to discuss...">
                             </div>
                             <div class="form-group rounds-select">
                                 <label class="form-label" for="rounds">Rounds</label>
@@ -46,7 +46,7 @@
                                     <option value="5">5</option>
                                 </select>
                             </div>
-                            <button id="start-btn" class="btn btn-primary" disabled>Start Debate</button>
+                            <button id="start-btn" class="btn btn-primary" disabled>Start</button>
                         </div>
 
                         <div class="form-group" style="margin-top: 16px;">
@@ -70,7 +70,7 @@
                     </div>
                 </section>
 
-                <!-- Debate Arena -->
+                <!-- Discussion Area -->
                 <section id="debate-arena" class="debate-arena" style="display: none;">
                     <div class="debate-status-bar">
                         <div class="status-info">
@@ -84,7 +84,7 @@
                             </div>
                         </div>
                         <button id="export-btn" class="btn btn-secondary btn-small" style="display: none;">Export PDF</button>
-                        <button id="stop-btn" class="btn btn-danger btn-small">Stop Debate</button>
+                        <button id="stop-btn" class="btn btn-danger btn-small">Stop</button>
                     </div>
 
                     <div id="model-panels" class="model-panels">
@@ -95,7 +95,7 @@
                     <div id="summary-section" class="summary-section" style="display: none;">
                         <div class="summary-panel">
                             <div class="summary-header">
-                                <span class="summary-title">Debate Summary</span>
+                                <span class="summary-title">Summary</span>
                                 <span id="summary-model" class="panel-provider"></span>
                             </div>
                             <div id="summary-content" class="summary-content"></div>
@@ -103,13 +103,13 @@
                     </div>
                 </section>
 
-                <!-- Debate History -->
+                <!-- History -->
                 <section class="history-section">
-                    <h2 class="history-title">Recent Debates</h2>
+                    <h2 class="history-title">Recent Sessions</h2>
                     <div id="history-list" class="history-list">
                         <div class="empty-state">
                             <div class="empty-state-icon">&#128172;</div>
-                            <p>No debates yet. Start one above!</p>
+                            <p>No sessions yet. Start one above!</p>
                         </div>
                     </div>
                 </section>

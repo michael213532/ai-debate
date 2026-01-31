@@ -282,7 +282,7 @@ function renderDebateHistory(debates) {
         list.innerHTML = `
             <div class="empty-state">
                 <div class="empty-state-icon">&#128172;</div>
-                <p>No debates yet. Start one above!</p>
+                <p>No sessions yet. Start one above!</p>
             </div>
         `;
         return;
@@ -396,7 +396,7 @@ document.getElementById('settings-btn').addEventListener('click', () => {
         // Check for subscription success/cancel from URL
         const urlParams = new URLSearchParams(window.location.search);
         if (urlParams.get('subscription') === 'success') {
-            alert('Subscription activated! You now have unlimited debates.');
+            alert('Subscription activated! You now have unlimited sessions.');
             window.history.replaceState({}, '', '/app');
             loadSubscriptionStatus();
         }
