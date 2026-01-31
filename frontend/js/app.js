@@ -179,7 +179,7 @@ function renderModelsGrid() {
 
     availableModels.forEach((model, index) => {
         const isConfigured = configuredProviders.has(model.provider);
-        const isSelected = selectedModels.some(m => m.id === model.id && m.provider === model.provider);
+        const isSelected = selectedModels.some(m => m.model_id === model.id && m.provider === model.provider);
 
         const checkbox = document.createElement('div');
         checkbox.className = `model-checkbox ${isSelected ? 'selected' : ''} ${!isConfigured ? 'disabled' : ''}`;
@@ -209,7 +209,7 @@ document.getElementById('models-grid').addEventListener('click', function(e) {
 
 // Toggle model selection
 function toggleModel(model) {
-    const index = selectedModels.findIndex(m => m.id === model.id && m.provider === model.provider);
+    const index = selectedModels.findIndex(m => m.model_id === model.id && m.provider === model.provider);
 
     if (index >= 0) {
         selectedModels.splice(index, 1);
