@@ -101,7 +101,7 @@ async function loadModels() {
         if (!response.ok) throw new Error('Failed to load models');
 
         availableModels = await response.json();
-        renderModelsGrid();
+        renderModelTags();
     } catch (error) {
         console.error('Error loading models:', error);
     }
@@ -120,7 +120,7 @@ async function loadConfiguredProviders() {
         configuredProviders = new Set(
             providers.filter(p => p.configured).map(p => p.provider)
         );
-        renderModelsGrid();
+        renderModelTags();
     } catch (error) {
         console.error('Error loading providers:', error);
     }
@@ -146,25 +146,17 @@ async function loadSubscriptionStatus() {
 function renderSubscriptionStatus() {
     const badge = document.getElementById('subscription-status');
     const upgradeBtn = document.getElementById('upgrade-btn');
-    const personalitiesSection = document.getElementById('personalities-section');
 
     if (subscriptionStatus.status === 'active') {
         badge.textContent = 'PRO';
         badge.className = 'subscription-badge pro';
         upgradeBtn.style.display = 'none';
-        // Show personalities section for Pro users
-        if (personalitiesSection) personalitiesSection.style.display = 'block';
     } else {
         const remaining = subscriptionStatus.debates_limit - subscriptionStatus.debates_used;
-        badge.textContent = `${remaining}/${subscriptionStatus.debates_limit} this month`;
+        badge.textContent = `${remaining}/${subscriptionStatus.debates_limit} left`;
         badge.className = 'subscription-badge free';
         upgradeBtn.style.display = 'inline-flex';
-        // Hide personalities section for free users
-        if (personalitiesSection) personalitiesSection.style.display = 'none';
     }
-
-    // Update personalities list when subscription status loads
-    renderPersonalitiesList();
 }
 
 // Handle upgrade button - go to pricing page
@@ -172,36 +164,33 @@ document.getElementById('upgrade-btn').addEventListener('click', () => {
     window.location.href = '/pricing';
 });
 
-// Render models grid
-function renderModelsGrid() {
-    const grid = document.getElementById('models-grid');
-    grid.innerHTML = '';
+// Render model tags
+function renderModelTags() {
+    const container = document.getElementById('model-tags');
+    if (!container) return;
+
+    container.innerHTML = '';
 
     availableModels.forEach((model, index) => {
         const isConfigured = configuredProviders.has(model.provider);
         const isSelected = selectedModels.some(m => m.model_id === model.id && m.provider === model.provider);
 
-        const checkbox = document.createElement('div');
-        checkbox.className = `model-checkbox ${isSelected ? 'selected' : ''} ${!isConfigured ? 'disabled' : ''}`;
-        checkbox.dataset.modelIndex = index;
-        checkbox.innerHTML = `
-            <div class="model-info">
-                <div class="model-name">${model.name}</div>
-                <div class="model-provider">${model.provider_name}${!isConfigured ? ' (no key)' : ''}</div>
-            </div>
-            <div class="checkmark">${isSelected ? '✓' : ''}</div>
-        `;
+        const tag = document.createElement('span');
+        tag.className = `model-tag ${isSelected ? 'selected' : ''} ${!isConfigured ? 'disabled' : ''}`;
+        tag.dataset.modelIndex = index;
+        tag.textContent = model.name;
+        tag.title = `${model.provider_name}${!isConfigured ? ' (no API key)' : ''}`;
 
-        grid.appendChild(checkbox);
+        container.appendChild(tag);
     });
 }
 
-// Handle model grid clicks (event delegation)
-document.getElementById('models-grid').addEventListener('click', function(e) {
-    const checkbox = e.target.closest('.model-checkbox');
-    if (!checkbox || checkbox.classList.contains('disabled')) return;
+// Handle model tag clicks
+document.getElementById('model-tags')?.addEventListener('click', function(e) {
+    const tag = e.target.closest('.model-tag');
+    if (!tag || tag.classList.contains('disabled')) return;
 
-    const index = parseInt(checkbox.dataset.modelIndex);
+    const index = parseInt(tag.dataset.modelIndex);
     if (!isNaN(index) && availableModels[index]) {
         toggleModel(availableModels[index]);
     }
@@ -218,162 +207,20 @@ function toggleModel(model) {
             provider: model.provider,
             model_id: model.id,
             model_name: model.name,
-            role: ''  // Custom personality
+            role: ''
         });
     }
 
-    renderModelsGrid();
-    renderPersonalitiesList();
-    updateStartButton();
+    renderModelTags();
+    updateSendButton();
 }
 
-// Render personalities list for Pro users
-function renderPersonalitiesList() {
-    const list = document.getElementById('personalities-list');
-    if (!list) return;
-
-    if (selectedModels.length === 0) {
-        list.innerHTML = '<p style="color: var(--text-secondary); font-size: 0.9rem;">Select models above to assign personalities</p>';
-        return;
-    }
-
-    list.innerHTML = selectedModels.map((model, index) => `
-        <div class="personality-item">
-            <span class="personality-model-name">${model.model_name}</span>
-            <input type="text"
-                   class="form-input personality-input"
-                   placeholder="e.g., Devil's advocate, Optimist, Skeptic..."
-                   value="${model.role || ''}"
-                   data-index="${index}">
-        </div>
-    `).join('');
-
-    // Add event listeners
-    list.querySelectorAll('.personality-input').forEach(input => {
-        input.addEventListener('input', (e) => {
-            const index = parseInt(e.target.dataset.index);
-            selectedModels[index].role = e.target.value;
-        });
-    });
-}
-
-// Update start button state
-function updateStartButton() {
-    const startBtn = document.getElementById('start-btn');
-    const topic = document.getElementById('topic').value.trim();
-    const canStart = topic && selectedModels.length >= 2 && selectedModels.length <= 6;
-    startBtn.disabled = !canStart;
-}
-
-// Load debate history
-async function loadDebateHistory() {
-    try {
-        const response = await fetch(`${API_BASE}/api/debates`, {
-            headers: getAuthHeaders()
-        });
-
-        if (!response.ok) throw new Error('Failed to load debates');
-
-        const debates = await response.json();
-        renderDebateHistory(debates);
-    } catch (error) {
-        console.error('Error loading debates:', error);
-    }
-}
-
-// Render debate history
-function renderDebateHistory(debates) {
-    const list = document.getElementById('history-list');
-
-    if (debates.length === 0) {
-        list.innerHTML = `
-            <div class="empty-state">
-                <div class="empty-state-icon">&#128172;</div>
-                <p>No sessions yet. Start one above!</p>
-            </div>
-        `;
-        return;
-    }
-
-    list.innerHTML = debates.map(debate => `
-        <div class="history-item" data-id="${debate.id}">
-            <div class="history-info">
-                <div class="history-topic">${escapeHtml(debate.topic)}</div>
-                <div class="history-meta">
-                    ${debate.config.models?.length || 0} models &bull;
-                    ${debate.config.rounds || 3} rounds &bull;
-                    ${formatDate(debate.created_at)}
-                </div>
-            </div>
-            <span class="history-status status-${debate.status}">${debate.status}</span>
-        </div>
-    `).join('');
-
-    // Add click handlers
-    list.querySelectorAll('.history-item').forEach(item => {
-        item.addEventListener('click', () => viewDebate(item.dataset.id));
-    });
-}
-
-// View a completed debate
-async function viewDebate(debateId) {
-    try {
-        const response = await fetch(`${API_BASE}/api/debates/${debateId}`, {
-            headers: getAuthHeaders()
-        });
-
-        if (!response.ok) throw new Error('Failed to load debate');
-
-        const data = await response.json();
-        displayCompletedDebate(data);
-    } catch (error) {
-        console.error('Error viewing debate:', error);
-    }
-}
-
-// Display a completed debate
-function displayCompletedDebate(data) {
-    const { debate, messages } = data;
-
-    // Set topic
-    document.getElementById('topic').value = debate.topic;
-    document.getElementById('rounds').value = debate.config.rounds || 3;
-
-    // Select models
-    selectedModels = debate.config.models || [];
-    renderModelsGrid();
-    updateStartButton();
-
-    // Show arena
-    const arena = document.getElementById('debate-arena');
-    arena.style.display = 'block';
-
-    // Update status bar
-    document.getElementById('current-round').textContent = `${debate.config.rounds}/${debate.config.rounds}`;
-    document.getElementById('debate-status').textContent = debate.status;
-    document.getElementById('debate-status').className = `status-value status-${debate.status}`;
-    document.getElementById('stop-btn').style.display = 'none';
-
-    // Create panels
-    createModelPanels(debate.config.models);
-
-    // Populate messages
-    messages.forEach(msg => {
-        if (msg.round === 0) {
-            // Summary
-            document.getElementById('summary-section').style.display = 'block';
-            document.getElementById('summary-model').textContent = `by ${msg.model_name}`;
-            document.getElementById('summary-content').textContent = msg.content;
-        } else {
-            const panel = document.querySelector(`[data-model="${msg.model_name}"]`);
-            if (panel) {
-                addResponseToPanel(panel, msg.round, msg.content);
-            }
-        }
-    });
-
-    // Scroll to arena
-    arena.scrollIntoView({ behavior: 'smooth' });
+// Update send button state
+function updateSendButton() {
+    const sendBtn = document.getElementById('send-btn');
+    const input = document.getElementById('chat-input');
+    const canSend = input.value.trim() && selectedModels.length >= 2;
+    sendBtn.disabled = !canSend;
 }
 
 // Logout
@@ -382,13 +229,43 @@ document.getElementById('logout-btn').addEventListener('click', () => {
     window.location.href = '/';
 });
 
-// Topic input handler
-document.getElementById('topic').addEventListener('input', updateStartButton);
-
 // Settings button
 document.getElementById('settings-btn').addEventListener('click', () => {
     openSettingsModal();
 });
+
+// Inline settings button
+document.getElementById('settings-btn-inline')?.addEventListener('click', () => {
+    openSettingsModal();
+});
+
+// Toggle AI panel
+document.getElementById('toggle-panel')?.addEventListener('click', () => {
+    const panel = document.getElementById('ai-panel');
+    const btn = document.getElementById('toggle-panel');
+    panel.classList.toggle('collapsed');
+    btn.textContent = panel.classList.contains('collapsed') ? '▶' : '◀';
+});
+
+// Chat input handlers
+const chatInput = document.getElementById('chat-input');
+if (chatInput) {
+    chatInput.addEventListener('input', () => {
+        updateSendButton();
+        // Auto-resize
+        chatInput.style.height = 'auto';
+        chatInput.style.height = Math.min(chatInput.scrollHeight, 150) + 'px';
+    });
+
+    chatInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            if (!document.getElementById('send-btn').disabled) {
+                sendMessage();
+            }
+        }
+    });
+}
 
 // Initialize
 (async function init() {
@@ -396,7 +273,6 @@ document.getElementById('settings-btn').addEventListener('click', () => {
         await Promise.all([
             loadModels(),
             loadConfiguredProviders(),
-            loadDebateHistory(),
             loadSubscriptionStatus()
         ]);
 
@@ -415,10 +291,4 @@ function escapeHtml(text) {
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
-}
-
-function formatDate(dateStr) {
-    if (!dateStr) return '';
-    const date = new Date(dateStr);
-    return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 }
