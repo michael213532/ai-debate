@@ -3,6 +3,7 @@
  */
 
 const API_BASE = '';
+let isLoginMode = true;
 
 // Check if already logged in
 (function checkAuth() {
@@ -12,23 +13,38 @@ const API_BASE = '';
     }
 })();
 
-// Tab switching
-document.querySelectorAll('.tab').forEach(tab => {
-    tab.addEventListener('click', () => {
-        const tabName = tab.dataset.tab;
-
-        // Update active tab
-        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-        tab.classList.add('active');
-
-        // Show/hide forms
-        document.getElementById('login-form').style.display = tabName === 'login' ? 'block' : 'none';
-        document.getElementById('register-form').style.display = tabName === 'register' ? 'block' : 'none';
-
-        // Clear alert
-        hideAlert();
-    });
+// Toggle between login and register
+document.getElementById('auth-toggle-link').addEventListener('click', (e) => {
+    e.preventDefault();
+    isLoginMode = !isLoginMode;
+    updateAuthUI();
+    hideAlert();
 });
+
+function updateAuthUI() {
+    const title = document.getElementById('auth-title');
+    const subtitle = document.getElementById('auth-subtitle');
+    const loginForm = document.getElementById('login-form');
+    const registerForm = document.getElementById('register-form');
+    const toggleText = document.getElementById('auth-toggle-text');
+    const toggleLink = document.getElementById('auth-toggle-link');
+
+    if (isLoginMode) {
+        title.textContent = 'Welcome back';
+        subtitle.textContent = 'Sign in to continue to Ensemble AI';
+        loginForm.style.display = 'block';
+        registerForm.style.display = 'none';
+        toggleText.textContent = "Don't have an account?";
+        toggleLink.textContent = 'Sign up';
+    } else {
+        title.textContent = 'Create an account';
+        subtitle.textContent = 'Get started with Ensemble AI';
+        loginForm.style.display = 'none';
+        registerForm.style.display = 'block';
+        toggleText.textContent = 'Already have an account?';
+        toggleLink.textContent = 'Sign in';
+    }
+}
 
 // Alert functions
 function showAlert(message, type = 'error') {
