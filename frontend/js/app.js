@@ -212,8 +212,36 @@ function toggleModel(model) {
         });
     }
 
+    // Save selection to localStorage
+    saveSelectedModels();
+
     renderModelTags();
     updateSendButton();
+}
+
+// Save selected models to localStorage
+function saveSelectedModels() {
+    localStorage.setItem('selectedModels', JSON.stringify(selectedModels));
+}
+
+// Load selected models from localStorage
+function loadSelectedModels() {
+    const saved = localStorage.getItem('selectedModels');
+    if (saved) {
+        try {
+            const savedModels = JSON.parse(saved);
+            // Only restore models that are still available and have configured API keys
+            selectedModels = savedModels.filter(savedModel => {
+                const modelExists = availableModels.some(m => m.id === savedModel.model_id && m.provider === savedModel.provider);
+                const providerConfigured = configuredProviders.has(savedModel.provider);
+                return modelExists && providerConfigured;
+            });
+            renderModelTags();
+            updateSendButton();
+        } catch (e) {
+            console.error('Error loading saved models:', e);
+        }
+    }
 }
 
 // Update send button state
@@ -276,6 +304,9 @@ if (chatInput) {
             loadConfiguredProviders(),
             loadSubscriptionStatus()
         ]);
+
+        // Restore previously selected models
+        loadSelectedModels();
 
         // Check for subscription success/cancel from URL
         const urlParams = new URLSearchParams(window.location.search);
