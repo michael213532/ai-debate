@@ -330,6 +330,8 @@
                 top: 60px;
                 bottom: 0;
                 z-index: 100;
+                width: 100%;
+                max-width: 380px;
                 transform: translateX(100%);
                 transition: transform 0.3s ease;
             }
@@ -339,11 +341,12 @@
             }
 
             .ai-panel.collapsed {
-                width: 380px;
+                width: 100%;
+                max-width: 380px;
             }
 
             .mobile-panel-toggle {
-                display: block;
+                display: flex;
             }
         }
 
@@ -351,6 +354,187 @@
             .mobile-panel-toggle {
                 display: none;
             }
+        }
+
+        /* Mobile styles */
+        @media (max-width: 768px) {
+            .header-content {
+                padding: 0 12px;
+            }
+
+            .logo span {
+                display: none;
+            }
+
+            .logo img {
+                width: 28px;
+                height: 28px;
+            }
+
+            .header-actions {
+                gap: 8px;
+            }
+
+            .header-actions .user-email {
+                display: none;
+            }
+
+            .header-actions .btn-small {
+                padding: 6px 10px;
+                font-size: 0.75rem;
+            }
+
+            #upgrade-btn {
+                display: none !important;
+            }
+
+            .chat-layout {
+                height: calc(100vh - 56px);
+            }
+
+            .setup-section {
+                padding: 12px 16px;
+            }
+
+            .setup-row {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 10px;
+            }
+
+            .setup-label {
+                display: none;
+            }
+
+            .model-tags {
+                overflow-x: auto;
+                flex-wrap: nowrap;
+                padding-bottom: 8px;
+                -webkit-overflow-scrolling: touch;
+            }
+
+            .model-tag {
+                flex-shrink: 0;
+                font-size: 0.75rem;
+                padding: 5px 10px;
+            }
+
+            #settings-btn-inline {
+                align-self: flex-start;
+                font-size: 0.75rem;
+            }
+
+            .chat-messages {
+                padding: 16px;
+            }
+
+            .message {
+                max-width: 90%;
+                padding: 12px;
+                font-size: 0.9rem;
+            }
+
+            .chat-input-area {
+                padding: 12px 16px;
+                padding-bottom: max(12px, env(safe-area-inset-bottom));
+            }
+
+            .chat-input {
+                padding: 12px 14px;
+                font-size: 16px; /* Prevents zoom on iOS */
+            }
+
+            .send-btn {
+                width: 44px;
+                height: 44px;
+                font-size: 1rem;
+            }
+
+            .empty-chat {
+                padding: 24px;
+            }
+
+            .empty-chat-icon {
+                font-size: 3rem;
+            }
+
+            .empty-chat h2 {
+                font-size: 1.2rem;
+            }
+
+            .empty-chat p {
+                font-size: 0.85rem;
+            }
+
+            /* AI Panel mobile */
+            .ai-panel-header {
+                padding: 12px;
+            }
+
+            .ai-message {
+                padding: 10px;
+                margin-bottom: 12px;
+            }
+
+            .ai-message-content {
+                font-size: 0.85rem;
+            }
+
+            /* Modal mobile */
+            .modal {
+                width: 95%;
+                max-height: 85vh;
+            }
+
+            .modal-header {
+                padding: 16px;
+            }
+
+            .modal-body {
+                padding: 16px;
+            }
+        }
+
+        /* Mobile toggle button for AI panel */
+        .mobile-ai-toggle {
+            display: none;
+            position: fixed;
+            bottom: 80px;
+            right: 16px;
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary-color), #8b5cf6);
+            color: white;
+            border: none;
+            font-size: 1.2rem;
+            cursor: pointer;
+            z-index: 99;
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
+            align-items: center;
+            justify-content: center;
+        }
+
+        @media (max-width: 900px) {
+            .mobile-ai-toggle {
+                display: flex;
+            }
+        }
+
+        /* Overlay for mobile panel */
+        .panel-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 99;
+        }
+
+        .panel-overlay.active {
+            display: block;
         }
     </style>
 </head>
@@ -406,6 +590,10 @@
                     </div>
                 </div>
             </div>
+
+            <!-- Mobile AI Panel Toggle -->
+            <button id="mobile-ai-toggle" class="mobile-ai-toggle" title="View AI Discussion">💬</button>
+            <div id="panel-overlay" class="panel-overlay"></div>
 
             <!-- AI Discussion Panel -->
             <div id="ai-panel" class="ai-panel">

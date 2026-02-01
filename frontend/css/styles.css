@@ -854,6 +854,14 @@ a:hover {
 
 /* Responsive */
 @media (max-width: 768px) {
+    .container {
+        padding: 0 12px;
+    }
+
+    .header {
+        padding: 12px 0;
+    }
+
     .config-row {
         flex-direction: column;
     }
@@ -872,7 +880,12 @@ a:hover {
     }
 
     .header-actions {
-        flex-direction: column;
+        flex-direction: row;
         gap: 8px;
+    }
+
+    .btn-small {
+        padding: 5px 10px;
+        font-size: 0.8rem;
     }
 }

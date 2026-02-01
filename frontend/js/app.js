@@ -292,3 +292,28 @@ function escapeHtml(text) {
     div.textContent = text;
     return div.innerHTML;
 }
+
+// Mobile AI panel toggle
+const mobileAiToggle = document.getElementById('mobile-ai-toggle');
+const panelOverlay = document.getElementById('panel-overlay');
+const aiPanel = document.getElementById('ai-panel');
+
+if (mobileAiToggle && panelOverlay && aiPanel) {
+    mobileAiToggle.addEventListener('click', () => {
+        aiPanel.classList.add('open');
+        panelOverlay.classList.add('active');
+    });
+
+    panelOverlay.addEventListener('click', () => {
+        aiPanel.classList.remove('open');
+        panelOverlay.classList.remove('active');
+    });
+
+    // Close panel when clicking the toggle button inside panel
+    document.getElementById('toggle-panel')?.addEventListener('click', () => {
+        if (window.innerWidth <= 900) {
+            aiPanel.classList.remove('open');
+            panelOverlay.classList.remove('active');
+        }
+    });
+}
