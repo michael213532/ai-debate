@@ -315,6 +315,9 @@ if (chatInput) {
             window.history.replaceState({}, '', '/app');
             loadSubscriptionStatus();
         }
+
+        // Show tutorial for new users
+        checkShowTutorial();
     }
 })();
 
@@ -355,4 +358,105 @@ if (mobileAiToggle && panelOverlay && aiPanel) {
             panelOverlay.classList.remove('active');
         }
     });
+}
+
+// Tutorial functionality
+let tutorialStep = 1;
+const totalSteps = 4;
+
+function showTutorial() {
+    const modal = document.getElementById('tutorial-modal');
+    if (modal) {
+        modal.style.display = 'flex';
+        tutorialStep = 1;
+        updateTutorialStep();
+    }
+}
+
+function hideTutorial() {
+    const modal = document.getElementById('tutorial-modal');
+    if (modal) {
+        modal.style.display = 'none';
+        localStorage.setItem('tutorialCompleted', 'true');
+    }
+}
+
+function updateTutorialStep() {
+    // Hide all steps
+    document.querySelectorAll('.tutorial-step').forEach(step => {
+        step.style.display = 'none';
+    });
+
+    // Show current step
+    const currentStep = document.querySelector(`.tutorial-step[data-step="${tutorialStep}"]`);
+    if (currentStep) {
+        currentStep.style.display = 'block';
+    }
+
+    // Update dots
+    document.querySelectorAll('.tutorial-dot').forEach(dot => {
+        dot.classList.remove('active');
+        if (parseInt(dot.dataset.step) === tutorialStep) {
+            dot.classList.add('active');
+        }
+    });
+
+    // Update buttons
+    const prevBtn = document.getElementById('tutorial-prev');
+    const nextBtn = document.getElementById('tutorial-next');
+
+    if (prevBtn) {
+        prevBtn.style.visibility = tutorialStep === 1 ? 'hidden' : 'visible';
+    }
+
+    if (nextBtn) {
+        nextBtn.textContent = tutorialStep === totalSteps ? "Let's Go! 🚀" : 'Next →';
+    }
+
+    // Update title
+    const titles = {
+        1: "Welcome to Ensemble AI! 👋",
+        2: "Step 1: Get API Keys 🔑",
+        3: "Step 2: Choose Models 🎯",
+        4: "Step 3: Start Chatting! 💬"
+    };
+    const titleEl = document.getElementById('tutorial-title');
+    if (titleEl) {
+        titleEl.textContent = titles[tutorialStep] || '';
+    }
+}
+
+// Tutorial event listeners
+document.getElementById('tutorial-next')?.addEventListener('click', () => {
+    if (tutorialStep < totalSteps) {
+        tutorialStep++;
+        updateTutorialStep();
+    } else {
+        hideTutorial();
+    }
+});
+
+document.getElementById('tutorial-prev')?.addEventListener('click', () => {
+    if (tutorialStep > 1) {
+        tutorialStep--;
+        updateTutorialStep();
+    }
+});
+
+document.getElementById('tutorial-skip')?.addEventListener('click', hideTutorial);
+
+document.querySelectorAll('.tutorial-dot').forEach(dot => {
+    dot.addEventListener('click', () => {
+        tutorialStep = parseInt(dot.dataset.step);
+        updateTutorialStep();
+    });
+});
+
+// Check if should show tutorial (new user)
+function checkShowTutorial() {
+    const completed = localStorage.getItem('tutorialCompleted');
+    if (!completed) {
+        // Small delay to let page load
+        setTimeout(showTutorial, 500);
+    }
 }

@@ -812,6 +812,120 @@
         </div>
     </div>
 
+    <!-- Onboarding Tutorial Modal -->
+    <div id="tutorial-modal" class="modal-overlay" style="display: none;">
+        <div class="modal" style="max-width: 520px;">
+            <div class="modal-header">
+                <h2 class="modal-title" id="tutorial-title">Welcome to Ensemble AI! 👋</h2>
+                <button class="modal-close" id="tutorial-skip">&times;</button>
+            </div>
+            <div class="modal-body">
+                <!-- Step 1: Welcome -->
+                <div class="tutorial-step" data-step="1">
+                    <div style="text-align: center; margin-bottom: 24px;">
+                        <div style="font-size: 4rem; margin-bottom: 16px;">🤖</div>
+                        <p style="color: var(--text-secondary); font-size: 1.1rem;">
+                            Get multiple AI models to discuss your questions together and give you a combined, well-rounded answer.
+                        </p>
+                    </div>
+                    <div style="background: var(--surface-light); border-radius: 8px; padding: 16px; margin-bottom: 20px;">
+                        <p style="margin: 0; color: var(--text-secondary); font-size: 0.9rem;">
+                            ✨ Compare opinions from GPT-4, Claude, Gemini, and more<br>
+                            ✨ Get diverse perspectives on any topic<br>
+                            ✨ Works in any language
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Step 2: API Keys -->
+                <div class="tutorial-step" data-step="2" style="display: none;">
+                    <div style="text-align: center; margin-bottom: 20px;">
+                        <div style="font-size: 3rem; margin-bottom: 12px;">🔑</div>
+                        <h3 style="margin-bottom: 8px;">Add Your API Keys</h3>
+                        <p style="color: var(--text-secondary);">You'll need API keys from AI providers. Here's where to get them:</p>
+                    </div>
+                    <div style="background: var(--surface-light); border-radius: 8px; padding: 16px; margin-bottom: 20px;">
+                        <div style="display: flex; flex-direction: column; gap: 12px; font-size: 0.9rem;">
+                            <a href="https://platform.openai.com/api-keys" target="_blank" style="color: var(--primary-color);">🟢 OpenAI → platform.openai.com/api-keys</a>
+                            <a href="https://console.anthropic.com/settings/keys" target="_blank" style="color: var(--primary-color);">🟠 Anthropic → console.anthropic.com</a>
+                            <a href="https://aistudio.google.com/app/apikey" target="_blank" style="color: var(--primary-color);">🟡 Google → aistudio.google.com</a>
+                            <a href="https://platform.deepseek.com/api_keys" target="_blank" style="color: var(--primary-color);">🟣 Deepseek → platform.deepseek.com</a>
+                            <a href="https://console.x.ai" target="_blank" style="color: var(--primary-color);">⚪ xAI (Grok) → console.x.ai</a>
+                        </div>
+                    </div>
+                    <p style="color: var(--text-secondary); font-size: 0.85rem; text-align: center;">
+                        Click <strong>"API Keys"</strong> in the top right to add your keys securely.
+                    </p>
+                </div>
+
+                <!-- Step 3: Choose Models -->
+                <div class="tutorial-step" data-step="3" style="display: none;">
+                    <div style="text-align: center; margin-bottom: 20px;">
+                        <div style="font-size: 3rem; margin-bottom: 12px;">🎯</div>
+                        <h3 style="margin-bottom: 8px;">Choose Your AI Models</h3>
+                        <p style="color: var(--text-secondary);">Select 2-6 AI models to discuss your question.</p>
+                    </div>
+                    <div style="background: var(--surface-light); border-radius: 8px; padding: 16px; margin-bottom: 20px; text-align: center;">
+                        <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 300 60'%3E%3Crect x='5' y='15' width='70' height='30' rx='15' fill='%236366f1'/%3E%3Ctext x='40' y='35' text-anchor='middle' fill='white' font-size='11' font-family='system-ui'>GPT-4o%3C/text%3E%3Crect x='85' y='15' width='70' height='30' rx='15' fill='%236366f1'/%3E%3Ctext x='120' y='35' text-anchor='middle' fill='white' font-size='11' font-family='system-ui'>Claude%3C/text%3E%3Crect x='165' y='15' width='70' height='30' rx='15' fill='%23475569'/%3E%3Ctext x='200' y='35' text-anchor='middle' fill='%2394a3b8' font-size='11' font-family='system-ui'>Gemini%3C/text%3E%3Crect x='245' y='15' width='50' height='30' rx='15' fill='%23475569'/%3E%3Ctext x='270' y='35' text-anchor='middle' fill='%2394a3b8' font-size='11' font-family='system-ui'>Grok%3C/text%3E%3C/svg%3E" alt="Model selection" style="width: 100%; max-width: 280px;">
+                        <p style="color: var(--text-secondary); font-size: 0.85rem; margin-top: 12px;">
+                            Click on models to select them (highlighted = selected)
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Step 4: Start Chatting -->
+                <div class="tutorial-step" data-step="4" style="display: none;">
+                    <div style="text-align: center; margin-bottom: 20px;">
+                        <div style="font-size: 3rem; margin-bottom: 12px;">💬</div>
+                        <h3 style="margin-bottom: 8px;">Start Chatting!</h3>
+                        <p style="color: var(--text-secondary);">Type your question and watch the AIs discuss it together.</p>
+                    </div>
+                    <div style="background: var(--surface-light); border-radius: 8px; padding: 16px; margin-bottom: 20px;">
+                        <p style="margin: 0 0 12px 0; color: var(--text-secondary); font-size: 0.9rem;">
+                            <strong style="color: var(--text-primary);">Tips:</strong>
+                        </p>
+                        <ul style="margin: 0; padding-left: 20px; color: var(--text-secondary); font-size: 0.9rem;">
+                            <li>Click <strong>+</strong> to attach images</li>
+                            <li>Watch the AI discussion in the right panel</li>
+                            <li>Get a combined summary at the end</li>
+                            <li>Works in any language!</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Navigation -->
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 24px;">
+                    <button id="tutorial-prev" class="btn btn-secondary" style="visibility: hidden;">← Back</button>
+                    <div id="tutorial-dots" style="display: flex; gap: 8px;">
+                        <span class="tutorial-dot active" data-step="1"></span>
+                        <span class="tutorial-dot" data-step="2"></span>
+                        <span class="tutorial-dot" data-step="3"></span>
+                        <span class="tutorial-dot" data-step="4"></span>
+                    </div>
+                    <button id="tutorial-next" class="btn btn-primary">Next →</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        .tutorial-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: var(--border-color);
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .tutorial-dot.active {
+            background: var(--primary-color);
+        }
+        .tutorial-dot:hover {
+            background: var(--primary-color);
+            opacity: 0.7;
+        }
+    </style>
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <script src="/js/app.js"></script>
     <script src="/js/settings.js"></script>
