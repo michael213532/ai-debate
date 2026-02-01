@@ -227,26 +227,35 @@ class DebateOrchestrator:
 
     def _build_system_prompt(self, model_name: str, role: str, round_num: int) -> str:
         """Build system prompt for a model."""
-        base_prompt = f"You are {model_name}. Share your perspective and opinion on the topic."
+        base_prompt = f"""You are {model_name}, participating in a friendly discussion with other AI models.
+
+IMPORTANT RULES:
+1. LANGUAGE: Always respond in the SAME LANGUAGE the user used. If they write in Russian, respond in Russian. If Spanish, respond in Spanish. Match their language exactly.
+
+2. BE HUMAN: Talk naturally like a thoughtful friend would. No robotic responses. Use casual language, share genuine opinions, and be personable.
+
+3. MAKE CLEAR CHOICES: When asked to compare or choose (like "which photo is better"), clearly state YOUR choice and explain WHY with specific criteria (lighting, composition, colors, mood, etc.).
+
+4. BE SPECIFIC: Give concrete reasons for your opinions. Don't be vague. If comparing images, point out specific details you notice.
+
+5. OWN YOUR OPINION: Say "I think..." or "In my view..." - make it clear this is YOUR perspective as {model_name}."""
 
         if role:
-            base_prompt += f" Your assigned perspective/role is: {role}."
-
-        base_prompt += " Be concise but thorough. Provide your unique viewpoint and any relevant insights."
+            base_prompt += f"\n\nYour perspective/role: {role}"
 
         return base_prompt
 
     def _build_context(self, round_num: int) -> str:
         """Build context string from previous messages."""
-        context = f"DEBATE TOPIC: {self.topic}\n\n"
+        context = f"USER'S MESSAGE: {self.topic}\n\n"
 
         if round_num == 1:
-            context += "Please provide your initial response to this topic."
+            context += "Share your thoughts on this. Be natural and conversational. If the user is asking you to compare or choose something, make a clear choice and explain your reasoning with specific criteria."
         else:
-            context += "PREVIOUS DISCUSSION:\n\n"
+            context += "What the others said:\n\n"
             for msg in self.messages:
-                context += f"[Round {msg['round']}] {msg['model_name']}:\n{msg['content']}\n\n"
-            context += f"---\nPlease provide your Round {round_num} response, engaging with the above discussion."
+                context += f"{msg['model_name']}: {msg['content']}\n\n"
+            context += "---\nNow share your thoughts. You can agree, disagree, or add a new perspective. Be conversational and engage with what others said."
 
         return context
 
@@ -273,12 +282,19 @@ class DebateOrchestrator:
             provider = provider_class(self.api_keys[provider_name])
 
             # Build summary prompt
-            system_prompt = f"You are {model_name}. Synthesize the different AI perspectives into a helpful combined answer. Include:\n1. Key insights from each AI's perspective\n2. Points of agreement\n3. Practical tips and actionable advice to help the user\nBe concise and helpful."
+            system_prompt = f"""You are {model_name}. Summarize this discussion for the user.
 
-            context = f"USER'S QUESTION: {self.topic}\n\nAI PERSPECTIVES:\n\n"
+IMPORTANT:
+1. LANGUAGE: Respond in the SAME LANGUAGE the user used. Match their language exactly.
+2. BE CLEAR: Summarize what each AI thought and why.
+3. SHOW CHOICES: If the AIs were asked to choose/compare, clearly state who chose what (e.g., "GPT-4 and Claude preferred option A because... while Gemini chose B because...")
+4. GIVE VERDICT: End with your overall recommendation or takeaway.
+5. BE HELPFUL: Make it actionable and useful for the user."""
+
+            context = f"USER'S QUESTION: {self.topic}\n\nHere's what each AI said:\n\n"
             for msg in self.messages:
-                context += f"{msg['model_name']}:\n{msg['content']}\n\n"
-            context += "---\nProvide a combined answer with practical tips."
+                context += f"**{msg['model_name']}**: {msg['content']}\n\n"
+            context += "---\nNow summarize the discussion. Highlight who said what, any agreements/disagreements, and give a final helpful takeaway."
 
             messages = [{"role": "user", "content": context}]
 
