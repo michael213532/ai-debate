@@ -119,6 +119,10 @@ ai-debate/
 
 4. **Models not persisting**: Check `loadSelectedModels()` is called after `loadConfiguredProviders()`
 
+## TODO - Remind User
+- **Tutorial needs improvement**: Make it clearer and more of a step-by-step setup guide (getting API keys, adding them, etc.)
+- **Some AIs still not working**: Need to debug which ones and why - check model IDs and provider implementations
+
 ## Next Steps (Optional Enhancements)
 - Conversation history persistence
 - Dark/light mode toggle
