@@ -30,6 +30,27 @@ class DebateOrchestrator:
         self._stopped = False
         self.image = image  # Optional image for vision models
 
+        # If image is attached, reorder models so vision-capable ones go first
+        if self.image:
+            self._reorder_models_for_vision()
+
+    # Providers that support vision/images
+    VISION_PROVIDERS = {"openai", "anthropic", "google"}
+
+    def _reorder_models_for_vision(self):
+        """Reorder models so vision-capable ones respond first when image is attached."""
+        vision_models = []
+        non_vision_models = []
+
+        for model in self.models:
+            if model["provider"] in self.VISION_PROVIDERS:
+                vision_models.append(model)
+            else:
+                non_vision_models.append(model)
+
+        # Put vision models first
+        self.models = vision_models + non_vision_models
+
     def stop(self):
         """Stop the debate."""
         self._stopped = True
