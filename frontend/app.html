@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ensemble AI</title>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='12' cy='12' r='9' fill='%236366f1' opacity='0.8'/%3E%3Ccircle cx='20' cy='12' r='9' fill='%238b5cf6' opacity='0.8'/%3E%3Ccircle cx='16' cy='19' r='9' fill='%23a78bfa' opacity='0.8'/%3E%3C/svg%3E">
     <link rel="stylesheet" href="/css/styles.css">
     <style>
         .chat-layout {
@@ -232,11 +233,20 @@
         }
 
         /* Model colors */
-        .ai-message[data-provider="openai"] { border-left-color: #10a37f; }
-        .ai-message[data-provider="anthropic"] { border-left-color: #d4a574; }
-        .ai-message[data-provider="google"] { border-left-color: #4285f4; }
-        .ai-message[data-provider="deepseek"] { border-left-color: #0066ff; }
-        .ai-message[data-provider="xai"] { border-left-color: #1da1f2; }
+        .ai-message[data-provider="openai"] { border-left-color: #3b82f6; }
+        .ai-message[data-provider="openai"] .ai-message-model { color: #3b82f6; }
+
+        .ai-message[data-provider="anthropic"] { border-left-color: #f97316; }
+        .ai-message[data-provider="anthropic"] .ai-message-model { color: #f97316; }
+
+        .ai-message[data-provider="google"] { border-left-color: #eab308; }
+        .ai-message[data-provider="google"] .ai-message-model { color: #eab308; }
+
+        .ai-message[data-provider="deepseek"] { border-left-color: #a855f7; }
+        .ai-message[data-provider="deepseek"] .ai-message-model { color: #a855f7; }
+
+        .ai-message[data-provider="xai"] { border-left-color: #ffffff; }
+        .ai-message[data-provider="xai"] .ai-message-model { color: #ffffff; }
 
         /* Empty state */
         .empty-chat {
