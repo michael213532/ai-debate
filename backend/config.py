@@ -41,8 +41,7 @@ AI_MODELS = {
             {"id": "gpt-4o", "name": "GPT-4o"},
             {"id": "gpt-4o-mini", "name": "GPT-4o Mini"},
             {"id": "gpt-4-turbo", "name": "GPT-4 Turbo"},
-            {"id": "o1-preview", "name": "o1 Preview"},
-            {"id": "o1-mini", "name": "o1 Mini"},
+            {"id": "gpt-4", "name": "GPT-4"},
         ]
     },
     "anthropic": {
@@ -65,15 +64,15 @@ AI_MODELS = {
     "deepseek": {
         "name": "Deepseek",
         "models": [
-            {"id": "deepseek-chat", "name": "Deepseek Chat"},
-            {"id": "deepseek-reasoner", "name": "Deepseek R1"},
+            {"id": "deepseek-chat", "name": "Deepseek V3"},
+            {"id": "deepseek-coder", "name": "Deepseek Coder"},
         ]
     },
     "xai": {
         "name": "xAI",
         "models": [
-            {"id": "grok-2-1212", "name": "Grok 2"},
-            {"id": "grok-2-vision-1212", "name": "Grok 2 Vision"},
+            {"id": "grok-beta", "name": "Grok Beta"},
+            {"id": "grok-2-latest", "name": "Grok 2"},
         ]
     }
 }
