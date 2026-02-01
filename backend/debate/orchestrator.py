@@ -15,7 +15,8 @@ class DebateOrchestrator:
         topic: str,
         config: dict,
         api_keys: dict[str, str],
-        on_message: Callable[[dict], None]
+        on_message: Callable[[dict], None],
+        image: dict = None
     ):
         self.debate_id = debate_id
         self.topic = topic
@@ -27,6 +28,7 @@ class DebateOrchestrator:
         self.summarizer_index = config.get("summarizer_index", 0)
         self.messages: list[dict] = []
         self._stopped = False
+        self.image = image  # Optional image for vision models
 
     def stop(self):
         """Stop the debate."""
@@ -183,9 +185,12 @@ class DebateOrchestrator:
         # Build messages
         messages = [{"role": "user", "content": context}]
 
+        # Only include image in round 1
+        image = self.image if round_num == 1 else None
+
         # Stream response
         full_response = ""
-        async for chunk in provider.generate_stream(model_id, messages, system_prompt):
+        async for chunk in provider.generate_stream(model_id, messages, system_prompt, image):
             if self._stopped:
                 break
             full_response += chunk

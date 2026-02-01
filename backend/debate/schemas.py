@@ -19,10 +19,17 @@ class DebateConfig(BaseModel):
     summarizer_index: Optional[int] = 0  # Index of model to summarize
 
 
+class ImageData(BaseModel):
+    """Image data for vision models."""
+    base64: str  # Base64 encoded image
+    media_type: str = "image/jpeg"  # image/jpeg, image/png, image/gif, image/webp
+
+
 class CreateDebateRequest(BaseModel):
     """Request to create a new debate."""
     topic: str
     config: DebateConfig
+    image: Optional[ImageData] = None  # Optional image attachment
 
 
 class DebateResponse(BaseModel):

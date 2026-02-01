@@ -90,6 +90,50 @@
             background: var(--surface);
         }
 
+        /* Image Preview */
+        .image-preview-container {
+            position: relative;
+            display: inline-block;
+            margin-bottom: 12px;
+        }
+
+        .image-preview {
+            max-width: 200px;
+            max-height: 150px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+        }
+
+        .remove-image-btn {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: var(--error-color);
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            line-height: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .remove-image-btn:hover {
+            background: #dc2626;
+        }
+
+        /* Chat message image */
+        .message-image {
+            max-width: 100%;
+            max-height: 300px;
+            border-radius: 8px;
+            margin-top: 8px;
+        }
+
         .chat-input-row {
             display: flex;
             gap: 12px;
@@ -583,7 +627,14 @@
 
                 <!-- Input Area -->
                 <div class="chat-input-area">
+                    <!-- Image Preview -->
+                    <div id="image-preview-container" class="image-preview-container" style="display: none;">
+                        <img id="image-preview" class="image-preview" alt="Preview">
+                        <button id="remove-image-btn" class="remove-image-btn" title="Remove image">&times;</button>
+                    </div>
                     <div class="chat-input-row">
+                        <input type="file" id="image-input" accept="image/jpeg,image/png,image/gif,image/webp" style="display: none;">
+                        <button id="upload-image-btn" class="btn btn-secondary send-btn" title="Upload image">📎</button>
                         <textarea id="chat-input" class="chat-input" placeholder="Type your message..." rows="1"></textarea>
                         <button id="send-btn" class="btn btn-primary send-btn" disabled>➤</button>
                         <button id="export-pdf-btn" class="btn btn-secondary send-btn" style="display: none;" title="Export to PDF">PDF</button>

@@ -15,13 +15,30 @@ class OpenAIProvider(BaseProvider):
         self,
         model: str,
         messages: list[dict],
-        system_prompt: str = ""
+        system_prompt: str = "",
+        image: dict = None
     ) -> AsyncGenerator[str, None]:
         """Generate streaming response from OpenAI."""
         all_messages = []
         if system_prompt:
             all_messages.append({"role": "system", "content": system_prompt})
-        all_messages.extend(messages)
+
+        # Process messages, adding image to first user message if provided
+        for i, msg in enumerate(messages):
+            if image and i == 0 and msg["role"] == "user":
+                # Add image to first user message
+                content = [
+                    {"type": "text", "text": msg["content"]},
+                    {
+                        "type": "image_url",
+                        "image_url": {
+                            "url": f"data:{image['media_type']};base64,{image['base64']}"
+                        }
+                    }
+                ]
+                all_messages.append({"role": "user", "content": content})
+            else:
+                all_messages.append(msg)
 
         stream = await self.client.chat.completions.create(
             model=model,

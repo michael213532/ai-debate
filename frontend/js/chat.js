@@ -6,12 +6,24 @@ let chatWebSocket = null;
 let currentSessionId = null;
 let isProcessing = false;
 let conversationHistory = [];
+let selectedImage = null; // { base64: string, media_type: string, dataUrl: string }
 
 // Send button click
 document.getElementById('send-btn').addEventListener('click', sendMessage);
 
 // Export PDF button click
 document.getElementById('export-pdf-btn').addEventListener('click', exportToPdf);
+
+// Image upload button click
+document.getElementById('upload-image-btn').addEventListener('click', () => {
+    document.getElementById('image-input').click();
+});
+
+// Image file selected
+document.getElementById('image-input').addEventListener('change', handleImageSelect);
+
+// Remove image button
+document.getElementById('remove-image-btn').addEventListener('click', clearSelectedImage);
 
 // Send a message
 async function sendMessage() {
@@ -34,8 +46,12 @@ async function sendMessage() {
         emptyState.remove();
     }
 
-    // Add user message to chat
-    addUserMessage(message);
+    // Add user message to chat (with image if present)
+    addUserMessage(message, selectedImage?.dataUrl);
+
+    // Store image for API call, then clear preview
+    const imageToSend = selectedImage ? { base64: selectedImage.base64, media_type: selectedImage.media_type } : null;
+    clearSelectedImage();
 
     // Clear input
     input.value = '';
@@ -47,17 +63,24 @@ async function sendMessage() {
 
     try {
         // Create a new debate/session
+        const requestBody = {
+            topic: message,
+            config: {
+                models: selectedModels,
+                rounds: 2, // Quick discussion rounds
+                summarizer_index: 0
+            }
+        };
+
+        // Add image if present
+        if (imageToSend) {
+            requestBody.image = imageToSend;
+        }
+
         const response = await fetch(`${API_BASE}/api/debates`, {
             method: 'POST',
             headers: getAuthHeaders(),
-            body: JSON.stringify({
-                topic: message,
-                config: {
-                    models: selectedModels,
-                    rounds: 2, // Quick discussion rounds
-                    summarizer_index: 0
-                }
-            })
+            body: JSON.stringify(requestBody)
         });
 
         if (response.status === 402) {
@@ -174,11 +197,17 @@ function handleWebSocketMessage(message) {
 }
 
 // Add user message to chat
-function addUserMessage(text) {
+function addUserMessage(text, imageDataUrl = null) {
     const container = document.getElementById('chat-messages');
     const msg = document.createElement('div');
     msg.className = 'message user';
-    msg.innerHTML = `<div class="message-content">${escapeHtml(text)}</div>`;
+
+    let html = `<div class="message-content">${escapeHtml(text)}</div>`;
+    if (imageDataUrl) {
+        html += `<img src="${imageDataUrl}" class="message-image" alt="Attached image">`;
+    }
+
+    msg.innerHTML = html;
     container.appendChild(msg);
     scrollToBottom(container);
 
@@ -330,6 +359,63 @@ function hideExportButton() {
     if (btn) {
         btn.style.display = 'none';
     }
+}
+
+// Handle image file selection
+function handleImageSelect(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    // Validate file type
+    const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+    if (!validTypes.includes(file.type)) {
+        alert('Please select a valid image file (JPG, PNG, GIF, or WebP)');
+        return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+        alert('Image must be smaller than 5MB');
+        return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        const dataUrl = e.target.result;
+        // Extract base64 data (remove "data:image/xxx;base64," prefix)
+        const base64 = dataUrl.split(',')[1];
+
+        selectedImage = {
+            base64: base64,
+            media_type: file.type,
+            dataUrl: dataUrl
+        };
+
+        // Show preview
+        showImagePreview(dataUrl);
+        updateSendButton();
+    };
+    reader.readAsDataURL(file);
+
+    // Reset input so same file can be selected again
+    event.target.value = '';
+}
+
+// Show image preview
+function showImagePreview(dataUrl) {
+    const container = document.getElementById('image-preview-container');
+    const preview = document.getElementById('image-preview');
+    preview.src = dataUrl;
+    container.style.display = 'inline-block';
+}
+
+// Clear selected image
+function clearSelectedImage() {
+    selectedImage = null;
+    const container = document.getElementById('image-preview-container');
+    const preview = document.getElementById('image-preview');
+    preview.src = '';
+    container.style.display = 'none';
 }
 
 // Export conversation to PDF

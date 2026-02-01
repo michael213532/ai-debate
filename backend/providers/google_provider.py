@@ -15,16 +15,30 @@ class GoogleProvider(BaseProvider):
         self,
         model: str,
         messages: list[dict],
-        system_prompt: str = ""
+        system_prompt: str = "",
+        image: dict = None
     ) -> AsyncGenerator[str, None]:
         """Generate streaming response from Google Gemini."""
         # Convert messages to Gemini format
         gemini_messages = []
-        for msg in messages:
+        for i, msg in enumerate(messages):
             role = "user" if msg["role"] == "user" else "model"
+            parts = []
+
+            # Add image to first user message if provided
+            if image and i == 0 and msg["role"] == "user":
+                import base64
+                parts.append({
+                    "inline_data": {
+                        "mime_type": image["media_type"],
+                        "data": image["base64"]
+                    }
+                })
+
+            parts.append(msg["content"])
             gemini_messages.append({
                 "role": role,
-                "parts": [msg["content"]]
+                "parts": parts
             })
 
         # Create model with system instruction
@@ -37,7 +51,7 @@ class GoogleProvider(BaseProvider):
 
         # Start chat and generate response
         chat = model_instance.start_chat(history=gemini_messages[:-1] if len(gemini_messages) > 1 else [])
-        last_message = gemini_messages[-1]["parts"][0] if gemini_messages else ""
+        last_message = gemini_messages[-1]["parts"] if gemini_messages else ""
 
         response = await chat.send_message_async(last_message, stream=True)
         async for chunk in response:
