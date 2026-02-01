@@ -83,6 +83,12 @@ async def serve_privacy():
     return FileResponse(frontend_path / "privacy.html")
 
 
+@app.get("/logo.svg")
+async def serve_logo():
+    """Serve the logo."""
+    return FileResponse(frontend_path / "logo.svg", media_type="image/svg+xml")
+
+
 @app.get("/health")
 async def health_check():
     """Health check endpoint."""
