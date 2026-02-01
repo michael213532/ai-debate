@@ -13,16 +13,21 @@ const MAX_IMAGES = 10;
 document.getElementById('send-btn').addEventListener('click', sendMessage);
 
 // Attachment menu toggle
-document.getElementById('attachment-btn').addEventListener('click', toggleAttachmentMenu);
+document.getElementById('attachment-btn').addEventListener('click', (e) => {
+    e.stopPropagation();
+    toggleAttachmentMenu();
+});
 
 // Add image button in dropdown
-document.getElementById('add-image-btn').addEventListener('click', () => {
+document.getElementById('add-image-btn').addEventListener('click', (e) => {
+    e.stopPropagation();
     closeAttachmentMenu();
     document.getElementById('image-input').click();
 });
 
 // Export PDF button in dropdown
-document.getElementById('export-pdf-btn').addEventListener('click', () => {
+document.getElementById('export-pdf-btn').addEventListener('click', (e) => {
+    e.stopPropagation();
     closeAttachmentMenu();
 
     // Check if user is Pro
@@ -46,11 +51,8 @@ document.getElementById('export-pdf-btn').addEventListener('click', () => {
 document.getElementById('image-input').addEventListener('change', handleImageSelect);
 
 // Close dropdown when clicking outside
-document.addEventListener('click', (e) => {
-    const menu = document.querySelector('.attachment-menu');
-    if (!menu.contains(e.target)) {
-        closeAttachmentMenu();
-    }
+document.addEventListener('click', () => {
+    closeAttachmentMenu();
 });
 
 // Toggle attachment dropdown
