@@ -334,9 +334,10 @@ async def get_debate(
 @router.get("/api/debates/{debate_id}/export")
 async def export_debate(
     debate_id: str,
+    auto_print: bool = True,
     current_user: User = Depends(get_current_user)
 ):
-    """Export debate as printable HTML (Pro feature)."""
+    """Export debate as printable HTML (Pro feature). Set auto_print=false for PDF generation."""
     # Check if user is Pro
     if current_user.subscription_status != "active":
         raise HTTPException(
@@ -424,8 +425,11 @@ async def export_debate(
         </div>
         '''
 
-    html += """
+    if auto_print:
+        html += """
         <script>window.onload = function() { window.print(); }</script>
+    """
+    html += """
     </body>
     </html>
     """

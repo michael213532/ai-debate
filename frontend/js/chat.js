@@ -10,6 +10,9 @@ let conversationHistory = [];
 // Send button click
 document.getElementById('send-btn').addEventListener('click', sendMessage);
 
+// Export PDF button click
+document.getElementById('export-pdf-btn').addEventListener('click', exportToPdf);
+
 // Send a message
 async function sendMessage() {
     const input = document.getElementById('chat-input');
@@ -21,6 +24,9 @@ async function sendMessage() {
 
     // Lock input
     setInputLocked(true);
+
+    // Hide export button for new session
+    hideExportButton();
 
     // Clear empty state if present
     const emptyState = document.querySelector('.empty-chat');
@@ -152,6 +158,7 @@ function handleWebSocketMessage(message) {
             setAiStatus('Done', false);
             finishFinalResponse();
             setInputLocked(false);
+            showExportButton();
             break;
 
         case 'error':
@@ -308,3 +315,80 @@ window.addEventListener('beforeunload', () => {
         chatWebSocket.close();
     }
 });
+
+// Show export PDF button
+function showExportButton() {
+    const btn = document.getElementById('export-pdf-btn');
+    if (btn && currentSessionId) {
+        btn.style.display = 'flex';
+    }
+}
+
+// Hide export PDF button
+function hideExportButton() {
+    const btn = document.getElementById('export-pdf-btn');
+    if (btn) {
+        btn.style.display = 'none';
+    }
+}
+
+// Export conversation to PDF
+async function exportToPdf() {
+    if (!currentSessionId) {
+        alert('No conversation to export');
+        return;
+    }
+
+    const btn = document.getElementById('export-pdf-btn');
+    const originalText = btn.textContent;
+    btn.textContent = '...';
+    btn.disabled = true;
+
+    try {
+        // Fetch the HTML export (without auto-print)
+        const response = await fetch(`${API_BASE}/api/debates/${currentSessionId}/export?auto_print=false`, {
+            headers: getAuthHeaders()
+        });
+
+        if (response.status === 402) {
+            alert('Export to PDF is a Pro feature. Please upgrade to access.');
+            return;
+        }
+
+        if (!response.ok) {
+            throw new Error('Failed to fetch export');
+        }
+
+        const html = await response.text();
+
+        // Create a temporary container
+        const container = document.createElement('div');
+        container.innerHTML = html;
+
+        // Extract just the body content
+        const bodyContent = container.querySelector('body');
+        if (bodyContent) {
+            // Remove the script tag if present
+            const script = bodyContent.querySelector('script');
+            if (script) script.remove();
+        }
+
+        // Generate PDF using html2pdf
+        const opt = {
+            margin: [10, 10, 10, 10],
+            filename: 'ensemble-ai-conversation.pdf',
+            image: { type: 'jpeg', quality: 0.98 },
+            html2canvas: { scale: 2, useCORS: true },
+            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        };
+
+        await html2pdf().set(opt).from(bodyContent || container).save();
+
+    } catch (error) {
+        console.error('Error exporting PDF:', error);
+        alert('Failed to export PDF. Please try again.');
+    } finally {
+        btn.textContent = originalText;
+        btn.disabled = false;
+    }
+}
