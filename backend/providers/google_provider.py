@@ -16,7 +16,7 @@ class GoogleProvider(BaseProvider):
         model: str,
         messages: list[dict],
         system_prompt: str = "",
-        image: dict = None
+        images: list = None
     ) -> AsyncGenerator[str, None]:
         """Generate streaming response from Google Gemini."""
         # Convert messages to Gemini format
@@ -25,15 +25,15 @@ class GoogleProvider(BaseProvider):
             role = "user" if msg["role"] == "user" else "model"
             parts = []
 
-            # Add image to first user message if provided
-            if image and i == 0 and msg["role"] == "user":
-                import base64
-                parts.append({
-                    "inline_data": {
-                        "mime_type": image["media_type"],
-                        "data": image["base64"]
-                    }
-                })
+            # Add images to first user message if provided
+            if images and i == 0 and msg["role"] == "user":
+                for img in images:
+                    parts.append({
+                        "inline_data": {
+                            "mime_type": img["media_type"],
+                            "data": img["base64"]
+                        }
+                    })
 
             parts.append(msg["content"])
             gemini_messages.append({

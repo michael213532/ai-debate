@@ -15,7 +15,7 @@ class BaseProvider(ABC):
         model: str,
         messages: list[dict],
         system_prompt: str = "",
-        image: dict = None
+        images: list = None
     ) -> AsyncGenerator[str, None]:
         """Generate streaming response from the model.
 
@@ -23,7 +23,7 @@ class BaseProvider(ABC):
             model: Model ID to use
             messages: List of message dicts with role and content
             system_prompt: Optional system prompt
-            image: Optional image dict with 'base64' and 'media_type' keys (for vision models)
+            images: Optional list of image dicts with 'base64' and 'media_type' keys (for vision models)
         """
         pass
 

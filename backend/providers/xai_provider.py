@@ -17,7 +17,7 @@ class XAIProvider(BaseProvider):
         model: str,
         messages: list[dict],
         system_prompt: str = "",
-        image: dict = None  # xAI doesn't support vision, image ignored
+        images: list = None  # xAI doesn't support vision, images ignored
     ) -> AsyncGenerator[str, None]:
         """Generate streaming response from xAI."""
         all_messages = []

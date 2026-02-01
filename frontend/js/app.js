@@ -157,6 +157,7 @@ function renderSubscriptionStatus() {
         badge.className = 'subscription-badge free';
         upgradeBtn.style.display = 'inline-flex';
     }
+
 }
 
 // Handle upgrade button - go to pricing page
@@ -300,8 +301,15 @@ const aiPanel = document.getElementById('ai-panel');
 
 if (mobileAiToggle && panelOverlay && aiPanel) {
     mobileAiToggle.addEventListener('click', () => {
-        aiPanel.classList.add('open');
-        panelOverlay.classList.add('active');
+        // Toggle panel open/closed
+        const isOpen = aiPanel.classList.contains('open');
+        if (isOpen) {
+            aiPanel.classList.remove('open');
+            panelOverlay.classList.remove('active');
+        } else {
+            aiPanel.classList.add('open');
+            panelOverlay.classList.add('active');
+        }
     });
 
     panelOverlay.addEventListener('click', () => {

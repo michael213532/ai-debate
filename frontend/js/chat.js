@@ -6,24 +6,64 @@ let chatWebSocket = null;
 let currentSessionId = null;
 let isProcessing = false;
 let conversationHistory = [];
-let selectedImage = null; // { base64: string, media_type: string, dataUrl: string }
+let selectedImages = []; // Array of { base64: string, media_type: string, dataUrl: string }
+const MAX_IMAGES = 10;
 
 // Send button click
 document.getElementById('send-btn').addEventListener('click', sendMessage);
 
-// Export PDF button click
-document.getElementById('export-pdf-btn').addEventListener('click', exportToPdf);
+// Attachment menu toggle
+document.getElementById('attachment-btn').addEventListener('click', toggleAttachmentMenu);
 
-// Image upload button click
-document.getElementById('upload-image-btn').addEventListener('click', () => {
+// Add image button in dropdown
+document.getElementById('add-image-btn').addEventListener('click', () => {
+    closeAttachmentMenu();
     document.getElementById('image-input').click();
+});
+
+// Export PDF button in dropdown
+document.getElementById('export-pdf-btn').addEventListener('click', () => {
+    closeAttachmentMenu();
+
+    // Check if user is Pro
+    if (subscriptionStatus?.status !== 'active') {
+        if (confirm('Export to PDF is a Pro feature. Upgrade now for unlimited sessions and PDF exports?')) {
+            window.location.href = '/pricing';
+        }
+        return;
+    }
+
+    // Check if there's a session to export
+    if (!currentSessionId) {
+        alert('Start a conversation first to export it as PDF.');
+        return;
+    }
+
+    exportToPdf();
 });
 
 // Image file selected
 document.getElementById('image-input').addEventListener('change', handleImageSelect);
 
-// Remove image button
-document.getElementById('remove-image-btn').addEventListener('click', clearSelectedImage);
+// Close dropdown when clicking outside
+document.addEventListener('click', (e) => {
+    const menu = document.querySelector('.attachment-menu');
+    if (!menu.contains(e.target)) {
+        closeAttachmentMenu();
+    }
+});
+
+// Toggle attachment dropdown
+function toggleAttachmentMenu() {
+    const dropdown = document.getElementById('attachment-dropdown');
+    dropdown.classList.toggle('open');
+}
+
+// Close attachment dropdown
+function closeAttachmentMenu() {
+    const dropdown = document.getElementById('attachment-dropdown');
+    dropdown.classList.remove('open');
+}
 
 // Send a message
 async function sendMessage() {
@@ -46,12 +86,15 @@ async function sendMessage() {
         emptyState.remove();
     }
 
-    // Add user message to chat (with image if present)
-    addUserMessage(message, selectedImage?.dataUrl);
+    // Add user message to chat (with images if present)
+    const imageDataUrls = selectedImages.map(img => img.dataUrl);
+    addUserMessage(message, imageDataUrls);
 
-    // Store image for API call, then clear preview
-    const imageToSend = selectedImage ? { base64: selectedImage.base64, media_type: selectedImage.media_type } : null;
-    clearSelectedImage();
+    // Store images for API call, then clear preview
+    const imagesToSend = selectedImages.length > 0
+        ? selectedImages.map(img => ({ base64: img.base64, media_type: img.media_type }))
+        : null;
+    clearAllImages();
 
     // Clear input
     input.value = '';
@@ -67,14 +110,14 @@ async function sendMessage() {
             topic: message,
             config: {
                 models: selectedModels,
-                rounds: 2, // Quick discussion rounds
+                rounds: 1, // Each AI gives one opinion
                 summarizer_index: 0
             }
         };
 
-        // Add image if present
-        if (imageToSend) {
-            requestBody.image = imageToSend;
+        // Add images if present
+        if (imagesToSend) {
+            requestBody.images = imagesToSend;
         }
 
         const response = await fetch(`${API_BASE}/api/debates`, {
@@ -146,11 +189,16 @@ function connectWebSocket(sessionId) {
 function handleWebSocketMessage(message) {
     switch (message.type) {
         case 'round_start':
-            setAiStatus(`Round ${message.round}/${message.total_rounds}`, true);
+            setAiStatus('Getting opinions...', true);
             break;
 
         case 'model_start':
             addAiDiscussionMessage(message.model_name, message.provider, '');
+            // Auto-open AI panel on mobile when responses start
+            if (window.innerWidth <= 900) {
+                document.getElementById('ai-panel')?.classList.add('open');
+                document.getElementById('panel-overlay')?.classList.add('active');
+            }
             break;
 
         case 'chunk':
@@ -197,14 +245,18 @@ function handleWebSocketMessage(message) {
 }
 
 // Add user message to chat
-function addUserMessage(text, imageDataUrl = null) {
+function addUserMessage(text, imageDataUrls = []) {
     const container = document.getElementById('chat-messages');
     const msg = document.createElement('div');
     msg.className = 'message user';
 
     let html = `<div class="message-content">${escapeHtml(text)}</div>`;
-    if (imageDataUrl) {
-        html += `<img src="${imageDataUrl}" class="message-image" alt="Attached image">`;
+    if (imageDataUrls && imageDataUrls.length > 0) {
+        html += '<div class="message-images">';
+        for (const dataUrl of imageDataUrls) {
+            html += `<img src="${dataUrl}" class="message-image" alt="Attached image">`;
+        }
+        html += '</div>';
     }
 
     msg.innerHTML = html;
@@ -345,26 +397,25 @@ window.addEventListener('beforeunload', () => {
     }
 });
 
-// Show export PDF button
+// Show/hide export button functions (kept for compatibility, button always visible now)
 function showExportButton() {
-    const btn = document.getElementById('export-pdf-btn');
-    if (btn && currentSessionId) {
-        btn.style.display = 'flex';
-    }
+    // Button is always visible, Pro check happens on click
 }
 
-// Hide export PDF button
 function hideExportButton() {
-    const btn = document.getElementById('export-pdf-btn');
-    if (btn) {
-        btn.style.display = 'none';
-    }
+    // Button is always visible, Pro check happens on click
 }
 
 // Handle image file selection
 function handleImageSelect(event) {
     const file = event.target.files[0];
     if (!file) return;
+
+    // Check max images limit
+    if (selectedImages.length >= MAX_IMAGES) {
+        alert(`Maximum ${MAX_IMAGES} images allowed`);
+        return;
+    }
 
     // Validate file type
     const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
@@ -385,14 +436,16 @@ function handleImageSelect(event) {
         // Extract base64 data (remove "data:image/xxx;base64," prefix)
         const base64 = dataUrl.split(',')[1];
 
-        selectedImage = {
+        const imageData = {
             base64: base64,
             media_type: file.type,
             dataUrl: dataUrl
         };
 
-        // Show preview
-        showImagePreview(dataUrl);
+        selectedImages.push(imageData);
+
+        // Add preview
+        addImagePreview(imageData, selectedImages.length - 1);
         updateSendButton();
     };
     reader.readAsDataURL(file);
@@ -401,21 +454,48 @@ function handleImageSelect(event) {
     event.target.value = '';
 }
 
-// Show image preview
-function showImagePreview(dataUrl) {
-    const container = document.getElementById('image-preview-container');
-    const preview = document.getElementById('image-preview');
-    preview.src = dataUrl;
-    container.style.display = 'inline-block';
+// Add image preview to container
+function addImagePreview(imageData, index) {
+    const container = document.getElementById('images-preview-container');
+
+    const item = document.createElement('div');
+    item.className = 'image-preview-item';
+    item.dataset.index = index;
+
+    const img = document.createElement('img');
+    img.src = imageData.dataUrl;
+    img.alt = 'Preview';
+
+    const removeBtn = document.createElement('button');
+    removeBtn.className = 'remove-image-btn';
+    removeBtn.innerHTML = '&times;';
+    removeBtn.title = 'Remove image';
+    removeBtn.onclick = () => removeImage(index);
+
+    item.appendChild(img);
+    item.appendChild(removeBtn);
+    container.appendChild(item);
 }
 
-// Clear selected image
-function clearSelectedImage() {
-    selectedImage = null;
-    const container = document.getElementById('image-preview-container');
-    const preview = document.getElementById('image-preview');
-    preview.src = '';
-    container.style.display = 'none';
+// Remove single image by index
+function removeImage(index) {
+    selectedImages.splice(index, 1);
+    renderImagePreviews();
+    updateSendButton();
+}
+
+// Re-render all image previews
+function renderImagePreviews() {
+    const container = document.getElementById('images-preview-container');
+    container.innerHTML = '';
+    selectedImages.forEach((img, i) => addImagePreview(img, i));
+}
+
+// Clear all selected images
+function clearAllImages() {
+    selectedImages = [];
+    const container = document.getElementById('images-preview-container');
+    container.innerHTML = '';
 }
 
 // Export conversation to PDF

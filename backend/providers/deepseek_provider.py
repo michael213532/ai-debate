@@ -17,7 +17,7 @@ class DeepseekProvider(BaseProvider):
         model: str,
         messages: list[dict],
         system_prompt: str = "",
-        image: dict = None  # Deepseek doesn't support vision, image ignored
+        images: list = None  # Deepseek doesn't support vision, images ignored
     ) -> AsyncGenerator[str, None]:
         """Generate streaming response from Deepseek."""
         all_messages = []

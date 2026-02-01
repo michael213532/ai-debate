@@ -29,7 +29,7 @@ class CreateDebateRequest(BaseModel):
     """Request to create a new debate."""
     topic: str
     config: DebateConfig
-    image: Optional[ImageData] = None  # Optional image attachment
+    images: Optional[list[ImageData]] = None  # Optional image attachments (up to 10)
 
 
 class DebateResponse(BaseModel):

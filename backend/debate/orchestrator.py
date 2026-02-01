@@ -16,7 +16,7 @@ class DebateOrchestrator:
         config: dict,
         api_keys: dict[str, str],
         on_message: Callable[[dict], None],
-        image: dict = None
+        images: list = None
     ):
         self.debate_id = debate_id
         self.topic = topic
@@ -28,10 +28,10 @@ class DebateOrchestrator:
         self.summarizer_index = config.get("summarizer_index", 0)
         self.messages: list[dict] = []
         self._stopped = False
-        self.image = image  # Optional image for vision models
+        self.images = images or []  # Optional images for vision models
 
-        # If image is attached, reorder models so vision-capable ones go first
-        if self.image:
+        # If images are attached, reorder models so vision-capable ones go first
+        if self.images:
             self._reorder_models_for_vision()
 
     # Providers that support vision/images
@@ -206,12 +206,12 @@ class DebateOrchestrator:
         # Build messages
         messages = [{"role": "user", "content": context}]
 
-        # Only include image in round 1
-        image = self.image if round_num == 1 else None
+        # Only include images in round 1
+        images = self.images if round_num == 1 else None
 
         # Stream response
         full_response = ""
-        async for chunk in provider.generate_stream(model_id, messages, system_prompt, image):
+        async for chunk in provider.generate_stream(model_id, messages, system_prompt, images):
             if self._stopped:
                 break
             full_response += chunk
@@ -227,19 +227,12 @@ class DebateOrchestrator:
 
     def _build_system_prompt(self, model_name: str, role: str, round_num: int) -> str:
         """Build system prompt for a model."""
-        base_prompt = f"You are {model_name} participating in a structured debate."
+        base_prompt = f"You are {model_name}. Share your perspective and opinion on the topic."
 
         if role:
             base_prompt += f" Your assigned perspective/role is: {role}."
 
-        if round_num == 1:
-            base_prompt += " This is Round 1. Provide your initial thoughts on the topic."
-        elif round_num == self.rounds:
-            base_prompt += f" This is the final round (Round {round_num}). Work toward a synthesis or conclusion, acknowledging points of agreement and remaining disagreements."
-        else:
-            base_prompt += f" This is Round {round_num}. Respond to the other participants' arguments, refine your position, and engage constructively with different viewpoints."
-
-        base_prompt += " Be concise but thorough. Focus on substance over rhetoric."
+        base_prompt += " Be concise but thorough. Provide your unique viewpoint and any relevant insights."
 
         return base_prompt
 
@@ -280,12 +273,12 @@ class DebateOrchestrator:
             provider = provider_class(self.api_keys[provider_name])
 
             # Build summary prompt
-            system_prompt = f"You are {model_name}. Your task is to provide a balanced summary of the debate that just concluded. Highlight key arguments, points of agreement, remaining disagreements, and any conclusions reached."
+            system_prompt = f"You are {model_name}. Synthesize the different AI perspectives into a helpful combined answer. Include:\n1. Key insights from each AI's perspective\n2. Points of agreement\n3. Practical tips and actionable advice to help the user\nBe concise and helpful."
 
-            context = f"DEBATE TOPIC: {self.topic}\n\nFULL DEBATE TRANSCRIPT:\n\n"
+            context = f"USER'S QUESTION: {self.topic}\n\nAI PERSPECTIVES:\n\n"
             for msg in self.messages:
-                context += f"[Round {msg['round']}] {msg['model_name']}:\n{msg['content']}\n\n"
-            context += "---\nPlease provide a concise summary of this debate."
+                context += f"{msg['model_name']}:\n{msg['content']}\n\n"
+            context += "---\nProvide a combined answer with practical tips."
 
             messages = [{"role": "user", "content": context}]
 

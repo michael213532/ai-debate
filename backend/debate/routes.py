@@ -230,9 +230,9 @@ async def create_debate(
 
     debate_id = str(uuid.uuid4())
     config_data = request.config.model_dump()
-    # Include image in config if provided
-    if request.image:
-        config_data["image"] = request.image.model_dump()
+    # Include images in config if provided
+    if request.images:
+        config_data["images"] = [img.model_dump() for img in request.images]
     config_json = json.dumps(config_data)
 
     async with get_db() as db:
@@ -516,8 +516,8 @@ async def debate_websocket(websocket: WebSocket, debate_id: str):
             api_keys = await get_user_api_keys(user_id)
             config = json.loads(debate_row["config"]) if isinstance(debate_row["config"], str) else debate_row["config"]
 
-            # Extract image from config if present
-            image = config.pop("image", None)
+            # Extract images from config if present
+            images = config.pop("images", None)
 
             orchestrator = DebateOrchestrator(
                 debate_id=debate_id,
@@ -525,7 +525,7 @@ async def debate_websocket(websocket: WebSocket, debate_id: str):
                 config=config,
                 api_keys=api_keys,
                 on_message=broadcast_message,
-                image=image
+                images=images
             )
             active_debates[debate_id] = orchestrator
 

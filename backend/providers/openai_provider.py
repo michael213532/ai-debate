@@ -16,26 +16,25 @@ class OpenAIProvider(BaseProvider):
         model: str,
         messages: list[dict],
         system_prompt: str = "",
-        image: dict = None
+        images: list = None
     ) -> AsyncGenerator[str, None]:
         """Generate streaming response from OpenAI."""
         all_messages = []
         if system_prompt:
             all_messages.append({"role": "system", "content": system_prompt})
 
-        # Process messages, adding image to first user message if provided
+        # Process messages, adding images to first user message if provided
         for i, msg in enumerate(messages):
-            if image and i == 0 and msg["role"] == "user":
-                # Add image to first user message
-                content = [
-                    {"type": "text", "text": msg["content"]},
-                    {
+            if images and i == 0 and msg["role"] == "user":
+                # Add images to first user message
+                content = [{"type": "text", "text": msg["content"]}]
+                for img in images:
+                    content.append({
                         "type": "image_url",
                         "image_url": {
-                            "url": f"data:{image['media_type']};base64,{image['base64']}"
+                            "url": f"data:{img['media_type']};base64,{img['base64']}"
                         }
-                    }
-                ]
+                    })
                 all_messages.append({"role": "user", "content": content})
             else:
                 all_messages.append(msg)
