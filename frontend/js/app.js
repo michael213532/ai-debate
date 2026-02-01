@@ -368,6 +368,7 @@ function showTutorial() {
     const modal = document.getElementById('tutorial-modal');
     if (modal) {
         modal.style.display = 'flex';
+        modal.classList.add('active');
         tutorialStep = 1;
         updateTutorialStep();
     }
@@ -377,6 +378,7 @@ function hideTutorial() {
     const modal = document.getElementById('tutorial-modal');
     if (modal) {
         modal.style.display = 'none';
+        modal.classList.remove('active');
         localStorage.setItem('tutorialCompleted', 'true');
     }
 }
@@ -426,37 +428,54 @@ function updateTutorialStep() {
     }
 }
 
-// Tutorial event listeners
-document.getElementById('tutorial-next')?.addEventListener('click', () => {
-    if (tutorialStep < totalSteps) {
-        tutorialStep++;
-        updateTutorialStep();
-    } else {
-        hideTutorial();
+// Setup tutorial event listeners
+function setupTutorialListeners() {
+    const nextBtn = document.getElementById('tutorial-next');
+    const prevBtn = document.getElementById('tutorial-prev');
+    const skipBtn = document.getElementById('tutorial-skip');
+
+    if (nextBtn) {
+        nextBtn.addEventListener('click', () => {
+            if (tutorialStep < totalSteps) {
+                tutorialStep++;
+                updateTutorialStep();
+            } else {
+                hideTutorial();
+            }
+        });
     }
-});
 
-document.getElementById('tutorial-prev')?.addEventListener('click', () => {
-    if (tutorialStep > 1) {
-        tutorialStep--;
-        updateTutorialStep();
+    if (prevBtn) {
+        prevBtn.addEventListener('click', () => {
+            if (tutorialStep > 1) {
+                tutorialStep--;
+                updateTutorialStep();
+            }
+        });
     }
-});
 
-document.getElementById('tutorial-skip')?.addEventListener('click', hideTutorial);
+    if (skipBtn) {
+        skipBtn.addEventListener('click', hideTutorial);
+    }
 
-document.querySelectorAll('.tutorial-dot').forEach(dot => {
-    dot.addEventListener('click', () => {
-        tutorialStep = parseInt(dot.dataset.step);
-        updateTutorialStep();
+    document.querySelectorAll('.tutorial-dot').forEach(dot => {
+        dot.addEventListener('click', () => {
+            tutorialStep = parseInt(dot.dataset.step);
+            updateTutorialStep();
+        });
     });
-});
+}
 
 // Check if should show tutorial (new user)
 function checkShowTutorial() {
+    // Setup listeners first
+    setupTutorialListeners();
+
     const completed = localStorage.getItem('tutorialCompleted');
     if (!completed) {
-        // Small delay to let page load
-        setTimeout(showTutorial, 500);
+        showTutorial();
     }
 }
+
+// Allow manually showing tutorial (for testing or help)
+window.showTutorial = showTutorial;
