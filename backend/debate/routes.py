@@ -556,3 +556,20 @@ async def debate_websocket(websocket: WebSocket, debate_id: str):
             debate_connections[debate_id].remove(websocket)
         if debate_id in active_debates and not debate_connections.get(debate_id):
             del active_debates[debate_id]
+
+
+# TEMPORARY: Admin endpoint to clear all users (remove after use)
+@router.delete("/api/admin/clear-all-users")
+async def clear_all_users(secret: str):
+    """TEMPORARY: Clear all users from database. Remove this endpoint after use."""
+    if secret != "delete-all-users-2024":
+        raise HTTPException(status_code=403, detail="Invalid secret")
+
+    async with get_db() as db:
+        await db.execute("DELETE FROM user_api_keys")
+        await db.execute("DELETE FROM messages")
+        await db.execute("DELETE FROM debates")
+        await db.execute("DELETE FROM users")
+        await db.commit()
+
+    return {"status": "ok", "message": "All users and related data deleted"}
