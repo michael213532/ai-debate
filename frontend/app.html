@@ -812,97 +812,165 @@
         </div>
     </div>
 
-    <!-- Onboarding Tutorial Modal -->
+    <!-- Setup Wizard Modal -->
     <div id="tutorial-modal" class="modal-overlay">
-        <div class="modal" style="max-width: 520px;">
+        <div class="modal" style="max-width: 560px;">
             <div class="modal-header">
-                <h2 class="modal-title" id="tutorial-title">Welcome to Ensemble AI! 👋</h2>
+                <h2 class="modal-title" id="tutorial-title">Quick Start Setup</h2>
                 <button class="modal-close" id="tutorial-skip">&times;</button>
             </div>
             <div class="modal-body">
                 <!-- Step 1: Welcome -->
                 <div class="tutorial-step" data-step="1">
-                    <div style="text-align: center; margin-bottom: 24px;">
-                        <div style="font-size: 4rem; margin-bottom: 16px;">🤖</div>
-                        <p style="color: var(--text-secondary); font-size: 1.1rem;">
-                            Get multiple AI models to discuss your questions together and give you a combined, well-rounded answer.
+                    <div style="text-align: center; margin-bottom: 20px;">
+                        <p style="color: var(--text-secondary); font-size: 1.05rem; line-height: 1.6;">
+                            Ensemble AI lets multiple AI models discuss your questions together. You'll need at least one API key to get started.
                         </p>
                     </div>
-                    <div style="background: var(--surface-light); border-radius: 8px; padding: 16px; margin-bottom: 20px;">
-                        <p style="margin: 0; color: var(--text-secondary); font-size: 0.9rem;">
-                            ✨ Compare opinions from GPT-4, Claude, Gemini, and more<br>
-                            ✨ Get diverse perspectives on any topic<br>
-                            ✨ Works in any language
+                    <div style="background: var(--surface-light); border-radius: 8px; padding: 16px; margin-bottom: 16px;">
+                        <p style="margin: 0 0 12px 0; font-weight: 600; color: var(--text-primary);">What are API keys?</p>
+                        <p style="margin: 0; color: var(--text-secondary); font-size: 0.9rem; line-height: 1.5;">
+                            API keys are like passwords that let you use AI services. Each provider (OpenAI, Google, etc.) gives you your own key. You pay the provider directly for usage - we don't charge extra.
+                        </p>
+                    </div>
+                    <div style="background: #f0fdf4; border: 1px solid #86efac; border-radius: 8px; padding: 12px;">
+                        <p style="margin: 0; color: #166534; font-size: 0.85rem;">
+                            <strong>Tip:</strong> Google Gemini offers a free tier - great for trying things out!
                         </p>
                     </div>
                 </div>
 
-                <!-- Step 2: API Keys -->
+                <!-- Step 2: Add API Key -->
                 <div class="tutorial-step" data-step="2" style="display: none;">
-                    <div style="text-align: center; margin-bottom: 20px;">
-                        <div style="font-size: 3rem; margin-bottom: 12px;">🔑</div>
-                        <h3 style="margin-bottom: 8px;">Add Your API Keys</h3>
-                        <p style="color: var(--text-secondary);">You'll need API keys from AI providers. Here's where to get them:</p>
+                    <p style="color: var(--text-secondary); margin-bottom: 16px; text-align: center;">
+                        Pick a provider and add your API key. We recommend starting with one.
+                    </p>
+                    <div id="setup-providers" style="display: flex; flex-direction: column; gap: 12px;">
+                        <!-- Provider: Google (recommended for free tier) -->
+                        <div class="setup-provider" data-provider="google">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                                <div>
+                                    <span style="font-weight: 600;">Google Gemini</span>
+                                    <span style="background: #dcfce7; color: #166534; font-size: 0.7rem; padding: 2px 6px; border-radius: 4px; margin-left: 8px;">FREE TIER</span>
+                                </div>
+                                <a href="https://aistudio.google.com/app/apikey" target="_blank" style="color: var(--primary-color); font-size: 0.85rem;">Get key</a>
+                            </div>
+                            <div style="display: flex; gap: 8px;">
+                                <input type="password" class="form-input setup-key-input" placeholder="Paste API key here..." style="flex: 1;">
+                                <button class="btn btn-primary btn-small setup-save-btn">Save & Test</button>
+                            </div>
+                            <div class="setup-status" style="margin-top: 6px; font-size: 0.8rem;"></div>
+                        </div>
+                        <!-- Provider: OpenAI -->
+                        <div class="setup-provider" data-provider="openai">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                                <span style="font-weight: 600;">OpenAI (GPT-4)</span>
+                                <a href="https://platform.openai.com/api-keys" target="_blank" style="color: var(--primary-color); font-size: 0.85rem;">Get key</a>
+                            </div>
+                            <div style="display: flex; gap: 8px;">
+                                <input type="password" class="form-input setup-key-input" placeholder="Paste API key here..." style="flex: 1;">
+                                <button class="btn btn-primary btn-small setup-save-btn">Save & Test</button>
+                            </div>
+                            <div class="setup-status" style="margin-top: 6px; font-size: 0.8rem;"></div>
+                        </div>
+                        <!-- Provider: Anthropic -->
+                        <div class="setup-provider" data-provider="anthropic">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                                <span style="font-weight: 600;">Anthropic (Claude)</span>
+                                <a href="https://console.anthropic.com/settings/keys" target="_blank" style="color: var(--primary-color); font-size: 0.85rem;">Get key</a>
+                            </div>
+                            <div style="display: flex; gap: 8px;">
+                                <input type="password" class="form-input setup-key-input" placeholder="Paste API key here..." style="flex: 1;">
+                                <button class="btn btn-primary btn-small setup-save-btn">Save & Test</button>
+                            </div>
+                            <div class="setup-status" style="margin-top: 6px; font-size: 0.8rem;"></div>
+                        </div>
+                        <!-- More providers (collapsed) -->
+                        <details style="margin-top: 4px;">
+                            <summary style="color: var(--text-secondary); cursor: pointer; font-size: 0.9rem;">More providers...</summary>
+                            <div style="margin-top: 12px; display: flex; flex-direction: column; gap: 12px;">
+                                <div class="setup-provider" data-provider="deepseek">
+                                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                                        <span style="font-weight: 600;">Deepseek</span>
+                                        <a href="https://platform.deepseek.com/api_keys" target="_blank" style="color: var(--primary-color); font-size: 0.85rem;">Get key</a>
+                                    </div>
+                                    <div style="display: flex; gap: 8px;">
+                                        <input type="password" class="form-input setup-key-input" placeholder="Paste API key here..." style="flex: 1;">
+                                        <button class="btn btn-primary btn-small setup-save-btn">Save & Test</button>
+                                    </div>
+                                    <div class="setup-status" style="margin-top: 6px; font-size: 0.8rem;"></div>
+                                </div>
+                                <div class="setup-provider" data-provider="xai">
+                                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                                        <span style="font-weight: 600;">xAI (Grok)</span>
+                                        <a href="https://console.x.ai" target="_blank" style="color: var(--primary-color); font-size: 0.85rem;">Get key</a>
+                                    </div>
+                                    <div style="display: flex; gap: 8px;">
+                                        <input type="password" class="form-input setup-key-input" placeholder="Paste API key here..." style="flex: 1;">
+                                        <button class="btn btn-primary btn-small setup-save-btn">Save & Test</button>
+                                    </div>
+                                    <div class="setup-status" style="margin-top: 6px; font-size: 0.8rem;"></div>
+                                </div>
+                            </div>
+                        </details>
                     </div>
-                    <div style="background: var(--surface-light); border-radius: 8px; padding: 16px; margin-bottom: 20px;">
-                        <div style="display: flex; flex-direction: column; gap: 12px; font-size: 0.9rem;">
-                            <a href="https://platform.openai.com/api-keys" target="_blank" style="color: var(--primary-color);">🟢 OpenAI → platform.openai.com/api-keys</a>
-                            <a href="https://console.anthropic.com/settings/keys" target="_blank" style="color: var(--primary-color);">🟠 Anthropic → console.anthropic.com</a>
-                            <a href="https://aistudio.google.com/app/apikey" target="_blank" style="color: var(--primary-color);">🟡 Google → aistudio.google.com</a>
-                            <a href="https://platform.deepseek.com/api_keys" target="_blank" style="color: var(--primary-color);">🟣 Deepseek → platform.deepseek.com</a>
-                            <a href="https://console.x.ai" target="_blank" style="color: var(--primary-color);">⚪ xAI (Grok) → console.x.ai</a>
+                </div>
+
+                <!-- Step 3: Troubleshooting -->
+                <div class="tutorial-step" data-step="3" style="display: none;">
+                    <p style="color: var(--text-secondary); margin-bottom: 16px; text-align: center;">
+                        Common issues and how to fix them:
+                    </p>
+                    <div style="display: flex; flex-direction: column; gap: 12px;">
+                        <div style="background: var(--surface-light); border-radius: 8px; padding: 12px;">
+                            <p style="margin: 0 0 4px 0; font-weight: 600; color: #dc2626;">401 - Invalid API Key</p>
+                            <p style="margin: 0; color: var(--text-secondary); font-size: 0.85rem;">Double-check you copied the full key. Some providers require you to create a new key (you can't view existing ones).</p>
+                        </div>
+                        <div style="background: var(--surface-light); border-radius: 8px; padding: 12px;">
+                            <p style="margin: 0 0 4px 0; font-weight: 600; color: #f59e0b;">429 - Rate Limited</p>
+                            <p style="margin: 0; color: var(--text-secondary); font-size: 0.85rem;">You've hit usage limits. Wait a minute or check your billing/quota on the provider's dashboard.</p>
+                        </div>
+                        <div style="background: var(--surface-light); border-radius: 8px; padding: 12px;">
+                            <p style="margin: 0 0 4px 0; font-weight: 600; color: #7c3aed;">402 - Payment Required</p>
+                            <p style="margin: 0; color: var(--text-secondary); font-size: 0.85rem;">Your account needs credits. Add a payment method or credits on the provider's billing page.</p>
+                        </div>
+                        <div style="background: var(--surface-light); border-radius: 8px; padding: 12px;">
+                            <p style="margin: 0 0 4px 0; font-weight: 600; color: #6b7280;">Connection Failed</p>
+                            <p style="margin: 0; color: var(--text-secondary); font-size: 0.85rem;">Check your internet connection. If you're on a VPN or corporate network, that might block API calls.</p>
                         </div>
                     </div>
-                    <p style="color: var(--text-secondary); font-size: 0.85rem; text-align: center;">
-                        Click <strong>"API Keys"</strong> in the top right to add your keys securely.
-                    </p>
                 </div>
 
-                <!-- Step 3: Choose Models -->
-                <div class="tutorial-step" data-step="3" style="display: none;">
-                    <div style="text-align: center; margin-bottom: 20px;">
-                        <div style="font-size: 3rem; margin-bottom: 12px;">🎯</div>
-                        <h3 style="margin-bottom: 8px;">Choose Your AI Models</h3>
-                        <p style="color: var(--text-secondary);">Select 2-6 AI models to discuss your question.</p>
-                    </div>
-                    <div style="background: var(--surface-light); border-radius: 8px; padding: 16px; margin-bottom: 20px; text-align: center;">
-                        <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 300 60'%3E%3Crect x='5' y='15' width='70' height='30' rx='15' fill='%236366f1'/%3E%3Ctext x='40' y='35' text-anchor='middle' fill='white' font-size='11' font-family='system-ui'>GPT-4o%3C/text%3E%3Crect x='85' y='15' width='70' height='30' rx='15' fill='%236366f1'/%3E%3Ctext x='120' y='35' text-anchor='middle' fill='white' font-size='11' font-family='system-ui'>Claude%3C/text%3E%3Crect x='165' y='15' width='70' height='30' rx='15' fill='%23475569'/%3E%3Ctext x='200' y='35' text-anchor='middle' fill='%2394a3b8' font-size='11' font-family='system-ui'>Gemini%3C/text%3E%3Crect x='245' y='15' width='50' height='30' rx='15' fill='%23475569'/%3E%3Ctext x='270' y='35' text-anchor='middle' fill='%2394a3b8' font-size='11' font-family='system-ui'>Grok%3C/text%3E%3C/svg%3E" alt="Model selection" style="width: 100%; max-width: 280px;">
-                        <p style="color: var(--text-secondary); font-size: 0.85rem; margin-top: 12px;">
-                            Click on models to select them (highlighted = selected)
-                        </p>
-                    </div>
-                </div>
-
-                <!-- Step 4: Start Chatting -->
+                <!-- Step 4: Ready to Go -->
                 <div class="tutorial-step" data-step="4" style="display: none;">
                     <div style="text-align: center; margin-bottom: 20px;">
-                        <div style="font-size: 3rem; margin-bottom: 12px;">💬</div>
-                        <h3 style="margin-bottom: 8px;">Start Chatting!</h3>
-                        <p style="color: var(--text-secondary);">Type your question and watch the AIs discuss it together.</p>
-                    </div>
-                    <div style="background: var(--surface-light); border-radius: 8px; padding: 16px; margin-bottom: 20px;">
-                        <p style="margin: 0 0 12px 0; color: var(--text-secondary); font-size: 0.9rem;">
-                            <strong style="color: var(--text-primary);">Tips:</strong>
+                        <p style="color: var(--text-secondary); font-size: 1.05rem;">
+                            You're all set! Here's how to use Ensemble AI:
                         </p>
-                        <ul style="margin: 0; padding-left: 20px; color: var(--text-secondary); font-size: 0.9rem;">
-                            <li>Click <strong>+</strong> to attach images</li>
-                            <li>Watch the AI discussion in the right panel</li>
-                            <li>Get a combined summary at the end</li>
-                            <li>Works in any language!</li>
-                        </ul>
+                    </div>
+                    <div style="background: var(--surface-light); border-radius: 8px; padding: 16px; margin-bottom: 16px;">
+                        <ol style="margin: 0; padding-left: 20px; color: var(--text-secondary); font-size: 0.9rem; line-height: 1.8;">
+                            <li><strong>Select models</strong> - Click on AI models below to pick 2-6 for your discussion</li>
+                            <li><strong>Ask a question</strong> - Type anything in the chat box</li>
+                            <li><strong>Watch the discussion</strong> - See each AI's response in the right panel</li>
+                            <li><strong>Get a summary</strong> - A combined answer appears at the end</li>
+                        </ol>
+                    </div>
+                    <div id="setup-connected-count" style="text-align: center; padding: 12px; background: #f0fdf4; border-radius: 8px; color: #166534; font-weight: 500;">
+                        Loading connected providers...
                     </div>
                 </div>
 
                 <!-- Navigation -->
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 24px;">
-                    <button id="tutorial-prev" class="btn btn-secondary" style="visibility: hidden;">← Back</button>
+                    <button id="tutorial-prev" class="btn btn-secondary" style="visibility: hidden;">Back</button>
                     <div id="tutorial-dots" style="display: flex; gap: 8px;">
                         <span class="tutorial-dot active" data-step="1"></span>
                         <span class="tutorial-dot" data-step="2"></span>
                         <span class="tutorial-dot" data-step="3"></span>
                         <span class="tutorial-dot" data-step="4"></span>
                     </div>
-                    <button id="tutorial-next" class="btn btn-primary">Next →</button>
+                    <button id="tutorial-next" class="btn btn-primary">Next</button>
                 </div>
             </div>
         </div>
@@ -923,6 +991,20 @@
         .tutorial-dot:hover {
             background: var(--primary-color);
             opacity: 0.7;
+        }
+        .setup-provider {
+            background: var(--surface-light);
+            border-radius: 8px;
+            padding: 12px;
+        }
+        .setup-status.success {
+            color: #16a34a;
+        }
+        .setup-status.error {
+            color: #dc2626;
+        }
+        .setup-status.testing {
+            color: var(--text-secondary);
         }
     </style>
 

@@ -165,25 +165,46 @@ document.getElementById('upgrade-btn').addEventListener('click', () => {
     window.location.href = '/pricing';
 });
 
-// Render model tags
+// Render model tags - only show models with configured providers
 function renderModelTags() {
     const container = document.getElementById('model-tags');
     if (!container) return;
 
     container.innerHTML = '';
 
-    availableModels.forEach((model, index) => {
-        const isConfigured = configuredProviders.has(model.provider);
+    // Filter to only show models with configured providers
+    const visibleModels = availableModels.filter(model => configuredProviders.has(model.provider));
+
+    if (visibleModels.length === 0) {
+        // Show "no models" message
+        const noModelsMsg = document.createElement('div');
+        noModelsMsg.className = 'no-models-message';
+        noModelsMsg.innerHTML = `
+            <span style="color: var(--text-secondary); font-size: 0.9rem;">
+                No models available. <a href="#" onclick="openSettingsModal(); return false;" style="color: var(--primary-color);">Add an API key</a> to get started.
+            </span>
+        `;
+        container.appendChild(noModelsMsg);
+        return;
+    }
+
+    visibleModels.forEach((model) => {
+        const originalIndex = availableModels.indexOf(model);
         const isSelected = selectedModels.some(m => m.model_id === model.id && m.provider === model.provider);
 
         const tag = document.createElement('span');
-        tag.className = `model-tag ${isSelected ? 'selected' : ''} ${!isConfigured ? 'disabled' : ''}`;
-        tag.dataset.modelIndex = index;
+        tag.className = `model-tag ${isSelected ? 'selected' : ''}`;
+        tag.dataset.modelIndex = originalIndex;
         tag.textContent = model.name;
-        tag.title = `${model.provider_name}${!isConfigured ? ' (no API key)' : ''}`;
+        tag.title = model.provider_name;
 
         container.appendChild(tag);
     });
+
+    // Remove any selected models that are no longer visible (provider key was deleted)
+    const visibleModelIds = new Set(visibleModels.map(m => `${m.provider}:${m.id}`));
+    selectedModels = selectedModels.filter(m => visibleModelIds.has(`${m.provider}:${m.model_id}`));
+    saveSelectedModels();
 }
 
 // Handle model tag clicks
@@ -360,7 +381,7 @@ if (mobileAiToggle && panelOverlay && aiPanel) {
     });
 }
 
-// Tutorial functionality
+// Setup Wizard functionality
 let tutorialStep = 1;
 const totalSteps = 4;
 
@@ -371,6 +392,7 @@ function showTutorial() {
         modal.classList.add('active');
         tutorialStep = 1;
         updateTutorialStep();
+        setupWizardListeners();
     }
 }
 
@@ -412,20 +434,122 @@ function updateTutorialStep() {
     }
 
     if (nextBtn) {
-        nextBtn.textContent = tutorialStep === totalSteps ? "Let's Go! 🚀" : 'Next →';
+        nextBtn.textContent = tutorialStep === totalSteps ? "Start Chatting" : 'Next';
     }
 
     // Update title
     const titles = {
-        1: "Welcome to Ensemble AI! 👋",
-        2: "Step 1: Get API Keys 🔑",
-        3: "Step 2: Choose Models 🎯",
-        4: "Step 3: Start Chatting! 💬"
+        1: "Quick Start Setup",
+        2: "Add an API Key",
+        3: "Troubleshooting",
+        4: "Ready to Go!"
     };
     const titleEl = document.getElementById('tutorial-title');
     if (titleEl) {
         titleEl.textContent = titles[tutorialStep] || '';
     }
+
+    // Update connected count on last step
+    if (tutorialStep === 4) {
+        updateSetupConnectedCount();
+    }
+}
+
+// Update the connected providers count in setup wizard
+async function updateSetupConnectedCount() {
+    const countEl = document.getElementById('setup-connected-count');
+    if (!countEl) return;
+
+    const count = configuredProviders.size;
+    if (count === 0) {
+        countEl.style.background = '#fef2f2';
+        countEl.style.color = '#dc2626';
+        countEl.textContent = 'No providers connected yet. Go back to add an API key.';
+    } else {
+        countEl.style.background = '#f0fdf4';
+        countEl.style.color = '#166534';
+        countEl.textContent = `${count} provider${count > 1 ? 's' : ''} connected! You're ready to start.`;
+    }
+}
+
+// Setup wizard API key save & test functionality
+function setupWizardListeners() {
+    document.querySelectorAll('.setup-provider').forEach(providerEl => {
+        const provider = providerEl.dataset.provider;
+        const input = providerEl.querySelector('.setup-key-input');
+        const saveBtn = providerEl.querySelector('.setup-save-btn');
+        const statusEl = providerEl.querySelector('.setup-status');
+
+        // Remove old listeners by cloning
+        const newSaveBtn = saveBtn.cloneNode(true);
+        saveBtn.parentNode.replaceChild(newSaveBtn, saveBtn);
+
+        newSaveBtn.addEventListener('click', async () => {
+            const apiKey = input.value.trim();
+            if (!apiKey) {
+                statusEl.className = 'setup-status error';
+                statusEl.textContent = 'Please enter an API key';
+                return;
+            }
+
+            // Show testing state
+            newSaveBtn.disabled = true;
+            newSaveBtn.textContent = 'Testing...';
+            statusEl.className = 'setup-status testing';
+            statusEl.textContent = 'Saving and testing connection...';
+
+            try {
+                // Save the key
+                const saveResponse = await fetch(`${API_BASE}/api/keys/${provider}`, {
+                    method: 'POST',
+                    headers: getAuthHeaders(),
+                    body: JSON.stringify({ api_key: apiKey })
+                });
+
+                if (!saveResponse.ok) {
+                    throw new Error('Failed to save key');
+                }
+
+                // Test the key
+                const testResponse = await fetch(`${API_BASE}/api/keys/${provider}/test`, {
+                    method: 'POST',
+                    headers: getAuthHeaders()
+                });
+
+                const testData = await testResponse.json();
+
+                if (testData.valid) {
+                    statusEl.className = 'setup-status success';
+                    statusEl.textContent = 'Connected successfully!';
+                    input.value = '••••••••••••••••';
+                    input.disabled = true;
+                    newSaveBtn.textContent = 'Connected';
+                    newSaveBtn.disabled = true;
+                    newSaveBtn.classList.remove('btn-primary');
+                    newSaveBtn.classList.add('btn-secondary');
+
+                    // Refresh configured providers and models
+                    await loadConfiguredProviders();
+                } else {
+                    // Delete the invalid key
+                    await fetch(`${API_BASE}/api/keys/${provider}`, {
+                        method: 'DELETE',
+                        headers: getAuthHeaders()
+                    });
+
+                    statusEl.className = 'setup-status error';
+                    statusEl.textContent = testData.error || 'Invalid API key. Please check and try again.';
+                    newSaveBtn.disabled = false;
+                    newSaveBtn.textContent = 'Save & Test';
+                }
+            } catch (error) {
+                statusEl.className = 'setup-status error';
+                statusEl.textContent = 'Connection failed. Check your internet and try again.';
+                newSaveBtn.disabled = false;
+                newSaveBtn.textContent = 'Save & Test';
+            }
+        });
+    });
 }
 
 // Setup tutorial event listeners
