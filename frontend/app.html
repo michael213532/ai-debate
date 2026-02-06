@@ -676,6 +676,37 @@
         .panel-overlay.active {
             display: block;
         }
+
+        /* Setup Overlay */
+        .app-setup-overlay {
+            position: fixed;
+            top: 60px;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(15, 23, 42, 0.95);
+            z-index: 50;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(4px);
+        }
+
+        .setup-overlay-content {
+            text-align: center;
+            padding: 48px;
+        }
+
+        .setup-overlay-content h2 {
+            font-size: 1.5rem;
+            margin-bottom: 12px;
+            color: var(--text-primary);
+        }
+
+        .setup-overlay-content p {
+            color: var(--text-secondary);
+            margin-bottom: 24px;
+        }
     </style>
 </head>
 <body>
@@ -692,10 +723,20 @@
                     <span id="user-email" class="user-email"></span>
                     <button id="upgrade-btn" class="btn btn-primary btn-small" style="display: none;">Upgrade</button>
                     <button id="settings-btn" class="btn btn-secondary btn-small">API Keys</button>
+                    <button id="help-btn" class="btn btn-secondary btn-small" title="Show tutorial">Help</button>
                     <button id="logout-btn" class="btn btn-secondary btn-small">Logout</button>
                 </div>
             </div>
         </header>
+
+        <!-- Setup Overlay (shown until 2 API keys are configured) -->
+        <div id="app-setup-overlay" class="app-setup-overlay" style="display: none;">
+            <div class="setup-overlay-content">
+                <h2>Complete Setup to Continue</h2>
+                <p>Add at least 2 API keys to start using Ensemble AI</p>
+                <button class="btn btn-primary" onclick="showTutorial()">Open Setup</button>
+            </div>
+        </div>
 
         <!-- Main Chat Layout -->
         <div class="chat-layout">
@@ -842,9 +883,14 @@
 
                 <!-- Step 2: Add API Key -->
                 <div class="tutorial-step" data-step="2" style="display: none;">
-                    <p style="color: var(--text-secondary); margin-bottom: 16px; text-align: center;">
-                        Pick a provider and add your API key. We recommend starting with one.
-                    </p>
+                    <div style="background: rgba(99, 102, 241, 0.1); border: 1px solid rgba(99, 102, 241, 0.3); border-radius: 8px; padding: 12px; margin-bottom: 16px; text-align: center;">
+                        <p style="margin: 0; color: var(--text-primary); font-weight: 500;">
+                            Add at least 2 API keys to enable AI discussions
+                        </p>
+                        <p style="margin: 4px 0 0 0; color: var(--text-secondary); font-size: 0.85rem;" id="setup-key-progress">
+                            0 of 2 required keys added
+                        </p>
+                    </div>
                     <div id="setup-providers" style="display: flex; flex-direction: column; gap: 12px;">
                         <!-- Provider: Google (recommended for free tier) -->
                         <div class="setup-provider" data-provider="google">

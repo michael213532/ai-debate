@@ -284,6 +284,11 @@ document.getElementById('settings-btn').addEventListener('click', () => {
     openSettingsModal();
 });
 
+// Help button - reopen tutorial
+document.getElementById('help-btn')?.addEventListener('click', () => {
+    showTutorial();
+});
+
 // Inline settings button
 document.getElementById('settings-btn-inline')?.addEventListener('click', () => {
     openSettingsModal();
@@ -384,6 +389,7 @@ if (mobileAiToggle && panelOverlay && aiPanel) {
 // Setup Wizard functionality
 let tutorialStep = 1;
 const totalSteps = 4;
+let setupComplete = false;
 
 function showTutorial() {
     const modal = document.getElementById('tutorial-modal');
@@ -393,6 +399,7 @@ function showTutorial() {
         tutorialStep = 1;
         updateTutorialStep();
         setupWizardListeners();
+        updateSetupUI();
     }
 }
 
@@ -402,6 +409,43 @@ function hideTutorial() {
         modal.style.display = 'none';
         modal.classList.remove('active');
         localStorage.setItem('tutorialCompleted', 'true');
+        setupComplete = true;
+        updateSetupUI();
+    }
+}
+
+// Check if setup requirements are met (2+ providers)
+function isSetupComplete() {
+    return configuredProviders.size >= 2;
+}
+
+// Update UI based on setup state
+function updateSetupUI() {
+    const appOverlay = document.getElementById('app-setup-overlay');
+    const skipBtn = document.getElementById('tutorial-skip');
+    const nextBtn = document.getElementById('tutorial-next');
+
+    const hasEnoughProviders = isSetupComplete();
+
+    // Show/hide overlay on main app
+    if (appOverlay) {
+        appOverlay.style.display = hasEnoughProviders || setupComplete ? 'none' : 'block';
+    }
+
+    // Enable/disable skip button based on provider count
+    if (skipBtn) {
+        if (hasEnoughProviders) {
+            skipBtn.style.display = 'block';
+            skipBtn.title = 'Close setup';
+        } else {
+            skipBtn.style.display = 'none';
+        }
+    }
+
+    // Update next button on final step
+    if (nextBtn && tutorialStep === totalSteps) {
+        nextBtn.disabled = !hasEnoughProviders;
+        nextBtn.textContent = hasEnoughProviders ? "Start Chatting" : "Add 2 API Keys to Continue";
     }
 }
 
@@ -434,13 +478,20 @@ function updateTutorialStep() {
     }
 
     if (nextBtn) {
-        nextBtn.textContent = tutorialStep === totalSteps ? "Start Chatting" : 'Next';
+        if (tutorialStep === totalSteps) {
+            const hasEnough = isSetupComplete();
+            nextBtn.disabled = !hasEnough;
+            nextBtn.textContent = hasEnough ? "Start Chatting" : "Add 2 API Keys to Continue";
+        } else {
+            nextBtn.disabled = false;
+            nextBtn.textContent = 'Next';
+        }
     }
 
     // Update title
     const titles = {
         1: "Quick Start Setup",
-        2: "Add an API Key",
+        2: "Add Your API Keys",
         3: "Troubleshooting",
         4: "Ready to Go!"
     };
@@ -453,27 +504,51 @@ function updateTutorialStep() {
     if (tutorialStep === 4) {
         updateSetupConnectedCount();
     }
+
+    // Update setup UI state
+    updateSetupUI();
 }
 
 // Update the connected providers count in setup wizard
 async function updateSetupConnectedCount() {
     const countEl = document.getElementById('setup-connected-count');
-    if (!countEl) return;
-
+    const progressEl = document.getElementById('setup-key-progress');
     const count = configuredProviders.size;
-    if (count === 0) {
-        countEl.style.background = '#fef2f2';
-        countEl.style.color = '#dc2626';
-        countEl.textContent = 'No providers connected yet. Go back to add an API key.';
-    } else {
-        countEl.style.background = '#f0fdf4';
-        countEl.style.color = '#166534';
-        countEl.textContent = `${count} provider${count > 1 ? 's' : ''} connected! You're ready to start.`;
+
+    // Update step 2 progress
+    if (progressEl) {
+        if (count >= 2) {
+            progressEl.textContent = `${count} keys added - you're all set!`;
+            progressEl.style.color = '#22c55e';
+        } else {
+            progressEl.textContent = `${count} of 2 required keys added`;
+            progressEl.style.color = 'var(--text-secondary)';
+        }
+    }
+
+    // Update step 4 final status
+    if (countEl) {
+        if (count === 0) {
+            countEl.style.background = '#fef2f2';
+            countEl.style.color = '#dc2626';
+            countEl.textContent = 'No providers connected yet. Go back to add at least 2 API keys.';
+        } else if (count === 1) {
+            countEl.style.background = '#fef3c7';
+            countEl.style.color = '#d97706';
+            countEl.textContent = '1 provider connected. Add 1 more to enable AI discussions.';
+        } else {
+            countEl.style.background = '#f0fdf4';
+            countEl.style.color = '#166534';
+            countEl.textContent = `${count} providers connected! You're ready to start.`;
+        }
     }
 }
 
 // Setup wizard API key save & test functionality
 function setupWizardListeners() {
+    // Update progress indicator on wizard open
+    updateSetupConnectedCount();
+
     document.querySelectorAll('.setup-provider').forEach(providerEl => {
         const provider = providerEl.dataset.provider;
         const input = providerEl.querySelector('.setup-key-input');
@@ -530,6 +605,11 @@ function setupWizardListeners() {
 
                     // Refresh configured providers and models
                     await loadConfiguredProviders();
+
+                    // Update setup wizard UI (enable finish button if 2+ providers)
+                    updateSetupConnectedCount();
+                    updateSetupUI();
+                    updateTutorialStep();
                 } else {
                     // Delete the invalid key
                     await fetch(`${API_BASE}/api/keys/${provider}`, {
@@ -590,14 +670,23 @@ function setupTutorialListeners() {
     });
 }
 
-// Check if should show tutorial (new user)
+// Check if should show setup wizard
 function checkShowTutorial() {
     // Setup listeners first
     setupTutorialListeners();
 
     const completed = localStorage.getItem('tutorialCompleted');
-    if (!completed) {
+    const hasEnoughProviders = isSetupComplete();
+
+    // Show setup wizard if:
+    // 1. Tutorial was never completed, OR
+    // 2. User doesn't have at least 2 API keys configured
+    if (!completed || !hasEnoughProviders) {
+        setupComplete = false;
         showTutorial();
+    } else {
+        setupComplete = true;
+        updateSetupUI();
     }
 }
 

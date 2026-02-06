@@ -171,6 +171,11 @@ async function saveApiKey(provider, apiKey) {
         await loadProviderSettings();
         await loadConfiguredProviders();
 
+        // Update setup UI in case this affects the 2-key requirement
+        if (typeof updateSetupUI === 'function') {
+            updateSetupUI();
+        }
+
         // Show success feedback
         const item = document.querySelector(`[data-provider="${provider}"]`);
         const status = item.querySelector('.provider-status');
@@ -242,6 +247,19 @@ async function deleteApiKey(provider) {
         // Reload settings and models
         await loadProviderSettings();
         await loadConfiguredProviders();
+
+        // Update setup UI - if user now has < 2 keys, show setup overlay
+        if (typeof updateSetupUI === 'function') {
+            updateSetupUI();
+        }
+
+        // If user now has less than 2 providers, show setup wizard
+        if (typeof isSetupComplete === 'function' && typeof showTutorial === 'function') {
+            if (!isSetupComplete()) {
+                closeSettingsModal();
+                showTutorial();
+            }
+        }
     } catch (error) {
         console.error('Error deleting API key:', error);
         alert('Failed to delete API key');
