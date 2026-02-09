@@ -553,15 +553,97 @@ function setupWizardListeners() {
         const provider = providerEl.dataset.provider;
         const input = providerEl.querySelector('.setup-key-input');
         const saveBtn = providerEl.querySelector('.setup-save-btn');
+        const deleteBtn = providerEl.querySelector('.setup-delete-btn');
         const statusEl = providerEl.querySelector('.setup-status');
+
+        // Check if this provider is already configured
+        const isConfigured = configuredProviders.has(provider);
+
+        // Update UI based on configured state
+        if (isConfigured) {
+            input.value = '••••••••••••••••';
+            input.disabled = true;
+            saveBtn.textContent = 'Connected';
+            saveBtn.disabled = true;
+            saveBtn.classList.remove('btn-primary');
+            saveBtn.classList.add('btn-secondary');
+            if (deleteBtn) {
+                deleteBtn.style.display = 'inline-flex';
+            }
+            statusEl.className = 'setup-status success';
+            statusEl.textContent = 'Connected';
+        } else {
+            input.value = '';
+            input.disabled = false;
+            saveBtn.textContent = 'Save & Test';
+            saveBtn.disabled = false;
+            saveBtn.classList.remove('btn-secondary');
+            saveBtn.classList.add('btn-primary');
+            if (deleteBtn) {
+                deleteBtn.style.display = 'none';
+            }
+            statusEl.className = 'setup-status';
+            statusEl.textContent = '';
+        }
 
         // Remove old listeners by cloning
         const newSaveBtn = saveBtn.cloneNode(true);
         saveBtn.parentNode.replaceChild(newSaveBtn, saveBtn);
 
+        // Clone delete button too if it exists
+        let newDeleteBtn = null;
+        if (deleteBtn) {
+            newDeleteBtn = deleteBtn.cloneNode(true);
+            deleteBtn.parentNode.replaceChild(newDeleteBtn, deleteBtn);
+
+            // Add delete listener
+            newDeleteBtn.addEventListener('click', async () => {
+                if (!confirm(`Delete the ${provider} API key?`)) {
+                    return;
+                }
+
+                newDeleteBtn.disabled = true;
+                newDeleteBtn.textContent = 'Deleting...';
+
+                try {
+                    const response = await fetch(`${API_BASE}/api/keys/${provider}`, {
+                        method: 'DELETE',
+                        headers: getAuthHeaders()
+                    });
+
+                    if (!response.ok) throw new Error('Failed to delete');
+
+                    // Refresh configured providers
+                    await loadConfiguredProviders();
+
+                    // Reset the input UI
+                    input.value = '';
+                    input.disabled = false;
+                    newSaveBtn.textContent = 'Save & Test';
+                    newSaveBtn.disabled = false;
+                    newSaveBtn.classList.remove('btn-secondary');
+                    newSaveBtn.classList.add('btn-primary');
+                    newDeleteBtn.style.display = 'none';
+                    statusEl.className = 'setup-status';
+                    statusEl.textContent = '';
+
+                    // Update progress
+                    updateSetupConnectedCount();
+                    updateSetupUI();
+                    updateTutorialStep();
+                } catch (error) {
+                    console.error('Error deleting API key:', error);
+                    newDeleteBtn.disabled = false;
+                    newDeleteBtn.textContent = 'Delete';
+                    statusEl.className = 'setup-status error';
+                    statusEl.textContent = 'Failed to delete key';
+                }
+            });
+        }
+
         newSaveBtn.addEventListener('click', async () => {
             const apiKey = input.value.trim();
-            if (!apiKey) {
+            if (!apiKey || apiKey.startsWith('••')) {
                 statusEl.className = 'setup-status error';
                 statusEl.textContent = 'Please enter an API key';
                 return;
@@ -602,6 +684,11 @@ function setupWizardListeners() {
                     newSaveBtn.disabled = true;
                     newSaveBtn.classList.remove('btn-primary');
                     newSaveBtn.classList.add('btn-secondary');
+
+                    // Show delete button
+                    if (newDeleteBtn) {
+                        newDeleteBtn.style.display = 'inline-flex';
+                    }
 
                     // Refresh configured providers and models
                     await loadConfiguredProviders();

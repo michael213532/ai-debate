@@ -248,17 +248,9 @@ async function deleteApiKey(provider) {
         await loadProviderSettings();
         await loadConfiguredProviders();
 
-        // Update setup UI - if user now has < 2 keys, show setup overlay
+        // Update setup UI state
         if (typeof updateSetupUI === 'function') {
             updateSetupUI();
-        }
-
-        // If user now has less than 2 providers, show setup wizard
-        if (typeof isSetupComplete === 'function' && typeof showTutorial === 'function') {
-            if (!isSetupComplete()) {
-                closeSettingsModal();
-                showTutorial();
-            }
         }
     } catch (error) {
         console.error('Error deleting API key:', error);
