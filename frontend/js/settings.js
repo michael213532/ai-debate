@@ -53,8 +53,8 @@ function closeSettingsModal() {
     modal.classList.remove('active');
 }
 
-// Modal close button
-document.querySelector('.modal-close').addEventListener('click', closeSettingsModal);
+// Modal done button
+document.getElementById('settings-done-btn').addEventListener('click', closeSettingsModal);
 
 // Close on overlay click
 document.getElementById('settings-modal').addEventListener('click', (e) => {
