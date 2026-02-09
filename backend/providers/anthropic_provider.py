@@ -39,14 +39,17 @@ class AnthropicProvider(BaseProvider):
             else:
                 processed_messages.append(msg)
 
-        async with self.client.messages.stream(
-            model=model,
-            max_tokens=4096,
-            system=system_prompt if system_prompt else "",
-            messages=processed_messages
-        ) as stream:
-            async for text in stream.text_stream:
-                yield text
+        try:
+            async with self.client.messages.stream(
+                model=model,
+                max_tokens=4096,
+                system=system_prompt if system_prompt else "",
+                messages=processed_messages
+            ) as stream:
+                async for text in stream.text_stream:
+                    yield text
+        except anthropic.APIError as e:
+            raise Exception(f"Anthropic API error ({e.status_code}): {e.message}")
 
     async def test_connection(self) -> tuple[bool, str]:
         """Test Anthropic API connection. Returns (success, error_message)."""
