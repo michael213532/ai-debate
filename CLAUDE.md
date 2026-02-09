@@ -93,9 +93,9 @@ ai-debate/
 
 **Anthropic** - MUST use dated versions, "latest" aliases DON'T work:
 - `claude-sonnet-4-20250514` (Claude Sonnet 4)
-- `claude-3-5-sonnet-20241022` (Claude 3.5 Sonnet)
+- `claude-3-5-sonnet-20240620` (Claude 3.5 Sonnet)
 - `claude-3-opus-20240229` (Claude 3 Opus)
-- `claude-3-5-haiku-20241022` (Claude 3.5 Haiku)
+- `claude-3-haiku-20240307` (Claude 3 Haiku)
 
 **OpenAI** - o1 models removed (don't support streaming/system prompts):
 - `gpt-4o`, `gpt-4o-mini`, `gpt-4-turbo`, `gpt-4`

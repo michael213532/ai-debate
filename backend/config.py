@@ -48,9 +48,9 @@ AI_MODELS = {
         "name": "Anthropic",
         "models": [
             {"id": "claude-sonnet-4-20250514", "name": "Claude Sonnet 4"},
-            {"id": "claude-3-5-sonnet-latest", "name": "Claude 3.5 Sonnet"},
-            {"id": "claude-3-opus-latest", "name": "Claude 3 Opus"},
-            {"id": "claude-3-5-haiku-latest", "name": "Claude 3.5 Haiku"},
+            {"id": "claude-3-5-sonnet-20240620", "name": "Claude 3.5 Sonnet"},
+            {"id": "claude-3-opus-20240229", "name": "Claude 3 Opus"},
+            {"id": "claude-3-haiku-20240307", "name": "Claude 3 Haiku"},
         ]
     },
     "google": {
