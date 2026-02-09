@@ -91,11 +91,11 @@ ai-debate/
 
 ## Model IDs (IMPORTANT - these break if wrong!)
 
-**Anthropic** - MUST use dated versions, "latest" aliases DON'T work:
+**Anthropic** - Claude 3.x models were RETIRED Jan 2026. Current models:
+- `claude-sonnet-4-5-20250929` (Claude Sonnet 4.5)
+- `claude-opus-4-5-20251101` (Claude Opus 4.5)
 - `claude-sonnet-4-20250514` (Claude Sonnet 4)
-- `claude-3-5-sonnet-20240620` (Claude 3.5 Sonnet)
-- `claude-3-opus-20240229` (Claude 3 Opus)
-- `claude-3-haiku-20240307` (Claude 3 Haiku)
+- `claude-haiku-4-5-20251001` (Claude Haiku 4.5)
 
 **OpenAI** - o1 models removed (don't support streaming/system prompts):
 - `gpt-4o`, `gpt-4o-mini`, `gpt-4-turbo`, `gpt-4`
