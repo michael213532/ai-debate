@@ -34,8 +34,26 @@ class DebateOrchestrator:
         if self.images:
             self._reorder_models_for_vision()
 
-    # Providers that support vision/images
-    VISION_PROVIDERS = {"openai", "anthropic", "google"}
+    # Models that support vision/images
+    # OpenAI: gpt-4o, gpt-4o-mini, gpt-4-turbo support vision; gpt-4 does NOT
+    # Anthropic: all Claude models support vision
+    # Google: all Gemini models support vision
+    VISION_MODELS = {
+        "gpt-4o", "gpt-4o-mini", "gpt-4-turbo",  # OpenAI vision models
+    }
+    VISION_PROVIDERS = {"anthropic", "google"}  # All models from these providers support vision
+
+    def _supports_vision(self, model_config: dict) -> bool:
+        """Check if a model supports vision/images."""
+        provider = model_config["provider"]
+        model_id = model_config["model_id"]
+
+        # All models from these providers support vision
+        if provider in self.VISION_PROVIDERS:
+            return True
+
+        # Check specific model IDs for other providers
+        return model_id in self.VISION_MODELS
 
     def _reorder_models_for_vision(self):
         """Reorder models so vision-capable ones respond first when image is attached."""
@@ -43,7 +61,7 @@ class DebateOrchestrator:
         non_vision_models = []
 
         for model in self.models:
-            if model["provider"] in self.VISION_PROVIDERS:
+            if self._supports_vision(model):
                 vision_models.append(model)
             else:
                 non_vision_models.append(model)
@@ -206,9 +224,10 @@ class DebateOrchestrator:
         # Build messages
         messages = [{"role": "user", "content": context}]
 
-        # Only include images for vision-capable providers in round 1
-        # Non-vision providers will just respond to the text conversation
-        if round_num == 1 and self.images and provider_name in self.VISION_PROVIDERS:
+        # Only include images for vision-capable models in round 1
+        # Non-vision models will just respond to the text conversation
+        model_config = {"provider": provider_name, "model_id": model_id}
+        if round_num == 1 and self.images and self._supports_vision(model_config):
             images = self.images
         else:
             images = None
