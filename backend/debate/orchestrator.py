@@ -206,8 +206,12 @@ class DebateOrchestrator:
         # Build messages
         messages = [{"role": "user", "content": context}]
 
-        # Only include images in round 1
-        images = self.images if round_num == 1 else None
+        # Only include images for vision-capable providers in round 1
+        # Non-vision providers will just respond to the text conversation
+        if round_num == 1 and self.images and provider_name in self.VISION_PROVIDERS:
+            images = self.images
+        else:
+            images = None
 
         # Stream response
         full_response = ""
