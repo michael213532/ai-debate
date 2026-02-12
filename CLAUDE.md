@@ -92,6 +92,7 @@ ai-debate/
 ## Model IDs (IMPORTANT - these break if wrong!)
 
 **Anthropic** - Claude 3.x models were RETIRED Jan 2026. Current models:
+- `claude-opus-4-6` (Claude Opus 4.6) - newest
 - `claude-sonnet-4-5-20250929` (Claude Sonnet 4.5)
 - `claude-opus-4-5-20251101` (Claude Opus 4.5)
 - `claude-sonnet-4-20250514` (Claude Sonnet 4)
@@ -111,7 +112,7 @@ ai-debate/
 
 ## Common Issues
 
-1. **Claude models 404 error**: Model ID wrong. Must use dated format like `claude-3-5-sonnet-20241022`, NOT `claude-3-5-sonnet-latest`
+1. **Claude models 404 error**: Claude 3.x models are RETIRED. Use Claude 4.x models (e.g., `claude-opus-4-6`, `claude-sonnet-4-5-20250929`)
 
 2. **Dropdown menu closes immediately**: Need `e.stopPropagation()` on click handlers
 
@@ -121,7 +122,6 @@ ai-debate/
 
 ## TODO - Remind User
 - **Tutorial needs improvement**: Make it clearer and more of a step-by-step setup guide (getting API keys, adding them, etc.)
-- **Some AIs still not working**: Need to debug which ones and why - check model IDs and provider implementations
 
 ## Next Steps (Optional Enhancements)
 - Conversation history persistence
