@@ -38,10 +38,11 @@ AI_MODELS = {
     "openai": {
         "name": "OpenAI",
         "models": [
+            {"id": "gpt-5.2", "name": "GPT-5.2"},
+            {"id": "gpt-5", "name": "GPT-5"},
+            {"id": "gpt-5-mini", "name": "GPT-5 Mini"},
             {"id": "gpt-4o", "name": "GPT-4o"},
             {"id": "gpt-4o-mini", "name": "GPT-4o Mini"},
-            {"id": "gpt-4-turbo", "name": "GPT-4 Turbo"},
-            {"id": "gpt-4", "name": "GPT-4"},
         ]
     },
     "anthropic": {
@@ -57,23 +58,24 @@ AI_MODELS = {
     "google": {
         "name": "Google",
         "models": [
-            {"id": "gemini-1.5-pro", "name": "Gemini 1.5 Pro"},
-            {"id": "gemini-1.5-flash", "name": "Gemini 1.5 Flash"},
-            {"id": "gemini-2.0-flash-exp", "name": "Gemini 2.0 Flash"},
+            {"id": "gemini-3-pro", "name": "Gemini 3 Pro"},
+            {"id": "gemini-3-flash", "name": "Gemini 3 Flash"},
+            {"id": "gemini-2.5-flash", "name": "Gemini 2.5 Flash"},
         ]
     },
     "deepseek": {
         "name": "Deepseek",
         "models": [
-            {"id": "deepseek-chat", "name": "Deepseek V3"},
-            {"id": "deepseek-coder", "name": "Deepseek Coder"},
+            {"id": "deepseek-chat", "name": "Deepseek V3.2"},
+            {"id": "deepseek-reasoner", "name": "Deepseek Reasoner"},
         ]
     },
     "xai": {
         "name": "xAI",
         "models": [
-            {"id": "grok-beta", "name": "Grok Beta"},
-            {"id": "grok-2-latest", "name": "Grok 2"},
+            {"id": "grok-4.1", "name": "Grok 4.1"},
+            {"id": "grok-4", "name": "Grok 4"},
+            {"id": "grok-3-mini", "name": "Grok 3 Mini"},
         ]
     }
 }

@@ -98,17 +98,25 @@ ai-debate/
 - `claude-sonnet-4-20250514` (Claude Sonnet 4)
 - `claude-haiku-4-5-20251001` (Claude Haiku 4.5)
 
-**OpenAI** - o1 models removed (don't support streaming/system prompts):
-- `gpt-4o`, `gpt-4o-mini`, `gpt-4-turbo`, `gpt-4`
+**OpenAI** - Updated Feb 2026:
+- `gpt-5.2` (GPT-5.2) - flagship
+- `gpt-5` (GPT-5)
+- `gpt-5-mini` (GPT-5 Mini) - fast/cheap
+- `gpt-4o`, `gpt-4o-mini` - legacy but still available
 
-**Google**:
-- `gemini-1.5-pro`, `gemini-1.5-flash`, `gemini-2.0-flash-exp`
+**Google** - Gemini 2.0 retiring Mar 2026:
+- `gemini-3-pro` (Gemini 3 Pro) - latest
+- `gemini-3-flash` (Gemini 3 Flash)
+- `gemini-2.5-flash` (Gemini 2.5 Flash)
 
-**Deepseek**:
-- `deepseek-chat`, `deepseek-coder`
+**Deepseek** - V3.2 update:
+- `deepseek-chat` (Deepseek V3.2)
+- `deepseek-reasoner` (Deepseek Reasoner - thinking mode)
 
-**xAI**:
-- `grok-beta`, `grok-2-latest`
+**xAI** - Grok 4 released:
+- `grok-4.1` (Grok 4.1) - latest
+- `grok-4` (Grok 4)
+- `grok-3-mini` (Grok 3 Mini) - fast
 
 ## Common Issues
 

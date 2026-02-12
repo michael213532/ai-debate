@@ -14,11 +14,11 @@ A web application where users can prompt multiple AI models to debate and discus
 
 ## Supported AI Models
 
-- **OpenAI**: GPT-4, GPT-4o, GPT-4o Mini, GPT-3.5 Turbo
+- **OpenAI**: GPT-5.2, GPT-5, GPT-5 Mini, GPT-4o, GPT-4o Mini
 - **Anthropic**: Claude Opus 4.6, Claude Sonnet 4.5, Claude Opus 4.5, Claude Sonnet 4, Claude Haiku 4.5
-- **Google**: Gemini Pro, Gemini 1.5 Pro
-- **Deepseek**: Deepseek Chat, Deepseek Reasoner
-- **xAI**: Grok 2, Grok Beta
+- **Google**: Gemini 3 Pro, Gemini 3 Flash, Gemini 2.5 Flash
+- **Deepseek**: Deepseek V3.2, Deepseek Reasoner
+- **xAI**: Grok 4.1, Grok 4, Grok 3 Mini
 
 ## Tech Stack
 
