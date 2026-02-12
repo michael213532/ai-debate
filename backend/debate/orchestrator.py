@@ -35,11 +35,12 @@ class DebateOrchestrator:
             self._reorder_models_for_vision()
 
     # Models that support vision/images
-    # OpenAI: gpt-4o, gpt-4o-mini, gpt-4-turbo support vision; gpt-4 does NOT
+    # OpenAI: only gpt-4o and gpt-4o-mini reliably support vision
+    # gpt-4-turbo has inconsistent vision support, so excluded
     # Anthropic: all Claude models support vision
     # Google: all Gemini models support vision
     VISION_MODELS = {
-        "gpt-4o", "gpt-4o-mini", "gpt-4-turbo",  # OpenAI vision models
+        "gpt-4o", "gpt-4o-mini",  # OpenAI vision models
     }
     VISION_PROVIDERS = {"anthropic", "google"}  # All models from these providers support vision
 
