@@ -3,6 +3,7 @@
  */
 
 let chatWebSocket = null;
+let imageNoticeShown = false; // Track if we've shown the vision notice this session
 let currentSessionId = null;
 let isProcessing = false;
 let conversationHistory = [];
@@ -408,10 +409,43 @@ function hideExportButton() {
     // Button is always visible, Pro check happens on click
 }
 
+// Show toast notification
+function showToast(message, duration = 5000) {
+    // Remove existing toast if any
+    const existingToast = document.querySelector('.toast-notification');
+    if (existingToast) {
+        existingToast.remove();
+    }
+
+    const toast = document.createElement('div');
+    toast.className = 'toast-notification';
+    toast.innerHTML = `
+        <span class="toast-icon">ℹ️</span>
+        <span class="toast-message">${message}</span>
+        <button class="toast-close" onclick="this.parentElement.remove()">&times;</button>
+    `;
+    document.body.appendChild(toast);
+
+    // Trigger animation
+    setTimeout(() => toast.classList.add('show'), 10);
+
+    // Auto-remove after duration
+    setTimeout(() => {
+        toast.classList.remove('show');
+        setTimeout(() => toast.remove(), 300);
+    }, duration);
+}
+
 // Handle image file selection
 function handleImageSelect(event) {
     const file = event.target.files[0];
     if (!file) return;
+
+    // Show one-time notice about vision models
+    if (!imageNoticeShown && selectedImages.length === 0) {
+        showToast('Some AI models cannot view images and will respond to the text conversation only.', 6000);
+        imageNoticeShown = true;
+    }
 
     // Check max images limit
     if (selectedImages.length >= MAX_IMAGES) {
