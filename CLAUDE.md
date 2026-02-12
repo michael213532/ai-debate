@@ -19,7 +19,7 @@ https://ai-debate-production-8032.up.railway.app
 - Chat interface with AI discussion side panel
 - 5 AI providers: OpenAI, Anthropic, Google, Deepseek, xAI
 - Users bring their own API keys (encrypted storage)
-- Free tier: 5 sessions/month, Pro: $5/mo unlimited
+- Free tier: 20 sessions/month, Pro: $5/mo unlimited
 - Real-time streaming responses via WebSocket
 - Privacy policy with acceptance requirement
 

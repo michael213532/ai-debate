@@ -31,7 +31,7 @@ STRIPE_PRICE_ID = os.getenv("STRIPE_PRICE_ID", "")  # Monthly subscription price
 APP_URL = os.getenv("APP_URL", "http://localhost:8000")
 
 # Free tier limits
-FREE_DEBATE_LIMIT = 5  # Free users get 5 debates total
+FREE_DEBATE_LIMIT = 20  # Free users get 20 debates total
 
 # Available AI models by provider
 AI_MODELS = {
