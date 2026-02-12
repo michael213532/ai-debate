@@ -410,7 +410,7 @@ function hideExportButton() {
 }
 
 // Show toast notification
-function showToast(message, duration = 5000) {
+function showToast(message, duration = 5000, type = 'info') {
     // Remove existing toast if any
     const existingToast = document.querySelector('.toast-notification');
     if (existingToast) {
@@ -418,9 +418,8 @@ function showToast(message, duration = 5000) {
     }
 
     const toast = document.createElement('div');
-    toast.className = 'toast-notification';
+    toast.className = `toast-notification toast-${type}`;
     toast.innerHTML = `
-        <span class="toast-icon">ℹ️</span>
         <span class="toast-message">${message}</span>
         <button class="toast-close" onclick="this.parentElement.remove()">&times;</button>
     `;
@@ -443,7 +442,7 @@ function handleImageSelect(event) {
 
     // Show one-time notice about vision models
     if (!imageNoticeShown && selectedImages.length === 0) {
-        showToast('Some AI models cannot view images and will respond to the text conversation only.', 6000);
+        showToast('⚠️ Some AI models (GPT-4, GPT-4 Turbo, Deepseek, Grok 3 Mini) cannot view images. They will respond to the text conversation only.', 8000, 'warning');
         imageNoticeShown = true;
     }
 
