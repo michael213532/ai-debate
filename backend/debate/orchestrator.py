@@ -116,11 +116,8 @@ class DebateOrchestrator:
 
     async def _run_round(self, round_num: int):
         """Run a single round of the debate."""
-        # Build context from previous rounds
-        context = self._build_context(round_num)
-
-        # Each model responds
-        for model_config in self.models:
+        # Each model responds, building on previous responses
+        for model_index, model_config in enumerate(self.models):
             if self._stopped:
                 break
 
@@ -147,6 +144,9 @@ class DebateOrchestrator:
             })
 
             try:
+                # Build context fresh for each model so it includes previous responses
+                context = self._build_context(round_num, model_index)
+
                 content = await self._get_model_response(
                     provider_name=provider_name,
                     model_id=model_id,
@@ -253,17 +253,23 @@ IMPORTANT RULES:
 
         return base_prompt
 
-    def _build_context(self, round_num: int) -> str:
-        """Build context string from previous messages."""
+    def _build_context(self, round_num: int, model_index: int) -> str:
+        """Build context string from previous messages.
+
+        Each model sees the user's message plus all previous responses in the conversation,
+        so they can respond to what the previous model said.
+        """
         context = f"USER'S MESSAGE: {self.topic}\n\n"
 
-        if round_num == 1:
+        if not self.messages:
+            # First model to respond - just answer the user
             context += "Share your thoughts on this. Be natural and conversational. If the user is asking you to compare or choose something, make a clear choice and explain your reasoning with specific criteria."
         else:
-            context += "What the others said:\n\n"
+            # Show the conversation so far
+            context += "CONVERSATION SO FAR:\n\n"
             for msg in self.messages:
-                context += f"{msg['model_name']}: {msg['content']}\n\n"
-            context += "---\nNow share your thoughts. You can agree, disagree, or add a new perspective. Be conversational and engage with what others said."
+                context += f"**{msg['model_name']}**: {msg['content']}\n\n"
+            context += "---\nNow it's your turn. Respond to what was just said - you can agree, disagree, add nuance, or offer a different perspective. Engage directly with the previous response like you're having a real conversation."
 
         return context
 
