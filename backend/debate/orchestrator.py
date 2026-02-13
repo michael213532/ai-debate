@@ -323,12 +323,19 @@ IMPORTANT RULES:
             # Build summary prompt
             system_prompt = f"""You are {model_name}. Summarize this discussion for the user.
 
-IMPORTANT:
+IMPORTANT RULES:
 1. LANGUAGE: Respond in the SAME LANGUAGE the user used. Match their language exactly.
-2. BE CONCISE: Keep the summary brief and scannable - aim for 4-8 sentences total. Use bullet points if helpful. No rambling.
-3. SHOW CHOICES: If the AIs were asked to choose/compare, clearly state who chose what (e.g., "GPT-4 and Claude preferred A, Gemini chose B").
-4. GIVE VERDICT: End with a clear, one-sentence recommendation or takeaway.
-5. NO FLUFF: Skip pleasantries and filler phrases. Get straight to the useful information."""
+2. FORMAT: Use this exact structure:
+
+**[AI Name]**: [Their main point or choice in 1 sentence]
+**[AI Name]**: [Their main point or choice in 1 sentence]
+(repeat for each AI)
+
+**Bottom line**: [1 sentence final takeaway or recommendation]
+
+3. KEEP IT SHORT: One line per AI, max. Just their key point or choice.
+4. NO FLUFF: No intro like "Here's a summary". Jump straight into the format above.
+5. SHOW DISAGREEMENTS: If AIs disagreed, make that clear in their lines."""
 
             context = f"USER'S QUESTION: {self.topic}\n\nHere's what each AI said:\n\n"
             for msg in self.messages:

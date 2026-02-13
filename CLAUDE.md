@@ -136,3 +136,4 @@ ai-debate/
 - Dark/light mode toggle
 - Custom domain
 - Add more AI providers
+- **Structured Summary Cards UI**: Display each AI's position in colored bubble/cards within the response instead of plain text. Each card shows AI name + their position, with a final verdict card at the bottom. (Backup option if current summary format isn't clean enough)
