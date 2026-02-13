@@ -75,8 +75,8 @@ AI_MODELS = {
     "xai": {
         "name": "xAI",
         "models": [
-            {"id": "grok-4.1", "name": "Grok 4.1"},
-            {"id": "grok-4", "name": "Grok 4"},
+            {"id": "grok-4-1-fast-non-reasoning", "name": "Grok 4.1"},
+            {"id": "grok-4-fast-non-reasoning", "name": "Grok 4"},
             {"id": "grok-3-mini", "name": "Grok 3 Mini"},
         ]
     }

@@ -114,8 +114,8 @@ ai-debate/
 - `deepseek-reasoner` (Deepseek Reasoner - thinking mode)
 
 **xAI** - Grok 4 released:
-- `grok-4.1` (Grok 4.1) - latest
-- `grok-4` (Grok 4)
+- `grok-4-1-fast-non-reasoning` (Grok 4.1) - latest
+- `grok-4-fast-non-reasoning` (Grok 4)
 - `grok-3-mini` (Grok 3 Mini) - fast
 
 ## Common Issues
