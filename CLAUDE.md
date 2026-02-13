@@ -104,10 +104,10 @@ ai-debate/
 - `gpt-5-mini` (GPT-5 Mini) - fast/cheap
 - `gpt-4o`, `gpt-4o-mini` - legacy but still available
 
-**Google** - Gemini 2.0 retiring Mar 2026:
-- `gemini-3-pro` (Gemini 3 Pro) - latest
-- `gemini-3-flash` (Gemini 3 Flash)
-- `gemini-2.5-flash` (Gemini 2.5 Flash)
+**Google** - Current models:
+- `gemini-2.0-flash` (Gemini 2.0 Flash) - latest
+- `gemini-1.5-pro` (Gemini 1.5 Pro)
+- `gemini-1.5-flash` (Gemini 1.5 Flash)
 
 **Deepseek** - V3.2 update:
 - `deepseek-chat` (Deepseek V3.2)

@@ -61,7 +61,7 @@ class GoogleProvider(BaseProvider):
     async def test_connection(self) -> tuple[bool, str]:
         """Test Google API connection. Returns (success, error_message)."""
         try:
-            model = genai.GenerativeModel("gemini-1.5-flash")
+            model = genai.GenerativeModel("gemini-2.0-flash")
             await model.generate_content_async("Hi", stream=False)
             return True, ""
         except Exception as e:

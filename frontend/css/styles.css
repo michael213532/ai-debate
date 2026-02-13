@@ -645,6 +645,30 @@ a:hover {
     text-decoration: underline;
 }
 
+/* Prominent Get Key button for setup wizard */
+.get-key-btn {
+    display: inline-block;
+    background: var(--primary-color);
+    color: white !important;
+    font-size: 0.9rem;
+    font-weight: 600;
+    padding: 8px 16px;
+    border-radius: 6px;
+    text-decoration: none;
+    transition: background 0.2s, transform 0.1s;
+    white-space: nowrap;
+}
+
+.get-key-btn:hover {
+    background: var(--primary-hover);
+    transform: translateY(-1px);
+    text-decoration: none;
+}
+
+.get-key-btn:active {
+    transform: translateY(0);
+}
+
 .key-help-text {
     font-size: 0.8rem;
     color: var(--text-secondary);

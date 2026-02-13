@@ -181,7 +181,7 @@ function renderModelTags() {
         noModelsMsg.className = 'no-models-message';
         noModelsMsg.innerHTML = `
             <span style="color: var(--text-secondary); font-size: 0.9rem;">
-                No models available. <a href="#" onclick="openSettingsModal(); return false;" style="color: var(--primary-color);">Add an API key</a> to get started.
+                No models available. <a href="#" onclick="openSettingsModal(); return false;" style="color: var(--primary-color);">Add at least 2 API keys</a> to get started.
             </span>
         `;
         container.appendChild(noModelsMsg);
