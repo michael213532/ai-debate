@@ -535,7 +535,7 @@ async function updateSetupConnectedCount() {
         } else if (count === 1) {
             countEl.style.background = '#fef3c7';
             countEl.style.color = '#d97706';
-            countEl.textContent = '1 provider connected. Add 1 more to enable AI discussions.';
+            countEl.textContent = '1 provider connected. You need 2 API keys to start - add 1 more!';
         } else {
             countEl.style.background = '#f0fdf4';
             countEl.style.color = '#166534';
