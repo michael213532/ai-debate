@@ -364,6 +364,92 @@
         .ai-message[data-provider="xai"] { border-left-color: #ffffff; }
         .ai-message[data-provider="xai"] .ai-message-model { color: #ffffff; }
 
+        /* Summary Cards */
+        .summary-cards {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .summary-card {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            padding: 12px 16px;
+            border-radius: 12px;
+        }
+
+        .summary-card-name {
+            font-weight: 700;
+            font-size: 0.9rem;
+        }
+
+        .summary-card-content {
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+
+        /* Provider colors for summary cards - colored bubbles */
+        .summary-card.provider-openai {
+            background: rgba(59, 130, 246, 0.15);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+        }
+        .summary-card.provider-openai .summary-card-name { color: #3b82f6; }
+        .summary-card.provider-openai .summary-card-content { color: #93c5fd; }
+
+        .summary-card.provider-anthropic {
+            background: rgba(249, 115, 22, 0.15);
+            border: 1px solid rgba(249, 115, 22, 0.3);
+        }
+        .summary-card.provider-anthropic .summary-card-name { color: #f97316; }
+        .summary-card.provider-anthropic .summary-card-content { color: #fdba74; }
+
+        .summary-card.provider-google {
+            background: rgba(234, 179, 8, 0.15);
+            border: 1px solid rgba(234, 179, 8, 0.3);
+        }
+        .summary-card.provider-google .summary-card-name { color: #eab308; }
+        .summary-card.provider-google .summary-card-content { color: #fde047; }
+
+        .summary-card.provider-deepseek {
+            background: rgba(168, 85, 247, 0.15);
+            border: 1px solid rgba(168, 85, 247, 0.3);
+        }
+        .summary-card.provider-deepseek .summary-card-name { color: #a855f7; }
+        .summary-card.provider-deepseek .summary-card-content { color: #d8b4fe; }
+
+        .summary-card.provider-xai {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.25);
+        }
+        .summary-card.provider-xai .summary-card-name { color: #ffffff; }
+        .summary-card.provider-xai .summary-card-content { color: #e2e8f0; }
+
+        .summary-verdict {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            padding: 14px 16px;
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(139, 92, 246, 0.2));
+            border-radius: 12px;
+            border: 1px solid rgba(99, 102, 241, 0.4);
+            margin-top: 4px;
+        }
+
+        .verdict-label {
+            font-weight: 700;
+            font-size: 0.8rem;
+            color: var(--primary-color);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .verdict-content {
+            font-size: 0.95rem;
+            line-height: 1.5;
+            color: var(--text-primary);
+        }
+
         /* Empty state */
         .empty-chat {
             flex: 1;

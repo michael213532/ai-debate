@@ -303,9 +303,79 @@ function finishFinalResponse() {
         msg.classList.remove('streaming');
         msg.removeAttribute('id');
 
-        const content = msg.querySelector('.message-content').textContent;
-        conversationHistory.push({ role: 'assistant', content: content });
+        const contentEl = msg.querySelector('.message-content');
+        const rawContent = contentEl.textContent;
+        conversationHistory.push({ role: 'assistant', content: rawContent });
+
+        // Parse and render as styled cards
+        const formattedHtml = formatSummaryAsCards(rawContent);
+        if (formattedHtml) {
+            contentEl.innerHTML = formattedHtml;
+        }
     }
+}
+
+// Format summary text as styled cards
+function formatSummaryAsCards(text) {
+    const lines = text.split('\n').filter(line => line.trim());
+    let cards = [];
+    let bottomLine = '';
+
+    for (const line of lines) {
+        // Match **Name**: content or **Bottom line**: content
+        const match = line.match(/\*\*([^*]+)\*\*[:\s]*(.+)/);
+        if (match) {
+            const name = match[1].trim();
+            const content = match[2].trim();
+
+            if (name.toLowerCase() === 'bottom line' || name.toLowerCase() === 'verdict') {
+                bottomLine = content;
+            } else {
+                cards.push({ name, content });
+            }
+        }
+    }
+
+    // If we couldn't parse anything, return null to keep original
+    if (cards.length === 0 && !bottomLine) {
+        return null;
+    }
+
+    // Build HTML
+    let html = '<div class="summary-cards">';
+
+    for (const card of cards) {
+        const providerClass = getProviderClassFromName(card.name);
+        html += `
+            <div class="summary-card ${providerClass}">
+                <span class="summary-card-name">${escapeHtml(card.name)}</span>
+                <span class="summary-card-content">${escapeHtml(card.content)}</span>
+            </div>
+        `;
+    }
+
+    if (bottomLine) {
+        html += `
+            <div class="summary-verdict">
+                <span class="verdict-label">Bottom line</span>
+                <span class="verdict-content">${escapeHtml(bottomLine)}</span>
+            </div>
+        `;
+    }
+
+    html += '</div>';
+    return html;
+}
+
+// Get provider class from AI model name
+function getProviderClassFromName(name) {
+    const n = name.toLowerCase();
+    if (n.includes('gpt') || n.includes('openai')) return 'provider-openai';
+    if (n.includes('claude') || n.includes('anthropic')) return 'provider-anthropic';
+    if (n.includes('gemini') || n.includes('google')) return 'provider-google';
+    if (n.includes('deepseek')) return 'provider-deepseek';
+    if (n.includes('grok') || n.includes('xai')) return 'provider-xai';
+    return '';
 }
 
 // Clear AI panel
