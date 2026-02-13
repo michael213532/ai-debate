@@ -104,7 +104,7 @@ function renderProviderList(providers) {
                 </span>
             </div>
             <div class="provider-help">
-                <a href="${info.keyUrl}" target="_blank" class="get-key-link">Get API Key →</a>
+                <a href="${info.keyUrl}" target="_blank" class="get-key-btn">Get Key →</a>
                 <span class="key-help-text">${info.keyHelp}</span>
             </div>
             <div class="provider-actions">
