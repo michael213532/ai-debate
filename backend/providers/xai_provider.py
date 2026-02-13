@@ -62,7 +62,7 @@ class XAIProvider(BaseProvider):
                         "Content-Type": "application/json"
                     },
                     json={
-                        "model": "grok-beta",
+                        "model": "grok-3-mini",
                         "messages": [{"role": "user", "content": "Hi"}],
                         "max_tokens": 10
                     },
