@@ -1136,12 +1136,46 @@
         }
         .setup-status.success {
             color: #16a34a;
+            font-size: 0.9rem;
         }
         .setup-status.error {
             color: #dc2626;
+            font-size: 0.9rem;
+            font-weight: 500;
+            line-height: 1.4;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+        }
+        .setup-status.error .error-message {
+            flex: 1;
+        }
+        .setup-status.error .error-dismiss-btn {
+            background: rgba(220, 38, 38, 0.15);
+            border: 1px solid rgba(220, 38, 38, 0.3);
+            color: #dc2626;
+            padding: 4px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.75rem;
+            font-weight: 600;
+            flex-shrink: 0;
+            transition: all 0.15s ease;
+        }
+        .setup-status.error .error-dismiss-btn:hover {
+            background: rgba(220, 38, 38, 0.25);
+            border-color: rgba(220, 38, 38, 0.5);
         }
         .setup-status.testing {
             color: var(--text-secondary);
+        }
+        .setup-provider {
+            overflow: hidden;
+        }
+        .setup-provider .setup-status {
+            max-width: 100%;
         }
     </style>
 

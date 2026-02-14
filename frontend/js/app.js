@@ -544,6 +544,19 @@ async function updateSetupConnectedCount() {
     }
 }
 
+// Show error message with optional dismiss button
+function showSetupError(statusEl, message, dismissable = true) {
+    statusEl.className = 'setup-status error';
+    if (dismissable && message.length > 50) {
+        statusEl.innerHTML = `
+            <span class="error-message">${escapeHtml(message)}</span>
+            <button class="error-dismiss-btn" onclick="this.parentElement.textContent=''; this.parentElement.className='setup-status';">Dismiss</button>
+        `;
+    } else {
+        statusEl.textContent = message;
+    }
+}
+
 // Setup wizard API key save & test functionality
 function setupWizardListeners() {
     // Update progress indicator on wizard open
@@ -558,6 +571,7 @@ function setupWizardListeners() {
 
         // Check if this provider is already configured
         const isConfigured = configuredProviders.has(provider);
+        const getKeyBtn = providerEl.querySelector('.get-key-btn');
 
         // Update UI based on configured state
         if (isConfigured) {
@@ -570,6 +584,9 @@ function setupWizardListeners() {
             if (deleteBtn) {
                 deleteBtn.style.display = 'inline-flex';
             }
+            if (getKeyBtn) {
+                getKeyBtn.style.display = 'none';
+            }
             statusEl.className = 'setup-status success';
             statusEl.textContent = 'Connected';
         } else {
@@ -581,6 +598,9 @@ function setupWizardListeners() {
             saveBtn.classList.add('btn-primary');
             if (deleteBtn) {
                 deleteBtn.style.display = 'none';
+            }
+            if (getKeyBtn) {
+                getKeyBtn.style.display = 'inline-block';
             }
             statusEl.className = 'setup-status';
             statusEl.textContent = '';
@@ -624,6 +644,9 @@ function setupWizardListeners() {
                     newSaveBtn.classList.remove('btn-secondary');
                     newSaveBtn.classList.add('btn-primary');
                     newDeleteBtn.style.display = 'none';
+                    if (getKeyBtn) {
+                        getKeyBtn.style.display = 'inline-block';
+                    }
                     statusEl.className = 'setup-status';
                     statusEl.textContent = '';
 
@@ -635,8 +658,7 @@ function setupWizardListeners() {
                     console.error('Error deleting API key:', error);
                     newDeleteBtn.disabled = false;
                     newDeleteBtn.textContent = 'Delete';
-                    statusEl.className = 'setup-status error';
-                    statusEl.textContent = 'Failed to delete key';
+                    showSetupError(statusEl, 'Failed to delete key', false);
                 }
             });
         }
@@ -644,8 +666,7 @@ function setupWizardListeners() {
         newSaveBtn.addEventListener('click', async () => {
             const apiKey = input.value.trim();
             if (!apiKey || apiKey.startsWith('••')) {
-                statusEl.className = 'setup-status error';
-                statusEl.textContent = 'Please enter an API key';
+                showSetupError(statusEl, 'Please enter an API key', false);
                 return;
             }
 
@@ -685,9 +706,12 @@ function setupWizardListeners() {
                     newSaveBtn.classList.remove('btn-primary');
                     newSaveBtn.classList.add('btn-secondary');
 
-                    // Show delete button
+                    // Show delete button, hide get key button
                     if (newDeleteBtn) {
                         newDeleteBtn.style.display = 'inline-flex';
+                    }
+                    if (getKeyBtn) {
+                        getKeyBtn.style.display = 'none';
                     }
 
                     // Refresh configured providers and models
@@ -704,14 +728,12 @@ function setupWizardListeners() {
                         headers: getAuthHeaders()
                     });
 
-                    statusEl.className = 'setup-status error';
-                    statusEl.textContent = testData.error || 'Invalid API key. Please check and try again.';
+                    showSetupError(statusEl, testData.error || 'Invalid API key. Please check and try again.');
                     newSaveBtn.disabled = false;
                     newSaveBtn.textContent = 'Save & Test';
                 }
             } catch (error) {
-                statusEl.className = 'setup-status error';
-                statusEl.textContent = 'Connection failed. Check your internet and try again.';
+                showSetupError(statusEl, 'Connection failed. Check your internet and try again.');
                 newSaveBtn.disabled = false;
                 newSaveBtn.textContent = 'Save & Test';
             }

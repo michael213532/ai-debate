@@ -592,6 +592,7 @@ a:hover {
     background-color: var(--surface-light);
     border: 1px solid var(--border-color);
     border-radius: var(--border-radius);
+    overflow: hidden;
 }
 
 .provider-header {
@@ -619,6 +620,18 @@ a:hover {
 .provider-status.not-configured {
     background-color: rgba(239, 68, 68, 0.1);
     color: var(--error-color);
+}
+
+/* Error text styling for API key validation */
+.provider-item .error-text,
+.setup-provider .error-text {
+    color: var(--error-color);
+    font-size: 0.9rem;
+    font-weight: 500;
+    line-height: 1.4;
+    margin-top: 8px;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
 }
 
 .provider-description {
@@ -724,6 +737,11 @@ a:hover {
 .provider-actions {
     display: flex;
     gap: 8px;
+    flex-wrap: wrap;
+}
+
+.provider-item .api-key-input {
+    min-width: 0;
 }
 
 .api-key-input {
