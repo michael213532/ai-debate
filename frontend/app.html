@@ -1386,12 +1386,25 @@
             display: flex;
             gap: 8px;
             overflow-x: auto;
+            padding-bottom: 8px;
             -webkit-overflow-scrolling: touch;
-            scrollbar-width: none;
-            -ms-overflow-style: none;
+            scrollbar-width: thin;
+            scrollbar-color: var(--border-color) transparent;
+            cursor: grab;
         }
         .setup-model-scroll::-webkit-scrollbar {
-            display: none;
+            height: 6px;
+        }
+        .setup-model-scroll::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .setup-model-scroll::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+            border-radius: 3px;
+        }
+        .setup-model-scroll.dragging {
+            cursor: grabbing;
+            user-select: none;
         }
         .setup-model-item {
             flex-shrink: 0;

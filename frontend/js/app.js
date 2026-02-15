@@ -852,6 +852,39 @@ function checkShowTutorial() {
     }
 }
 
+// Enable mouse drag scrolling for a container
+function enableDragScroll(container) {
+    let isDown = false;
+    let startX;
+    let scrollLeft;
+
+    container.addEventListener('mousedown', (e) => {
+        if (e.target.classList.contains('setup-model-item')) return;
+        isDown = true;
+        container.classList.add('dragging');
+        startX = e.pageX - container.offsetLeft;
+        scrollLeft = container.scrollLeft;
+    });
+
+    container.addEventListener('mouseleave', () => {
+        isDown = false;
+        container.classList.remove('dragging');
+    });
+
+    container.addEventListener('mouseup', () => {
+        isDown = false;
+        container.classList.remove('dragging');
+    });
+
+    container.addEventListener('mousemove', (e) => {
+        if (!isDown) return;
+        e.preventDefault();
+        const x = e.pageX - container.offsetLeft;
+        const walk = (x - startX) * 2;
+        container.scrollLeft = scrollLeft - walk;
+    });
+}
+
 // Populate model selection in setup wizard (step 3)
 function populateSetupModels() {
     const container = document.getElementById('setup-model-scroll');
@@ -859,6 +892,12 @@ function populateSetupModels() {
     if (!container) {
         console.error('Setup model scroll container not found');
         return;
+    }
+
+    // Enable drag scrolling (only once)
+    if (!container.dataset.dragEnabled) {
+        enableDragScroll(container);
+        container.dataset.dragEnabled = 'true';
     }
 
     container.innerHTML = '';
