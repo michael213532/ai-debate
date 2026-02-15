@@ -151,10 +151,7 @@ async function sendMessage() {
         const session = await response.json();
         currentSessionId = session.id;
 
-        // Add placeholder for AI response
-        addAiMessagePlaceholder();
-
-        // Connect WebSocket
+        // Connect WebSocket (summary placeholder added when summary_start received)
         connectWebSocket(session.id);
 
         // Update subscription status
@@ -224,6 +221,7 @@ function handleWebSocketMessage(message) {
             break;
 
         case 'summary_start':
+            addAiMessagePlaceholder();
             updateChatStatus('Synthesizing summary...');
             break;
 
