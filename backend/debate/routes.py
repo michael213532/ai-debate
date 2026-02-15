@@ -264,6 +264,74 @@ async def create_debate(
     )
 
 
+@router.post("/api/debates/{debate_id}/continue", response_model=DebateResponse)
+async def continue_debate(
+    debate_id: str,
+    request: CreateDebateRequest,
+    current_user: User = Depends(get_current_user)
+):
+    """Continue an existing debate with a new message."""
+    async with get_db() as db:
+        # Verify debate exists and belongs to user
+        cursor = await db.execute(
+            "SELECT * FROM debates WHERE id = ? AND user_id = ?",
+            (debate_id, current_user.id)
+        )
+        debate_row = await cursor.fetchone()
+
+        if not debate_row:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Debate not found"
+            )
+
+        # Get existing messages to build context
+        cursor = await db.execute(
+            "SELECT * FROM messages WHERE debate_id = ? ORDER BY round, created_at",
+            (debate_id,)
+        )
+        existing_messages = await cursor.fetchall()
+
+        # Build context from previous messages
+        original_topic = debate_row["topic"]
+        previous_context = f"Previous conversation:\nUser: {original_topic}\n"
+        for msg in existing_messages:
+            if msg["round"] > 0:  # Skip summary (round 0)
+                previous_context += f"{msg['model_name']}: {msg['content']}\n"
+
+        # Get max round number to continue from
+        cursor = await db.execute(
+            "SELECT MAX(round) as max_round FROM messages WHERE debate_id = ? AND round > 0",
+            (debate_id,)
+        )
+        max_round_row = await cursor.fetchone()
+        start_round = (max_round_row["max_round"] or 0) + 1
+
+        # Update config with new settings and context
+        config_data = request.config.model_dump()
+        config_data["previous_context"] = previous_context
+        config_data["continuation_topic"] = request.topic  # The new question
+        config_data["start_round"] = start_round
+        if request.images:
+            config_data["images"] = [img.model_dump() for img in request.images]
+        config_json = json.dumps(config_data)
+
+        # Update debate with new topic (append follow-up) and reset status
+        new_topic = f"{original_topic}\n---\n{request.topic}"
+        await db.execute(
+            "UPDATE debates SET topic = ?, config = ?, status = ? WHERE id = ?",
+            (new_topic, config_json, "pending", debate_id)
+        )
+        await db.commit()
+
+    return DebateResponse(
+        id=debate_id,
+        topic=request.topic,
+        config=request.config.model_dump(),
+        status="pending"
+    )
+
+
 @router.get("/api/debates", response_model=list[DebateResponse])
 async def list_debates(current_user: User = Depends(get_current_user)):
     """List all debates for the current user."""
@@ -546,9 +614,12 @@ async def debate_websocket(websocket: WebSocket, debate_id: str):
             # Extract images from config if present
             images = config.pop("images", None)
 
+            # For continuations, use the continuation_topic instead of full topic
+            topic = config.pop("continuation_topic", None) or debate_row["topic"]
+
             orchestrator = DebateOrchestrator(
                 debate_id=debate_id,
-                topic=debate_row["topic"],
+                topic=topic,
                 config=config,
                 api_keys=api_keys,
                 on_message=broadcast_message,

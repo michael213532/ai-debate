@@ -27,6 +27,7 @@ class DebateOrchestrator:
         self.rounds = config.get("rounds", 3)
         self.summarizer_index = config.get("summarizer_index", 0)
         self.previous_context = config.get("previous_context", None)  # Context from continued conversations
+        self.start_round = config.get("start_round", 1)  # Starting round for continuations
         self.messages: list[dict] = []
         self._stopped = False
         self.images = images or []  # Optional images for vision models
@@ -104,8 +105,9 @@ class DebateOrchestrator:
                 )
                 await db.commit()
 
-            # Run each round
-            for round_num in range(1, self.rounds + 1):
+            # Run each round (start from start_round for continuations)
+            end_round = self.start_round + self.rounds
+            for round_num in range(self.start_round, end_round):
                 if self._stopped:
                     break
 

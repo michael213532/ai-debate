@@ -139,53 +139,70 @@ async function sendMessage() {
     updateChatStatus('Starting discussion...');
 
     try {
-        // Create a new debate/session
         const summarizerIndex = getSummarizerIndex(selectedModels);
-        const requestBody = {
-            topic: message,
-            config: {
-                models: selectedModels,
-                rounds: 1, // Each AI gives one opinion
-                summarizer_index: summarizerIndex
-            }
-        };
+        let session;
 
-        // Include previous conversation context if continuing from history
-        if (window.loadedConversationTopic && conversationHistory.length > 0) {
-            let context = `Previous conversation:\nUser: ${window.loadedConversationTopic}\n`;
-            conversationHistory.forEach(msg => {
-                if (msg.role === 'assistant') {
-                    context += `${msg.content}\n`;
+        // Check if we're continuing an existing conversation
+        if (window.continuingDebateId) {
+            // Continue existing debate
+            const continueBody = {
+                topic: message,
+                config: {
+                    models: selectedModels,
+                    rounds: 1,
+                    summarizer_index: summarizerIndex
                 }
-            });
-            requestBody.config.previous_context = context;
-            // Clear so next message starts fresh
-            window.loadedConversationTopic = null;
-        }
+            };
 
-        // Add images if present
-        if (imagesToSend) {
-            requestBody.images = imagesToSend;
-        }
-
-        const response = await fetch(`${API_BASE}/api/debates`, {
-            method: 'POST',
-            headers: getAuthHeaders(),
-            body: JSON.stringify(requestBody)
-        });
-
-        if (response.status === 402) {
-            setInputLocked(false);
-            if (confirm('You\'ve used all your free sessions. Upgrade to Pro for unlimited sessions?')) {
-                window.location.href = '/pricing';
+            if (imagesToSend) {
+                continueBody.images = imagesToSend;
             }
-            return;
+
+            const response = await fetch(`${API_BASE}/api/debates/${window.continuingDebateId}/continue`, {
+                method: 'POST',
+                headers: getAuthHeaders(),
+                body: JSON.stringify(continueBody)
+            });
+
+            if (!response.ok) throw new Error('Failed to continue session');
+
+            session = await response.json();
+            currentSessionId = session.id;
+            // Keep continuingDebateId for future follow-ups in this session
+        } else {
+            // Create new debate/session
+            const requestBody = {
+                topic: message,
+                config: {
+                    models: selectedModels,
+                    rounds: 1,
+                    summarizer_index: summarizerIndex
+                }
+            };
+
+            if (imagesToSend) {
+                requestBody.images = imagesToSend;
+            }
+
+            const response = await fetch(`${API_BASE}/api/debates`, {
+                method: 'POST',
+                headers: getAuthHeaders(),
+                body: JSON.stringify(requestBody)
+            });
+
+            if (response.status === 402) {
+                setInputLocked(false);
+                if (confirm('You\'ve used all your free sessions. Upgrade to Pro for unlimited sessions?')) {
+                    window.location.href = '/pricing';
+                }
+                return;
+            }
+
+            if (!response.ok) throw new Error('Failed to start session');
+
+            session = await response.json();
+            currentSessionId = session.id;
         }
-
-        if (!response.ok) throw new Error('Failed to start session');
-
-        const session = await response.json();
-        currentSessionId = session.id;
 
         // Connect WebSocket (summary placeholder added when summary_start received)
         connectWebSocket(session.id);
@@ -880,10 +897,23 @@ document.getElementById('sidebar-overlay')?.addEventListener('click', closeSideb
 
 // New chat button
 document.getElementById('new-chat-btn')?.addEventListener('click', () => {
-    // Clear current chat
+    // Clear current chat and continuation state
     document.getElementById('chat-messages').innerHTML = '';
-    currentDebateId = null;
+    currentSessionId = null;
+    window.continuingDebateId = null;
+    window.loadedConversationTopic = null;
+    conversationHistory = [];
     closeSidebar();
+
+    // Show empty state
+    const container = document.getElementById('chat-messages');
+    container.innerHTML = `
+        <div class="empty-chat">
+            <div class="empty-chat-icon">💬</div>
+            <h2>Start a conversation</h2>
+            <p>Select 2-6 AI models above, then type your message.<br>Each AI will respond, then you'll get a combined summary.</p>
+        </div>
+    `;
 });
 
 // Store loaded debates for search filtering
@@ -1147,8 +1177,9 @@ async function loadConversation(debateId) {
             conversationHistory.push({ role: 'assistant', content: summary.content });
         }
 
-        // Store original topic for context
+        // Store for continuing conversation
         window.loadedConversationTopic = debate.topic;
+        window.continuingDebateId = debateId;  // Track which debate we're continuing
 
         // Enable continuing the conversation
         setInputLocked(false);
