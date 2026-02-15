@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Settings - Ensemble AI</title>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='35' cy='38' r='28' fill='%236366f1' opacity='0.85'/%3E%3Ccircle cx='65' cy='38' r='28' fill='%238b5cf6' opacity='0.85'/%3E%3Ccircle cx='50' cy='62' r='28' fill='%23a78bfa' opacity='0.85'/%3E%3C/svg%3E">
+    <link rel="stylesheet" href="/css/styles.css">
+    <style>
+        .settings-container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 24px;
+        }
+
+        .settings-header {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 32px;
+        }
+
+        .settings-header h1 {
+            font-size: 1.5rem;
+            margin: 0;
+        }
+
+        .back-btn {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 0.9rem;
+            padding: 8px 12px;
+            border-radius: 8px;
+            transition: all 0.2s;
+        }
+
+        .back-btn:hover {
+            background: var(--surface-light);
+            color: var(--text-primary);
+        }
+
+        .settings-section {
+            background: var(--surface);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 24px;
+        }
+
+        .settings-section h2 {
+            font-size: 1.1rem;
+            margin: 0 0 8px 0;
+            color: var(--text-primary);
+        }
+
+        .settings-section p {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            margin: 0 0 20px 0;
+        }
+
+        .setting-row {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .setting-label {
+            font-weight: 500;
+            color: var(--text-primary);
+            font-size: 0.95rem;
+        }
+
+        .setting-description {
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            margin-bottom: 8px;
+        }
+
+        .setting-select {
+            padding: 12px 16px;
+            background: var(--background);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-size: 1rem;
+            cursor: pointer;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%239ca3af' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+            padding-right: 40px;
+        }
+
+        .setting-select:focus {
+            outline: none;
+            border-color: var(--primary-color);
+        }
+
+        .setting-select:hover {
+            border-color: var(--primary-color);
+        }
+
+        .save-notice {
+            display: none;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 16px;
+            background: rgba(34, 197, 94, 0.1);
+            border: 1px solid rgba(34, 197, 94, 0.3);
+            border-radius: 8px;
+            color: #22c55e;
+            font-size: 0.9rem;
+            margin-top: 16px;
+        }
+
+        .save-notice.show {
+            display: flex;
+        }
+
+        @media (max-width: 768px) {
+            .settings-container {
+                padding: 16px;
+            }
+
+            .settings-section {
+                padding: 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-layout">
+        <!-- Header -->
+        <header class="header">
+            <div class="container header-content">
+                <div class="logo">
+                    <img src="/logo.svg" alt="Ensemble AI" style="width: 32px; height: 32px;">
+                    <span>Ensemble AI</span>
+                </div>
+                <div class="header-actions">
+                    <a href="/app" class="btn btn-secondary btn-small">Back to Chat</a>
+                </div>
+            </div>
+        </header>
+
+        <div class="settings-container">
+            <div class="settings-header">
+                <a href="/app" class="back-btn">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M19 12H5M12 19l-7-7 7-7"/>
+                    </svg>
+                    Back
+                </a>
+                <h1>Settings</h1>
+            </div>
+
+            <div class="settings-section">
+                <h2>Summary Settings</h2>
+                <p>Choose which AI model generates the final summary after discussions.</p>
+
+                <div class="setting-row">
+                    <label class="setting-label" for="summarizer-select">Summary Model</label>
+                    <div class="setting-description">This model will read all responses and create the final summary.</div>
+                    <select id="summarizer-select" class="setting-select">
+                        <option value="first">First selected model (default)</option>
+                        <option value="last">Last selected model</option>
+                        <option value="openai">Always use OpenAI</option>
+                        <option value="anthropic">Always use Anthropic (Claude)</option>
+                        <option value="google">Always use Google (Gemini)</option>
+                        <option value="deepseek">Always use Deepseek</option>
+                        <option value="xai">Always use xAI (Grok)</option>
+                    </select>
+                </div>
+
+                <div id="save-notice" class="save-notice">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M20 6L9 17l-5-5"/>
+                    </svg>
+                    Settings saved
+                </div>
+            </div>
+
+            <div class="settings-section">
+                <h2>API Keys</h2>
+                <p>Manage your AI provider API keys.</p>
+                <button id="manage-keys-btn" class="btn btn-primary">Manage API Keys</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Check auth
+        const token = localStorage.getItem('token');
+        if (!token) {
+            window.location.href = '/';
+        }
+
+        // Load saved preference
+        const summarizerSelect = document.getElementById('summarizer-select');
+        const savedPref = localStorage.getItem('summarizerPreference') || 'first';
+        summarizerSelect.value = savedPref;
+
+        // Save on change
+        summarizerSelect.addEventListener('change', () => {
+            localStorage.setItem('summarizerPreference', summarizerSelect.value);
+
+            // Show save notice
+            const notice = document.getElementById('save-notice');
+            notice.classList.add('show');
+            setTimeout(() => {
+                notice.classList.remove('show');
+            }, 2000);
+        });
+
+        // Manage keys button - go back to app and open settings
+        document.getElementById('manage-keys-btn').addEventListener('click', () => {
+            window.location.href = '/app?openSettings=true';
+        });
+    </script>
+</body>
+</html>

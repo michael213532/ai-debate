@@ -83,6 +83,12 @@ async def serve_privacy():
     return FileResponse(frontend_path / "privacy.html")
 
 
+@app.get("/settings")
+async def serve_settings():
+    """Serve the settings page."""
+    return FileResponse(frontend_path / "settings.html")
+
+
 @app.get("/logo.svg")
 async def serve_logo():
     """Serve the logo."""

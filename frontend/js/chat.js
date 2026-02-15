@@ -11,6 +11,28 @@ let conversationHistory = [];
 let selectedImages = []; // Array of { base64: string, media_type: string, dataUrl: string }
 const MAX_IMAGES = 10;
 
+// Get summarizer index based on user preference
+function getSummarizerIndex(models) {
+    const pref = localStorage.getItem('summarizerPreference') || 'first';
+
+    if (pref === 'first') {
+        return 0;
+    }
+
+    if (pref === 'last') {
+        return models.length - 1;
+    }
+
+    // Provider-specific preference - find first model from that provider
+    const providerIndex = models.findIndex(m => m.provider === pref);
+    if (providerIndex >= 0) {
+        return providerIndex;
+    }
+
+    // Fallback to first model
+    return 0;
+}
+
 // Send button click - detect intervention vs new conversation
 document.getElementById('send-btn').addEventListener('click', () => {
     if (isProcessing && chatWebSocket && chatWebSocket.readyState === WebSocket.OPEN) {
@@ -118,12 +140,13 @@ async function sendMessage() {
 
     try {
         // Create a new debate/session
+        const summarizerIndex = getSummarizerIndex(selectedModels);
         const requestBody = {
             topic: message,
             config: {
                 models: selectedModels,
                 rounds: 1, // Each AI gives one opinion
-                summarizer_index: 0
+                summarizer_index: summarizerIndex
             }
         };
 
