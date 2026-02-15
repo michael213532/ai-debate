@@ -1261,8 +1261,25 @@
                     </div>
                 </div>
 
-                <!-- Step 3: Ready to Go -->
+                <!-- Step 3: Choose Models -->
                 <div class="tutorial-step" data-step="3" style="display: none;">
+                    <div style="text-align: center; margin-bottom: 16px;">
+                        <p style="color: var(--text-secondary); font-size: 1.05rem;">
+                            Select 2-6 AI models to participate in your discussions.
+                        </p>
+                    </div>
+                    <div id="setup-model-selection" class="setup-model-selection">
+                        <div class="setup-model-scroll">
+                            <!-- Models will be populated here -->
+                        </div>
+                    </div>
+                    <div id="setup-model-count" style="text-align: center; margin-top: 12px; font-size: 0.9rem; color: var(--text-secondary);">
+                        Select at least 2 models
+                    </div>
+                </div>
+
+                <!-- Step 4: Ready to Go -->
+                <div class="tutorial-step" data-step="4" style="display: none;">
                     <div style="text-align: center; margin-bottom: 20px;">
                         <p style="color: var(--text-secondary); font-size: 1.05rem;">
                             You're all set! Here's how to use Ensemble AI:
@@ -1270,7 +1287,6 @@
                     </div>
                     <div style="background: var(--surface-light); border-radius: 8px; padding: 16px; margin-bottom: 16px;">
                         <ol style="margin: 0; padding-left: 20px; color: var(--text-secondary); font-size: 0.9rem; line-height: 1.8;">
-                            <li><strong>Select models</strong> - Click on AI models below to pick 2-6 for your discussion</li>
                             <li><strong>Ask a question</strong> - Type anything in the chat box</li>
                             <li><strong>Watch the discussion</strong> - See each AI respond in the chat</li>
                             <li><strong>Intervene anytime</strong> - Type and send to add your input mid-discussion</li>
@@ -1289,6 +1305,7 @@
                         <span class="tutorial-dot active" data-step="1"></span>
                         <span class="tutorial-dot" data-step="2"></span>
                         <span class="tutorial-dot" data-step="3"></span>
+                        <span class="tutorial-dot" data-step="4"></span>
                     </div>
                     <button id="tutorial-next" class="btn btn-primary">Next</button>
                 </div>
@@ -1360,6 +1377,92 @@
         .setup-provider .setup-status {
             max-width: 100%;
         }
+        /* Setup Model Selection - Horizontal Scroll */
+        .setup-model-selection {
+            background: var(--surface-light);
+            border-radius: 12px;
+            padding: 16px;
+        }
+        .setup-model-scroll {
+            display: flex;
+            gap: 10px;
+            overflow-x: auto;
+            padding-bottom: 8px;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: thin;
+            scrollbar-color: var(--border-color) transparent;
+        }
+        .setup-model-scroll::-webkit-scrollbar {
+            height: 6px;
+        }
+        .setup-model-scroll::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .setup-model-scroll::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+            border-radius: 3px;
+        }
+        .setup-model-item {
+            flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+            padding: 12px 16px;
+            background: var(--surface);
+            border: 2px solid var(--border-color);
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            min-width: 100px;
+        }
+        .setup-model-item:hover {
+            border-color: var(--primary-color);
+            transform: translateY(-2px);
+        }
+        .setup-model-item.selected {
+            background: rgba(99, 102, 241, 0.15);
+            border-color: var(--primary-color);
+        }
+        .setup-model-item.selected .setup-model-check {
+            display: flex;
+        }
+        .setup-model-name {
+            font-weight: 600;
+            font-size: 0.85rem;
+            color: var(--text-primary);
+            text-align: center;
+            white-space: nowrap;
+        }
+        .setup-model-provider {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .setup-model-check {
+            display: none;
+            position: absolute;
+            top: -6px;
+            right: -6px;
+            width: 20px;
+            height: 20px;
+            background: var(--primary-color);
+            border-radius: 50%;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 12px;
+        }
+        .setup-model-item {
+            position: relative;
+        }
+        /* Provider color accents */
+        .setup-model-item[data-provider="openai"] .setup-model-provider { color: #3b82f6; }
+        .setup-model-item[data-provider="anthropic"] .setup-model-provider { color: #f97316; }
+        .setup-model-item[data-provider="google"] .setup-model-provider { color: #eab308; }
+        .setup-model-item[data-provider="deepseek"] .setup-model-provider { color: #a855f7; }
+        .setup-model-item[data-provider="xai"] .setup-model-provider { color: #94a3b8; }
     </style>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
