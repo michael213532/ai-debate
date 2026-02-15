@@ -760,6 +760,9 @@ document.getElementById('history-modal')?.addEventListener('click', (e) => {
     }
 });
 
+// Store loaded debates for search filtering
+let loadedDebates = [];
+
 // Load chat history from API
 async function loadChatHistory() {
     const list = document.getElementById('history-list');
@@ -772,36 +775,162 @@ async function loadChatHistory() {
 
         if (!response.ok) throw new Error('Failed to load history');
 
-        const debates = await response.json();
-
-        if (debates.length === 0) {
-            list.innerHTML = '<div class="history-empty">No conversations yet.<br>Start chatting to see your history here.</div>';
-            return;
-        }
-
-        list.innerHTML = debates.map(debate => {
-            const date = debate.created_at ? new Date(debate.created_at).toLocaleDateString() : '';
-            const topic = debate.topic.length > 60 ? debate.topic.substring(0, 60) + '...' : debate.topic;
-            return `
-                <div class="history-item" data-id="${debate.id}">
-                    <div class="history-item-topic">${escapeHtml(topic)}</div>
-                    <div class="history-item-meta">${date} • ${debate.status}</div>
-                </div>
-            `;
-        }).join('');
-
-        // Add click handlers
-        list.querySelectorAll('.history-item').forEach(item => {
-            item.addEventListener('click', () => {
-                loadConversation(item.dataset.id);
-            });
-        });
+        loadedDebates = await response.json();
+        renderHistoryList(loadedDebates);
 
     } catch (error) {
         console.error('Error loading history:', error);
-        list.innerHTML = '<div class="history-empty">Failed to load history.</div>';
+        list.innerHTML = '<div class="history-empty"><div class="history-empty-icon">⚠️</div><div class="history-empty-text">Failed to load history.</div></div>';
     }
 }
+
+// Group debates by date category
+function groupDebatesByDate(debates) {
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+    const lastWeek = new Date(today);
+    lastWeek.setDate(lastWeek.getDate() - 7);
+    const lastMonth = new Date(today);
+    lastMonth.setDate(lastMonth.getDate() - 30);
+
+    const groups = {
+        'Today': [],
+        'Yesterday': [],
+        'Previous 7 Days': [],
+        'Previous 30 Days': [],
+        'Older': []
+    };
+
+    debates.forEach(debate => {
+        const date = new Date(debate.created_at);
+        if (date >= today) {
+            groups['Today'].push(debate);
+        } else if (date >= yesterday) {
+            groups['Yesterday'].push(debate);
+        } else if (date >= lastWeek) {
+            groups['Previous 7 Days'].push(debate);
+        } else if (date >= lastMonth) {
+            groups['Previous 30 Days'].push(debate);
+        } else {
+            groups['Older'].push(debate);
+        }
+    });
+
+    return groups;
+}
+
+// Format time for display
+function formatHistoryTime(dateStr) {
+    const date = new Date(dateStr);
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+    if (date >= today) {
+        return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    } else {
+        return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
+    }
+}
+
+// Render the history list with grouping
+function renderHistoryList(debates) {
+    const list = document.getElementById('history-list');
+
+    if (debates.length === 0) {
+        list.innerHTML = `
+            <div class="history-empty">
+                <div class="history-empty-icon">💬</div>
+                <div class="history-empty-text">No conversations yet.<br>Start chatting to see your history here.</div>
+            </div>`;
+        return;
+    }
+
+    const groups = groupDebatesByDate(debates);
+    let html = '';
+
+    for (const [groupName, groupDebates] of Object.entries(groups)) {
+        if (groupDebates.length === 0) continue;
+
+        html += `<div class="history-group">`;
+        html += `<div class="history-group-title">${groupName}</div>`;
+
+        groupDebates.forEach(debate => {
+            const topic = debate.topic.length > 45 ? debate.topic.substring(0, 45) + '...' : debate.topic;
+            const time = formatHistoryTime(debate.created_at);
+            html += `
+                <div class="history-item" data-id="${debate.id}">
+                    <svg class="history-item-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                    </svg>
+                    <div class="history-item-content">
+                        <div class="history-item-topic">${escapeHtml(topic)}</div>
+                    </div>
+                    <span class="history-item-time">${time}</span>
+                    <button class="history-item-delete" title="Delete" data-id="${debate.id}">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                        </svg>
+                    </button>
+                </div>
+            `;
+        });
+
+        html += `</div>`;
+    }
+
+    list.innerHTML = html;
+
+    // Add click handlers for loading conversations
+    list.querySelectorAll('.history-item').forEach(item => {
+        item.addEventListener('click', (e) => {
+            if (!e.target.closest('.history-item-delete')) {
+                loadConversation(item.dataset.id);
+            }
+        });
+    });
+
+    // Add click handlers for delete buttons
+    list.querySelectorAll('.history-item-delete').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            if (confirm('Delete this conversation?')) {
+                await deleteConversation(btn.dataset.id);
+            }
+        });
+    });
+}
+
+// Delete a conversation
+async function deleteConversation(debateId) {
+    try {
+        const response = await fetch(`${API_BASE}/api/debates/${debateId}`, {
+            method: 'DELETE',
+            headers: getAuthHeaders()
+        });
+
+        if (response.ok) {
+            loadedDebates = loadedDebates.filter(d => d.id !== debateId);
+            renderHistoryList(loadedDebates);
+        }
+    } catch (error) {
+        console.error('Error deleting conversation:', error);
+    }
+}
+
+// Search history
+document.getElementById('history-search-input')?.addEventListener('input', (e) => {
+    const query = e.target.value.toLowerCase().trim();
+    if (!query) {
+        renderHistoryList(loadedDebates);
+        return;
+    }
+    const filtered = loadedDebates.filter(d =>
+        d.topic.toLowerCase().includes(query)
+    );
+    renderHistoryList(filtered);
+});
 
 // Load a specific conversation
 async function loadConversation(debateId) {

@@ -335,6 +335,33 @@ async def get_debate(
     return DebateDetailResponse(debate=debate, messages=messages)
 
 
+@router.delete("/api/debates/{debate_id}")
+async def delete_debate(
+    debate_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Delete a debate and all its messages."""
+    async with get_db() as db:
+        # Check if debate exists and belongs to user
+        cursor = await db.execute(
+            "SELECT id FROM debates WHERE id = ? AND user_id = ?",
+            (debate_id, current_user.id)
+        )
+        if not await cursor.fetchone():
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Debate not found"
+            )
+
+        # Delete messages first (foreign key constraint)
+        await db.execute("DELETE FROM messages WHERE debate_id = ?", (debate_id,))
+        # Delete debate
+        await db.execute("DELETE FROM debates WHERE id = ?", (debate_id,))
+        await db.commit()
+
+    return {"success": True}
+
+
 @router.get("/api/debates/{debate_id}/export")
 async def export_debate(
     debate_id: str,
