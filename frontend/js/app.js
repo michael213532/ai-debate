@@ -853,7 +853,7 @@ function enableDragScroll(container) {
     });
 }
 
-// Populate model selection in setup wizard (step 3)
+// Populate model selection in setup wizard - shows models for current provider
 function populateSetupModels() {
     const container = document.getElementById('setup-model-scroll');
     const countEl = document.getElementById('setup-model-count');
@@ -870,13 +870,16 @@ function populateSetupModels() {
 
     container.innerHTML = '';
 
-    // Filter to only show models with configured providers
-    const visibleModels = availableModels.filter(model => configuredProviders.has(model.provider));
+    // Only show models for the current provider if it's configured
+    const isCurrentProviderConfigured = configuredProviders.has(currentSetupProvider);
+    const visibleModels = isCurrentProviderConfigured
+        ? availableModels.filter(model => model.provider === currentSetupProvider)
+        : [];
 
     if (visibleModels.length === 0) {
         container.innerHTML = `
-            <div style="padding: 20px; text-align: center; color: var(--text-secondary); width: 100%;">
-                No models available. Go back and add API keys first.
+            <div style="padding: 16px; text-align: center; color: var(--text-secondary); width: 100%; font-size: 0.85rem;">
+                ${isCurrentProviderConfigured ? 'No models available' : 'Add this API key to see models'}
             </div>
         `;
         updateSetupModelCount();
@@ -931,22 +934,25 @@ function updateSetupModelCount() {
     const countEl = document.getElementById('setup-model-count');
     if (!countEl) return;
 
-    // Check if any models are available
-    const visibleModels = availableModels.filter(model => configuredProviders.has(model.provider));
+    // Check if current provider is configured
+    const isCurrentConfigured = configuredProviders.has(currentSetupProvider);
 
-    if (visibleModels.length === 0) {
+    if (!isCurrentConfigured) {
         countEl.style.color = 'var(--text-secondary)';
-        countEl.textContent = 'Add API keys to see available models';
+        countEl.textContent = 'Add this API key to select models';
         return;
     }
 
+    // Show total selected across all providers
     const count = selectedModels.length;
+    const currentProviderCount = selectedModels.filter(m => m.provider === currentSetupProvider).length;
+
     if (count < 2) {
         countEl.style.color = 'var(--text-secondary)';
-        countEl.textContent = `${count} selected — choose at least 2 models`;
+        countEl.textContent = `${count} total selected — need at least 2`;
     } else {
         countEl.style.color = '#22c55e';
-        countEl.textContent = `${count} model${count > 1 ? 's' : ''} selected ✓`;
+        countEl.textContent = `${count} models selected ✓`;
     }
 }
 
