@@ -19,6 +19,7 @@ ENCRYPTION_KEY = os.getenv("ENCRYPTION_KEY", "")
 
 # Database
 DATABASE_PATH = Path(os.getenv("DATABASE_PATH", Path(__file__).parent / "ai_debate.db"))
+DATABASE_URL = os.getenv("DATABASE_URL", "")  # PostgreSQL connection string from Railway
 
 # Server
 HOST = os.getenv("HOST", "0.0.0.0")
