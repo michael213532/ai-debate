@@ -14,9 +14,12 @@ def is_postgres():
 
 async def init_db():
     """Initialize the database with required tables."""
+    print(f"DATABASE_URL set: {bool(DATABASE_URL)}")
+    print(f"Using PostgreSQL: {is_postgres()}")
     if is_postgres():
         await init_postgres()
     else:
+        print(f"Using SQLite at: {DATABASE_PATH}")
         await init_sqlite()
 
 async def close_db():
@@ -245,6 +248,8 @@ class PostgresDB:
 async def get_db():
     """Get database connection as async context manager."""
     if is_postgres():
+        if _pool is None:
+            raise RuntimeError("Database pool not initialized. Call init_db() first.")
         conn = await _pool.acquire()
         db = PostgresDB(conn)
         try:

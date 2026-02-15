@@ -54,33 +54,42 @@ async def register(request: RegisterRequest):
             detail="You must accept the privacy policy to create an account"
         )
 
-    async with get_db() as db:
-        # Check if email already exists
-        cursor = await db.execute(
-            "SELECT id FROM users WHERE email = ?",
-            (request.email,)
-        )
-        if await cursor.fetchone():
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Email already registered"
+    try:
+        async with get_db() as db:
+            # Check if email already exists
+            cursor = await db.execute(
+                "SELECT id FROM users WHERE email = ?",
+                (request.email,)
             )
+            if await cursor.fetchone():
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Email already registered"
+                )
 
-        # Create new user
-        user_id = str(uuid.uuid4())
-        password_hash = hash_password(request.password)
-        now = datetime.utcnow().isoformat()
+            # Create new user
+            user_id = str(uuid.uuid4())
+            password_hash = hash_password(request.password)
+            now = datetime.utcnow().isoformat()
 
-        await db.execute(
-            """INSERT INTO users (id, email, password_hash, privacy_accepted, privacy_accepted_at)
-               VALUES (?, ?, ?, 1, ?)""",
-            (user_id, request.email, password_hash, now)
+            await db.execute(
+                """INSERT INTO users (id, email, password_hash, privacy_accepted, privacy_accepted_at)
+                   VALUES (?, ?, ?, 1, ?)""",
+                (user_id, request.email, password_hash, now)
+            )
+            await db.commit()
+
+            # Generate token
+            access_token = create_access_token(data={"sub": user_id})
+            return TokenResponse(access_token=access_token)
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Registration error: {type(e).__name__}: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Registration failed: {str(e)}"
         )
-        await db.commit()
-
-        # Generate token
-        access_token = create_access_token(data={"sub": user_id})
-        return TokenResponse(access_token=access_token)
 
 
 @router.post("/login", response_model=TokenResponse)
