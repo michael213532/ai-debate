@@ -739,25 +739,35 @@ async function exportToPdf() {
     }
 }
 
-// ============ CHAT HISTORY ============
+// ============ CHAT HISTORY SIDEBAR ============
 
-// Open history modal
-document.getElementById('history-btn')?.addEventListener('click', () => {
-    const modal = document.getElementById('history-modal');
-    modal.classList.add('active');
+// Toggle sidebar
+function openSidebar() {
+    document.getElementById('sidebar').classList.add('open');
+    document.getElementById('sidebar-overlay').classList.add('active');
     loadChatHistory();
-});
+}
 
-// Close history modal
-document.getElementById('history-close-btn')?.addEventListener('click', () => {
-    document.getElementById('history-modal').classList.remove('active');
-});
+function closeSidebar() {
+    document.getElementById('sidebar').classList.remove('open');
+    document.getElementById('sidebar-overlay').classList.remove('active');
+}
+
+// Sidebar toggle button
+document.getElementById('sidebar-toggle')?.addEventListener('click', openSidebar);
+
+// Close sidebar button
+document.getElementById('sidebar-close')?.addEventListener('click', closeSidebar);
 
 // Close on overlay click
-document.getElementById('history-modal')?.addEventListener('click', (e) => {
-    if (e.target === e.currentTarget) {
-        e.currentTarget.classList.remove('active');
-    }
+document.getElementById('sidebar-overlay')?.addEventListener('click', closeSidebar);
+
+// New chat button
+document.getElementById('new-chat-btn')?.addEventListener('click', () => {
+    // Clear current chat
+    document.getElementById('chat-messages').innerHTML = '';
+    currentDebateId = null;
+    closeSidebar();
 });
 
 // Store loaded debates for search filtering
@@ -839,11 +849,7 @@ function renderHistoryList(debates) {
     const list = document.getElementById('history-list');
 
     if (debates.length === 0) {
-        list.innerHTML = `
-            <div class="history-empty">
-                <div class="history-empty-icon">💬</div>
-                <div class="history-empty-text">No conversations yet.<br>Start chatting to see your history here.</div>
-            </div>`;
+        list.innerHTML = `<div class="history-empty">No conversations yet</div>`;
         return;
     }
 
@@ -857,8 +863,7 @@ function renderHistoryList(debates) {
         html += `<div class="history-group-title">${groupName}</div>`;
 
         groupDebates.forEach(debate => {
-            const topic = debate.topic.length > 45 ? debate.topic.substring(0, 45) + '...' : debate.topic;
-            const time = formatHistoryTime(debate.created_at);
+            const topic = debate.topic.length > 30 ? debate.topic.substring(0, 30) + '...' : debate.topic;
             html += `
                 <div class="history-item" data-id="${debate.id}">
                     <svg class="history-item-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -867,9 +872,8 @@ function renderHistoryList(debates) {
                     <div class="history-item-content">
                         <div class="history-item-topic">${escapeHtml(topic)}</div>
                     </div>
-                    <span class="history-item-time">${time}</span>
                     <button class="history-item-delete" title="Delete" data-id="${debate.id}">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
                         </svg>
                     </button>
@@ -945,8 +949,8 @@ async function loadConversation(debateId) {
         const debate = data.debate;
         const messages = data.messages;
 
-        // Close modal
-        document.getElementById('history-modal').classList.remove('active');
+        // Close sidebar
+        closeSidebar();
 
         // Clear current chat
         const container = document.getElementById('chat-messages');

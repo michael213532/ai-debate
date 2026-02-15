@@ -7,6 +7,231 @@
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='35' cy='38' r='28' fill='%236366f1' opacity='0.85'/%3E%3Ccircle cx='65' cy='38' r='28' fill='%238b5cf6' opacity='0.85'/%3E%3Ccircle cx='50' cy='62' r='28' fill='%23a78bfa' opacity='0.85'/%3E%3C/svg%3E">
     <link rel="stylesheet" href="/css/styles.css">
     <style>
+        /* Sidebar */
+        .sidebar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 280px;
+            height: 100vh;
+            background: var(--surface);
+            border-right: 1px solid var(--border-color);
+            z-index: 1000;
+            transform: translateX(-100%);
+            transition: transform 0.25s ease;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .sidebar.open {
+            transform: translateX(0);
+        }
+
+        .sidebar-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .sidebar-title {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .sidebar-close {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            padding: 4px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .sidebar-close:hover {
+            background: var(--surface-light);
+            color: var(--text-primary);
+        }
+
+        .sidebar-new-chat {
+            margin: 12px 12px 8px;
+            padding: 10px 16px;
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: background 0.15s;
+        }
+
+        .sidebar-new-chat:hover {
+            background: var(--primary-hover);
+        }
+
+        .sidebar-search {
+            padding: 8px 12px;
+        }
+
+        .sidebar-search input {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            background: var(--bg-color);
+            color: var(--text-primary);
+            font-size: 0.85rem;
+        }
+
+        .sidebar-search input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+        }
+
+        .sidebar-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 4px 0;
+        }
+
+        .sidebar-content::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .sidebar-content::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .sidebar-content::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+            border-radius: 3px;
+        }
+
+        .sidebar-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.4);
+            z-index: 999;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.25s, visibility 0.25s;
+        }
+
+        .sidebar-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        /* Sidebar toggle button */
+        .sidebar-toggle {
+            background: none;
+            border: none;
+            color: var(--text-primary);
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 12px;
+        }
+
+        .sidebar-toggle:hover {
+            background: var(--surface-light);
+        }
+
+        /* History items in sidebar */
+        .history-group {
+            margin-bottom: 8px;
+        }
+
+        .history-group-title {
+            font-size: 0.7rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            padding: 12px 16px 6px;
+        }
+
+        .history-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 12px;
+            margin: 0 8px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+
+        .history-item:hover {
+            background: var(--surface-light);
+        }
+
+        .history-item.active {
+            background: var(--surface-light);
+        }
+
+        .history-item-icon {
+            flex-shrink: 0;
+            width: 16px;
+            height: 16px;
+            color: var(--text-secondary);
+        }
+
+        .history-item-content {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .history-item-topic {
+            font-size: 0.85rem;
+            color: var(--text-primary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .history-item-delete {
+            opacity: 0;
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            padding: 4px;
+            border-radius: 4px;
+            transition: opacity 0.15s, color 0.15s;
+            display: flex;
+        }
+
+        .history-item:hover .history-item-delete {
+            opacity: 1;
+        }
+
+        .history-item-delete:hover {
+            color: var(--error-color);
+        }
+
+        .history-empty {
+            text-align: center;
+            color: var(--text-secondary);
+            padding: 32px 16px;
+            font-size: 0.85rem;
+        }
+
         .chat-layout {
             display: flex;
             height: calc(100vh - 60px);
@@ -350,144 +575,6 @@
         .chat-status.active {
             display: block;
             color: var(--success-color);
-        }
-
-        /* History List - ChatGPT/Claude Style */
-        .history-list {
-            max-height: 60vh;
-            overflow-y: auto;
-            padding-right: 4px;
-        }
-
-        .history-list::-webkit-scrollbar {
-            width: 6px;
-        }
-
-        .history-list::-webkit-scrollbar-track {
-            background: transparent;
-        }
-
-        .history-list::-webkit-scrollbar-thumb {
-            background: var(--border-color);
-            border-radius: 3px;
-        }
-
-        .history-list::-webkit-scrollbar-thumb:hover {
-            background: var(--text-secondary);
-        }
-
-        .history-group {
-            margin-bottom: 16px;
-        }
-
-        .history-group-title {
-            font-size: 0.75rem;
-            font-weight: 600;
-            color: var(--text-secondary);
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            padding: 8px 12px 6px;
-        }
-
-        .history-item {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 10px 12px;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: background 0.15s;
-            position: relative;
-        }
-
-        .history-item:hover {
-            background: var(--surface-light);
-        }
-
-        .history-item-icon {
-            flex-shrink: 0;
-            width: 18px;
-            height: 18px;
-            color: var(--text-secondary);
-        }
-
-        .history-item-content {
-            flex: 1;
-            min-width: 0;
-        }
-
-        .history-item-topic {
-            font-size: 0.9rem;
-            color: var(--text-primary);
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        .history-item-time {
-            font-size: 0.75rem;
-            color: var(--text-secondary);
-            opacity: 0.7;
-        }
-
-        .history-item-delete {
-            opacity: 0;
-            background: none;
-            border: none;
-            color: var(--text-secondary);
-            cursor: pointer;
-            padding: 4px;
-            border-radius: 4px;
-            transition: opacity 0.15s, color 0.15s;
-        }
-
-        .history-item:hover .history-item-delete {
-            opacity: 1;
-        }
-
-        .history-item-delete:hover {
-            color: var(--error-color);
-            background: rgba(239, 68, 68, 0.1);
-        }
-
-        .history-empty {
-            text-align: center;
-            color: var(--text-secondary);
-            padding: 40px 24px;
-        }
-
-        .history-empty-icon {
-            font-size: 2.5rem;
-            margin-bottom: 12px;
-            opacity: 0.5;
-        }
-
-        .history-empty-text {
-            font-size: 0.95rem;
-        }
-
-        .history-search {
-            padding: 8px 12px;
-            margin-bottom: 8px;
-        }
-
-        .history-search input {
-            width: 100%;
-            padding: 8px 12px;
-            border: 1px solid var(--border-color);
-            border-radius: 6px;
-            background: var(--surface-color);
-            color: var(--text-primary);
-            font-size: 0.9rem;
-        }
-
-        .history-search input:focus {
-            outline: none;
-            border-color: var(--primary-color);
-        }
-
-        .history-search input::placeholder {
-            color: var(--text-secondary);
         }
 
         /* Summary Cards - Compact */
@@ -840,7 +927,14 @@
         <!-- Header -->
         <header class="header">
             <div class="container header-content">
-                <div class="logo">
+                <div class="logo" style="display: flex; align-items: center;">
+                    <button id="sidebar-toggle" class="sidebar-toggle" title="Chat history">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="3" y1="6" x2="21" y2="6"></line>
+                            <line x1="3" y1="12" x2="21" y2="12"></line>
+                            <line x1="3" y1="18" x2="21" y2="18"></line>
+                        </svg>
+                    </button>
                     <img src="/logo.svg" alt="Ensemble AI" style="width: 32px; height: 32px;">
                     <span>Ensemble AI</span>
                 </div>
@@ -848,7 +942,6 @@
                     <span id="subscription-status" class="subscription-badge"></span>
                     <span id="user-email" class="user-email"></span>
                     <button id="upgrade-btn" class="btn btn-primary btn-small" style="display: none;">Upgrade</button>
-                    <button id="history-btn" class="btn btn-secondary btn-small">History</button>
                     <button id="settings-btn" class="btn btn-secondary btn-small">API Keys</button>
                     <button id="help-btn" class="btn btn-secondary btn-small" title="Show tutorial">Help</button>
                     <button id="logout-btn" class="btn btn-secondary btn-small">Logout</button>
@@ -936,23 +1029,32 @@
         </div>
     </div>
 
-    <!-- History Modal -->
-    <div id="history-modal" class="modal-overlay">
-        <div class="modal" style="max-width: 420px;">
-            <div class="modal-header">
-                <h2 class="modal-title">Chat History</h2>
-                <button class="btn btn-secondary btn-small" id="history-close-btn">&times;</button>
-            </div>
-            <div class="history-search">
-                <input type="text" id="history-search-input" placeholder="Search conversations...">
-            </div>
-            <div class="modal-body" style="padding-top: 0;">
-                <div id="history-list" class="history-list">
-                    <p style="color: var(--text-secondary); text-align: center;">Loading...</p>
-                </div>
-            </div>
+    <!-- Sidebar -->
+    <div id="sidebar-overlay" class="sidebar-overlay"></div>
+    <aside id="sidebar" class="sidebar">
+        <div class="sidebar-header">
+            <span class="sidebar-title">Chat History</span>
+            <button id="sidebar-close" class="sidebar-close">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+            </button>
         </div>
-    </div>
+        <button id="new-chat-btn" class="sidebar-new-chat">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+            New Chat
+        </button>
+        <div class="sidebar-search">
+            <input type="text" id="history-search-input" placeholder="Search chats...">
+        </div>
+        <div id="history-list" class="sidebar-content">
+            <div class="history-empty">Loading...</div>
+        </div>
+    </aside>
 
     <!-- Privacy Policy Modal (for existing users) -->
     <div id="privacy-modal" class="modal-overlay" style="display: none;">
