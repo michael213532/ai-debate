@@ -352,29 +352,31 @@
             color: var(--success-color);
         }
 
-        /* Summary Cards */
+        /* Summary Cards - Compact */
         .summary-cards {
             display: flex;
             flex-direction: column;
-            gap: 10px;
+            gap: 6px;
         }
 
         .summary-card {
             display: flex;
-            flex-direction: column;
-            gap: 6px;
-            padding: 12px 16px;
-            border-radius: 12px;
+            flex-direction: row;
+            align-items: baseline;
+            gap: 8px;
+            padding: 6px 10px;
+            border-radius: 6px;
         }
 
         .summary-card-name {
-            font-weight: 700;
-            font-size: 0.9rem;
+            font-weight: 600;
+            font-size: 0.8rem;
+            white-space: nowrap;
         }
 
         .summary-card-content {
-            font-size: 0.9rem;
-            line-height: 1.5;
+            font-size: 0.85rem;
+            line-height: 1.4;
         }
 
         /* Provider colors for summary cards - colored bubbles */
@@ -415,26 +417,27 @@
 
         .summary-verdict {
             display: flex;
-            flex-direction: column;
-            gap: 4px;
-            padding: 14px 16px;
-            background: linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(139, 92, 246, 0.2));
-            border-radius: 12px;
-            border: 1px solid rgba(99, 102, 241, 0.4);
+            flex-direction: row;
+            align-items: baseline;
+            gap: 8px;
+            padding: 8px 10px;
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.15), rgba(139, 92, 246, 0.15));
+            border-radius: 6px;
+            border: 1px solid rgba(99, 102, 241, 0.3);
             margin-top: 4px;
         }
 
         .verdict-label {
-            font-weight: 700;
-            font-size: 0.8rem;
+            font-weight: 600;
+            font-size: 0.75rem;
             color: var(--primary-color);
             text-transform: uppercase;
-            letter-spacing: 0.5px;
+            white-space: nowrap;
         }
 
         .verdict-content {
-            font-size: 0.95rem;
-            line-height: 1.5;
+            font-size: 0.85rem;
+            line-height: 1.4;
             color: var(--text-primary);
         }
 
