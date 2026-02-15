@@ -539,6 +539,12 @@ async def debate_websocket(websocket: WebSocket, debate_id: str):
                 if data.get("type") == "stop":
                     if debate_id in active_debates:
                         active_debates[debate_id].stop()
+                elif data.get("type") == "intervention":
+                    # Handle user intervention during discussion
+                    if debate_id in active_debates:
+                        content = data.get("content", "")
+                        if content:
+                            await active_debates[debate_id].add_intervention(content)
             except asyncio.TimeoutError:
                 # Send ping to keep connection alive
                 try:

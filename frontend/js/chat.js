@@ -1,5 +1,6 @@
 /**
  * Chat functionality and WebSocket handling
+ * Note: labelError function is defined in app.js which loads first
  */
 
 let chatWebSocket = null;
@@ -10,8 +11,16 @@ let conversationHistory = [];
 let selectedImages = []; // Array of { base64: string, media_type: string, dataUrl: string }
 const MAX_IMAGES = 10;
 
-// Send button click
-document.getElementById('send-btn').addEventListener('click', sendMessage);
+// Send button click - detect intervention vs new conversation
+document.getElementById('send-btn').addEventListener('click', () => {
+    if (isProcessing && chatWebSocket && chatWebSocket.readyState === WebSocket.OPEN) {
+        // During active discussion - send as intervention
+        sendIntervention();
+    } else {
+        // Normal message send
+        sendMessage();
+    }
+});
 
 // Attachment menu toggle
 document.getElementById('attachment-btn').addEventListener('click', (e) => {
@@ -103,9 +112,9 @@ async function sendMessage() {
     input.value = '';
     input.style.height = 'auto';
 
-    // Clear AI panel
-    clearAiPanel();
-    setAiStatus('Starting...', true);
+    // Show stop button and update status
+    showStopButton();
+    updateChatStatus('Starting discussion...');
 
     try {
         // Create a new debate/session
@@ -152,7 +161,8 @@ async function sendMessage() {
         loadSubscriptionStatus();
     } catch (error) {
         console.error('Error starting session:', error);
-        setAiStatus('Error', false);
+        updateChatStatus('');
+        hideStopButton();
         setInputLocked(false);
         alert('Failed to start session. Please try again.');
     }
@@ -168,7 +178,7 @@ function connectWebSocket(sessionId) {
 
     chatWebSocket.onopen = () => {
         console.log('WebSocket connected');
-        setAiStatus('Discussing...', true);
+        updateChatStatus('Discussing...');
     };
 
     chatWebSocket.onmessage = (event) => {
@@ -178,7 +188,8 @@ function connectWebSocket(sessionId) {
 
     chatWebSocket.onerror = (error) => {
         console.error('WebSocket error:', error);
-        setAiStatus('Connection error', false);
+        updateChatStatus('Connection error');
+        hideStopButton();
         setInputLocked(false);
     };
 
@@ -192,16 +203,12 @@ function connectWebSocket(sessionId) {
 function handleWebSocketMessage(message) {
     switch (message.type) {
         case 'round_start':
-            setAiStatus('Getting opinions...', true);
+            updateChatStatus('Getting opinions...');
             break;
 
         case 'model_start':
             addAiDiscussionMessage(message.model_name, message.provider, '');
-            // Auto-open AI panel on mobile when responses start
-            if (window.innerWidth <= 900) {
-                document.getElementById('ai-panel')?.classList.add('open');
-                document.getElementById('panel-overlay')?.classList.add('active');
-            }
+            updateChatStatus(`${message.model_name} is responding...`);
             break;
 
         case 'chunk':
@@ -217,7 +224,7 @@ function handleWebSocketMessage(message) {
             break;
 
         case 'summary_start':
-            setAiStatus('Synthesizing...', true);
+            updateChatStatus('Synthesizing summary...');
             break;
 
         case 'summary_chunk':
@@ -229,20 +236,26 @@ function handleWebSocketMessage(message) {
             break;
 
         case 'debate_end':
-            setAiStatus('Done', false);
+            updateChatStatus('');
             finishFinalResponse();
             setInputLocked(false);
+            hideStopButton();
             showExportButton();
             break;
 
         case 'error':
-            setAiStatus('Error', false);
+            updateChatStatus('');
+            hideStopButton();
             setInputLocked(false);
             console.error('Session error:', message.message);
             break;
 
         case 'ping':
             // Keep-alive, ignore
+            break;
+
+        case 'intervention_received':
+            updateChatStatus('Your message was received. AIs will respond...');
             break;
     }
 }
@@ -378,84 +391,148 @@ function getProviderClassFromName(name) {
     return '';
 }
 
-// Clear AI panel
-function clearAiPanel() {
-    const panel = document.getElementById('ai-panel-content');
-    panel.innerHTML = '';
-}
-
-// Add AI discussion message
+// Add AI discussion message to main chat (inline)
 function addAiDiscussionMessage(modelName, provider, content) {
-    const panel = document.getElementById('ai-panel-content');
+    const container = document.getElementById('chat-messages');
 
     const msg = document.createElement('div');
-    msg.className = 'ai-message streaming';
+    msg.className = 'message ai-individual streaming';
     msg.dataset.model = modelName;
     msg.dataset.provider = provider;
     msg.innerHTML = `
-        <div class="ai-message-header">
-            <span class="ai-message-model">${escapeHtml(modelName)}</span>
-            <span class="ai-message-provider">${escapeHtml(provider)}</span>
+        <div class="ai-model-header">
+            <span class="ai-model-name">${escapeHtml(modelName)}</span>
+            <span class="ai-provider-tag">${escapeHtml(provider)}</span>
         </div>
-        <div class="ai-message-content">${escapeHtml(content)}</div>
+        <div class="message-content"></div>
     `;
-    panel.appendChild(msg);
-    panel.scrollTop = panel.scrollHeight;
+    container.appendChild(msg);
+    scrollToBottom(container);
 }
 
-// Append to AI discussion
+// Append to AI message in main chat
 function appendToAiDiscussion(modelName, text) {
-    const panel = document.getElementById('ai-panel-content');
-    const msg = panel.querySelector(`[data-model="${modelName}"].streaming`);
+    const container = document.getElementById('chat-messages');
+    const msg = container.querySelector(`.message.ai-individual[data-model="${modelName}"].streaming`);
     if (msg) {
-        const content = msg.querySelector('.ai-message-content');
+        const content = msg.querySelector('.message-content');
         content.textContent += text;
-        panel.scrollTop = panel.scrollHeight;
+        scrollToBottom(container);
     }
 }
 
 // Finish AI discussion message
 function finishAiDiscussion(modelName) {
-    const panel = document.getElementById('ai-panel-content');
-    const msg = panel.querySelector(`[data-model="${modelName}"].streaming`);
+    const container = document.getElementById('chat-messages');
+    const msg = container.querySelector(`.message.ai-individual[data-model="${modelName}"].streaming`);
     if (msg) {
         msg.classList.remove('streaming');
     }
 }
 
-// Add AI discussion error
+// Add AI discussion error with helpful labeling
 function addAiDiscussionError(modelName, error) {
-    const panel = document.getElementById('ai-panel-content');
-    const msg = panel.querySelector(`[data-model="${modelName}"]`);
+    const container = document.getElementById('chat-messages');
+    const msg = container.querySelector(`.message.ai-individual[data-model="${modelName}"]`);
     if (msg) {
         msg.classList.remove('streaming');
-        const content = msg.querySelector('.ai-message-content');
-        content.innerHTML = `<span style="color: var(--error-color);">Error: ${escapeHtml(error)}</span>`;
+        const content = msg.querySelector('.message-content');
+
+        // Get labeled error info
+        const errorInfo = labelError(error);
+
+        content.innerHTML = `
+            <div class="error-labeled" style="color: ${errorInfo.color};">
+                <div style="font-weight: 600; margin-bottom: 4px;">${errorInfo.label}</div>
+                ${errorInfo.help ? `<div style="font-size: 0.85rem; opacity: 0.9;">${errorInfo.help}</div>` : ''}
+            </div>
+        `;
     }
 }
 
-// Set AI status
-function setAiStatus(text, active) {
-    const status = document.getElementById('ai-status');
-    status.textContent = text;
-    status.className = `ai-status ${active ? 'active' : ''}`;
+// Update chat status indicator
+function updateChatStatus(text) {
+    const statusEl = document.getElementById('chat-status');
+    if (statusEl) {
+        statusEl.textContent = text;
+        statusEl.classList.toggle('active', !!text);
+    }
 }
 
-// Lock/unlock input
+// Show stop button
+function showStopButton() {
+    const stopBtn = document.getElementById('stop-btn');
+    if (stopBtn) {
+        stopBtn.classList.add('visible');
+    }
+}
+
+// Hide stop button
+function hideStopButton() {
+    const stopBtn = document.getElementById('stop-btn');
+    if (stopBtn) {
+        stopBtn.classList.remove('visible');
+    }
+}
+
+// Stop the conversation
+function stopConversation() {
+    if (chatWebSocket && chatWebSocket.readyState === WebSocket.OPEN) {
+        chatWebSocket.send(JSON.stringify({ type: 'stop' }));
+    }
+
+    // Also call the REST endpoint as backup
+    if (currentSessionId) {
+        fetch(`${API_BASE}/api/debates/${currentSessionId}/stop`, {
+            method: 'POST',
+            headers: getAuthHeaders()
+        }).catch(console.error);
+    }
+
+    updateChatStatus('Stopping...');
+    hideStopButton();
+}
+
+// Stop button click handler
+document.getElementById('stop-btn')?.addEventListener('click', stopConversation);
+
+// Lock/unlock input - allows intervention during processing
 function setInputLocked(locked) {
     isProcessing = locked;
     const input = document.getElementById('chat-input');
-    const sendBtn = document.getElementById('send-btn');
 
-    input.disabled = locked;
-    sendBtn.disabled = locked;
-
+    // Don't disable input - allow intervention during discussion
     if (locked) {
-        input.placeholder = 'Waiting for AI response...';
+        input.placeholder = 'Type to intervene in the discussion...';
     } else {
         input.placeholder = 'Type your message...';
-        updateSendButton();
     }
+    updateSendButton();
+}
+
+// Send an intervention message during discussion
+async function sendIntervention() {
+    const input = document.getElementById('chat-input');
+    const message = input.value.trim();
+
+    if (!message || !chatWebSocket || chatWebSocket.readyState !== WebSocket.OPEN) {
+        return;
+    }
+
+    // Add user message to chat
+    addUserMessage(message);
+
+    // Clear input
+    input.value = '';
+    input.style.height = 'auto';
+
+    // Send intervention via WebSocket
+    chatWebSocket.send(JSON.stringify({
+        type: 'intervention',
+        content: message
+    }));
+
+    updateChatStatus('Processing your input...');
 }
 
 // Scroll to bottom

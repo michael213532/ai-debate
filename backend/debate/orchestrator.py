@@ -29,6 +29,7 @@ class DebateOrchestrator:
         self.messages: list[dict] = []
         self._stopped = False
         self.images = images or []  # Optional images for vision models
+        self._intervention_queue = asyncio.Queue()  # Queue for user interventions
 
         # If images are attached, reorder models so vision-capable ones go first
         if self.images:
@@ -74,6 +75,22 @@ class DebateOrchestrator:
     def stop(self):
         """Stop the debate."""
         self._stopped = True
+
+    async def add_intervention(self, content: str):
+        """Add a user intervention to be processed."""
+        await self._intervention_queue.put(content)
+        # Broadcast that intervention was received
+        await self._broadcast({
+            "type": "intervention_received",
+            "content": content
+        })
+
+    async def _check_for_intervention(self) -> str | None:
+        """Check if there's a pending intervention."""
+        try:
+            return self._intervention_queue.get_nowait()
+        except asyncio.QueueEmpty:
+            return None
 
     async def run(self):
         """Run the full debate."""
@@ -140,6 +157,23 @@ class DebateOrchestrator:
         for model_index, model_config in enumerate(self.models):
             if self._stopped:
                 break
+
+            # Check for user intervention before each model
+            intervention = await self._check_for_intervention()
+            if intervention:
+                # Add intervention to messages so subsequent models see it
+                self.messages.append({
+                    "round": round_num,
+                    "model_name": "User",
+                    "provider": "user",
+                    "content": intervention
+                })
+                # Broadcast the user intervention as a message
+                await self._broadcast({
+                    "type": "user_intervention",
+                    "content": intervention,
+                    "round": round_num
+                })
 
             provider_name = model_config["provider"]
             model_id = model_config["model_id"]

@@ -2,6 +2,86 @@
  * Main application logic
  */
 
+// Error labeling based on common API issues
+const ERROR_LABELS = {
+    '401': {
+        label: 'Invalid API Key',
+        color: '#dc2626',
+        help: 'Double-check you copied the full key. Some providers require creating a new key.'
+    },
+    '429': {
+        label: 'Rate Limited',
+        color: '#f59e0b',
+        help: 'You\'ve hit usage limits. Wait a minute or check your quota on the provider\'s dashboard.'
+    },
+    '402': {
+        label: 'Payment Required',
+        color: '#7c3aed',
+        help: 'Your account needs credits. Add a payment method on the provider\'s billing page.'
+    },
+    '403': {
+        label: 'Access Denied',
+        color: '#dc2626',
+        help: 'Your API key doesn\'t have permission for this model. Check your account settings.'
+    },
+    '404': {
+        label: 'Model Not Found',
+        color: '#6b7280',
+        help: 'This model may have been retired or renamed. Try a different model.'
+    },
+    '500': {
+        label: 'Provider Error',
+        color: '#6b7280',
+        help: 'The AI provider is having issues. Try again in a moment.'
+    },
+    '503': {
+        label: 'Service Unavailable',
+        color: '#6b7280',
+        help: 'The AI provider is temporarily overloaded. Try again shortly.'
+    }
+};
+
+// Parse error message and return labeled version
+function labelError(errorMessage) {
+    if (!errorMessage) return { label: 'Error', color: '#dc2626', message: 'Unknown error', help: '' };
+
+    const msg = errorMessage.toString();
+
+    // Check for status codes in error message
+    for (const [code, info] of Object.entries(ERROR_LABELS)) {
+        if (msg.includes(code) || msg.toLowerCase().includes(info.label.toLowerCase())) {
+            return {
+                label: info.label,
+                color: info.color,
+                message: msg,
+                help: info.help
+            };
+        }
+    }
+
+    // Check for common error patterns
+    if (msg.toLowerCase().includes('invalid') && msg.toLowerCase().includes('key')) {
+        return { ...ERROR_LABELS['401'], message: msg };
+    }
+    if (msg.toLowerCase().includes('rate') || msg.toLowerCase().includes('quota')) {
+        return { ...ERROR_LABELS['429'], message: msg };
+    }
+    if (msg.toLowerCase().includes('credit') || msg.toLowerCase().includes('billing') || msg.toLowerCase().includes('payment')) {
+        return { ...ERROR_LABELS['402'], message: msg };
+    }
+    if (msg.toLowerCase().includes('connection') || msg.toLowerCase().includes('network') || msg.toLowerCase().includes('timeout')) {
+        return {
+            label: 'Connection Failed',
+            color: '#6b7280',
+            message: msg,
+            help: 'Check your internet connection. VPNs or corporate networks may block API calls.'
+        };
+    }
+
+    // Default
+    return { label: 'Error', color: '#dc2626', message: msg, help: '' };
+}
+
 const API_BASE = '';
 let currentUser = null;
 let availableModels = [];
@@ -269,7 +349,12 @@ function loadSelectedModels() {
 function updateSendButton() {
     const sendBtn = document.getElementById('send-btn');
     const input = document.getElementById('chat-input');
-    const canSend = input.value.trim() && selectedModels.length >= 2;
+    const hasText = input.value.trim();
+
+    // During active discussion, only need text to intervene
+    // Otherwise, need text and at least 2 models
+    const isActive = typeof isProcessing !== 'undefined' && isProcessing;
+    const canSend = hasText && (isActive || selectedModels.length >= 2);
     sendBtn.disabled = !canSend;
 }
 
@@ -294,14 +379,6 @@ document.getElementById('settings-btn-inline')?.addEventListener('click', () => 
     openSettingsModal();
 });
 
-// Toggle AI panel
-document.getElementById('toggle-panel')?.addEventListener('click', () => {
-    const panel = document.getElementById('ai-panel');
-    const btn = document.getElementById('toggle-panel');
-    panel.classList.toggle('collapsed');
-    btn.textContent = panel.classList.contains('collapsed') ? '▶' : '◀';
-});
-
 // Chat input handlers
 const chatInput = document.getElementById('chat-input');
 if (chatInput) {
@@ -315,7 +392,10 @@ if (chatInput) {
     chatInput.addEventListener('keydown', (e) => {
         if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault();
-            if (!document.getElementById('send-btn').disabled) {
+            // Check if we're in a discussion (intervention) or starting new
+            if (typeof isProcessing !== 'undefined' && isProcessing && chatWebSocket && chatWebSocket.readyState === WebSocket.OPEN) {
+                sendIntervention();
+            } else if (!document.getElementById('send-btn').disabled) {
                 sendMessage();
             }
         }
@@ -354,41 +434,9 @@ function escapeHtml(text) {
     return div.innerHTML;
 }
 
-// Mobile AI panel toggle
-const mobileAiToggle = document.getElementById('mobile-ai-toggle');
-const panelOverlay = document.getElementById('panel-overlay');
-const aiPanel = document.getElementById('ai-panel');
-
-if (mobileAiToggle && panelOverlay && aiPanel) {
-    mobileAiToggle.addEventListener('click', () => {
-        // Toggle panel open/closed
-        const isOpen = aiPanel.classList.contains('open');
-        if (isOpen) {
-            aiPanel.classList.remove('open');
-            panelOverlay.classList.remove('active');
-        } else {
-            aiPanel.classList.add('open');
-            panelOverlay.classList.add('active');
-        }
-    });
-
-    panelOverlay.addEventListener('click', () => {
-        aiPanel.classList.remove('open');
-        panelOverlay.classList.remove('active');
-    });
-
-    // Close panel when clicking the toggle button inside panel
-    document.getElementById('toggle-panel')?.addEventListener('click', () => {
-        if (window.innerWidth <= 900) {
-            aiPanel.classList.remove('open');
-            panelOverlay.classList.remove('active');
-        }
-    });
-}
-
 // Setup Wizard functionality
 let tutorialStep = 1;
-const totalSteps = 4;
+const totalSteps = 3;
 let setupComplete = false;
 
 function showTutorial() {
@@ -422,7 +470,6 @@ function isSetupComplete() {
 // Update UI based on setup state
 function updateSetupUI() {
     const appOverlay = document.getElementById('app-setup-overlay');
-    const skipBtn = document.getElementById('tutorial-skip');
     const nextBtn = document.getElementById('tutorial-next');
 
     const hasEnoughProviders = isSetupComplete();
@@ -430,16 +477,6 @@ function updateSetupUI() {
     // Show/hide overlay on main app
     if (appOverlay) {
         appOverlay.style.display = hasEnoughProviders || setupComplete ? 'none' : 'block';
-    }
-
-    // Enable/disable skip button based on provider count
-    if (skipBtn) {
-        if (hasEnoughProviders) {
-            skipBtn.style.display = 'block';
-            skipBtn.title = 'Close setup';
-        } else {
-            skipBtn.style.display = 'none';
-        }
     }
 
     // Update next button on final step
@@ -492,8 +529,7 @@ function updateTutorialStep() {
     const titles = {
         1: "Quick Start Setup",
         2: "Add Your API Keys",
-        3: "Troubleshooting",
-        4: "Ready to Go!"
+        3: "Ready to Go!"
     };
     const titleEl = document.getElementById('tutorial-title');
     if (titleEl) {
@@ -501,7 +537,7 @@ function updateTutorialStep() {
     }
 
     // Update connected count on last step
-    if (tutorialStep === 4) {
+    if (tutorialStep === 3) {
         updateSetupConnectedCount();
     }
 
@@ -544,17 +580,20 @@ async function updateSetupConnectedCount() {
     }
 }
 
-// Show error message with optional dismiss button
+// Show error message with helpful labeling
 function showSetupError(statusEl, message, dismissable = true) {
     statusEl.className = 'setup-status error';
-    if (dismissable && message.length > 50) {
-        statusEl.innerHTML = `
-            <span class="error-message">${escapeHtml(message)}</span>
-            <button class="error-dismiss-btn" onclick="this.parentElement.textContent=''; this.parentElement.className='setup-status';">Dismiss</button>
-        `;
-    } else {
-        statusEl.textContent = message;
-    }
+
+    // Use labelError to get helpful error info
+    const errorInfo = labelError(message);
+
+    statusEl.innerHTML = `
+        <div class="error-content" style="flex: 1;">
+            <div style="font-weight: 600; color: ${errorInfo.color};">${errorInfo.label}</div>
+            ${errorInfo.help ? `<div style="font-size: 0.8rem; margin-top: 2px; opacity: 0.9;">${errorInfo.help}</div>` : ''}
+        </div>
+        ${dismissable ? `<button class="error-dismiss-btn" onclick="this.parentElement.textContent=''; this.parentElement.className='setup-status';">Dismiss</button>` : ''}
+    `;
 }
 
 // Setup wizard API key save & test functionality
@@ -745,7 +784,6 @@ function setupWizardListeners() {
 function setupTutorialListeners() {
     const nextBtn = document.getElementById('tutorial-next');
     const prevBtn = document.getElementById('tutorial-prev');
-    const skipBtn = document.getElementById('tutorial-skip');
 
     if (nextBtn) {
         nextBtn.addEventListener('click', () => {
@@ -765,10 +803,6 @@ function setupTutorialListeners() {
                 updateTutorialStep();
             }
         });
-    }
-
-    if (skipBtn) {
-        skipBtn.addEventListener('click', hideTutorial);
     }
 
     document.querySelectorAll('.tutorial-dot').forEach(dot => {

@@ -16,7 +16,7 @@ A chat-based SaaS app where users can have multiple AI models discuss a topic to
 https://ai-debate-production-8032.up.railway.app
 
 ## Key Features
-- Chat interface with AI discussion side panel
+- Chat interface with inline AI responses
 - 5 AI providers: OpenAI, Anthropic, Google, Deepseek, xAI
 - Users bring their own API keys (encrypted storage)
 - Free tier: 20 sessions/month, Pro: $5/mo unlimited
@@ -51,8 +51,14 @@ ai-debate/
 - STRIPE_SECRET_KEY
 - STRIPE_WEBHOOK_SECRET
 - STRIPE_PRICE_ID
-- DATABASE_PATH
+- DATABASE_PATH (defaults to /app/data/ai_debate.db)
 - APP_URL
+
+## Data Persistence (Railway)
+- SQLite database stores: users, API keys (encrypted), conversations, messages
+- `railway.toml` configures a volume mount at `/app/data/`
+- Data persists across deployments and container restarts
+- IMPORTANT: Railway volume must be attached for data to survive updates
 
 ## Status
 - App is fully functional and deployed
@@ -88,6 +94,19 @@ ai-debate/
 - Multi-language support (responds in user's language)
 - Clear choices with specific criteria when comparing things
 - Summary shows which AI chose what
+
+### Inline AI Responses (Feb 2025)
+- Removed side panel - all AI responses appear inline in main chat
+- Each AI's response displayed as a separate message bubble with provider color
+- Stop button to cancel ongoing discussions
+- Intervention support - send messages mid-discussion to redirect the conversation
+- User interventions are added to context so subsequent AIs see them
+
+### Error Labeling (Feb 2025)
+- Errors are automatically categorized with helpful labels
+- Common errors: Invalid API Key (401), Rate Limited (429), Payment Required (402)
+- Each error shows a clear label + helpful fix suggestion
+- Removed troubleshooting tutorial step - errors are now self-explanatory
 
 ## Model IDs (IMPORTANT - these break if wrong!)
 

@@ -1,0 +1,17 @@
+# Railway deployment configuration
+# Ensures data persistence for accounts, conversations, and API keys
+
+[build]
+builder = "DOCKERFILE"
+dockerfilePath = "Dockerfile"
+
+[deploy]
+healthcheckPath = "/health"
+healthcheckTimeout = 100
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 10
+
+# Volume mount for SQLite database persistence
+# This ensures user data survives deployments and restarts
+[[mounts]]
+mountPath = "/app/data"
