@@ -17,6 +17,7 @@ class DebateConfig(BaseModel):
     models: list[ModelConfig]
     rounds: int = 3
     summarizer_index: Optional[int] = 0  # Index of model to summarize
+    previous_context: Optional[str] = None  # Context from continued conversations
 
 
 class ImageData(BaseModel):
