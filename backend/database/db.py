@@ -135,6 +135,7 @@ async def init_sqlite():
                 topic TEXT NOT NULL,
                 config JSON NOT NULL,
                 status TEXT DEFAULT 'pending',
+                images JSON DEFAULT NULL,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (user_id) REFERENCES users(id)
             );

@@ -250,6 +250,12 @@ function renderModelTags() {
     const container = document.getElementById('model-tags');
     if (!container) return;
 
+    // Enable drag scrolling for mobile (only once)
+    if (!container.dataset.dragEnabled) {
+        enableDragScroll(container);
+        container.dataset.dragEnabled = 'true';
+    }
+
     container.innerHTML = '';
 
     // Filter to only show models with configured providers
@@ -850,7 +856,8 @@ function enableDragScroll(container) {
     let scrollLeft;
 
     container.addEventListener('mousedown', (e) => {
-        if (e.target.classList.contains('setup-model-item')) return;
+        // Don't start drag if clicking on interactive items
+        if (e.target.classList.contains('setup-model-item') || e.target.classList.contains('model-tag')) return;
         isDown = true;
         container.classList.add('dragging');
         startX = e.pageX - container.offsetLeft;

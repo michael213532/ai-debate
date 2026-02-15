@@ -1078,8 +1078,16 @@ async function loadConversation(debateId) {
         const emptyState = document.querySelector('.empty-chat');
         if (emptyState) emptyState.remove();
 
-        // Add user message (the topic)
-        addUserMessage(debate.topic);
+        // Extract images from config if present and convert to dataUrls
+        let imageDataUrls = [];
+        if (debate.config && debate.config.images && debate.config.images.length > 0) {
+            imageDataUrls = debate.config.images.map(img =>
+                `data:${img.media_type};base64,${img.base64}`
+            );
+        }
+
+        // Add user message (the topic) with images
+        addUserMessage(debate.topic, imageDataUrls);
 
         // Group messages by round
         const rounds = {};

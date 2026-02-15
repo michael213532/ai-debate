@@ -801,11 +801,21 @@
             cursor: not-allowed;
         }
 
+        .model-tags.dragging {
+            cursor: grabbing;
+            user-select: none;
+        }
 
         /* Mobile styles */
         @media (max-width: 768px) {
+            /* Compact header */
+            .header {
+                height: 48px;
+            }
+
             .header-content {
-                padding: 0 12px;
+                padding: 0 10px;
+                height: 100%;
             }
 
             .logo span {
@@ -813,12 +823,17 @@
             }
 
             .logo img {
-                width: 28px;
-                height: 28px;
+                width: 26px;
+                height: 26px;
+            }
+
+            .sidebar-toggle {
+                padding: 6px;
+                margin-right: 8px;
             }
 
             .header-actions {
-                gap: 8px;
+                gap: 6px;
             }
 
             .header-actions .user-email {
@@ -826,26 +841,29 @@
             }
 
             .header-actions .btn-small {
-                padding: 6px 10px;
-                font-size: 0.75rem;
+                padding: 5px 8px;
+                font-size: 0.7rem;
             }
 
-            #upgrade-btn {
+            /* Hide less important buttons on mobile */
+            #upgrade-btn,
+            #help-btn {
                 display: none !important;
             }
 
             .chat-layout {
-                height: calc(100vh - 56px);
+                height: calc(100vh - 48px);
             }
 
+            /* Compact setup section with scrollable models */
             .setup-section {
-                padding: 12px 16px;
+                padding: 8px 10px;
             }
 
             .setup-row {
-                flex-direction: column;
-                align-items: stretch;
-                gap: 10px;
+                flex-direction: row;
+                align-items: center;
+                gap: 8px;
             }
 
             .setup-label {
@@ -855,99 +873,250 @@
             .model-tags {
                 overflow-x: auto;
                 flex-wrap: nowrap;
-                padding-bottom: 8px;
+                padding: 4px 0;
                 -webkit-overflow-scrolling: touch;
+                scrollbar-width: none;
+                -ms-overflow-style: none;
+                scroll-behavior: smooth;
+            }
+
+            .model-tags::-webkit-scrollbar {
+                display: none;
             }
 
             .model-tag {
                 flex-shrink: 0;
-                font-size: 0.75rem;
-                padding: 5px 10px;
+                font-size: 0.7rem;
+                padding: 4px 10px;
             }
 
             #settings-btn-inline {
-                align-self: flex-start;
-                font-size: 0.75rem;
+                flex-shrink: 0;
+                font-size: 0.7rem;
+                padding: 4px 8px;
             }
 
+            /* More chat space */
             .chat-messages {
-                padding: 16px;
+                padding: 12px 10px;
+                gap: 12px;
             }
 
             .message {
-                max-width: 90%;
-                padding: 12px;
-                font-size: 0.9rem;
+                max-width: 92%;
+                padding: 10px 12px;
+                font-size: 0.88rem;
+                border-radius: 12px;
             }
 
+            .message.ai .message-header {
+                font-size: 0.75rem;
+                margin-bottom: 6px;
+            }
+
+            .message.ai .message-header .ensemble-badge {
+                font-size: 0.65rem;
+                padding: 2px 6px;
+            }
+
+            .message.ai-individual .ai-model-header {
+                font-size: 0.8rem;
+                margin-bottom: 6px;
+            }
+
+            /* Larger input area for easier typing */
             .chat-input-area {
-                padding: 12px 16px;
-                padding-bottom: max(12px, env(safe-area-inset-bottom));
+                padding: 10px 12px;
+                padding-bottom: max(10px, env(safe-area-inset-bottom));
+            }
+
+            .chat-input-row {
+                gap: 8px;
             }
 
             .chat-input {
-                padding: 12px 14px;
+                padding: 14px 16px;
                 font-size: 16px; /* Prevents zoom on iOS */
+                min-height: 48px;
+                border-radius: 20px;
             }
 
             .send-btn {
-                width: 44px;
-                height: 44px;
+                width: 42px;
+                height: 42px;
                 font-size: 1rem;
             }
 
-            /* Attachment menu mobile */
-            .attachment-menu {
-                position: relative;
+            /* Compact attachment menu */
+            .attachment-menu .btn.send-btn {
+                width: 42px;
+                height: 42px;
             }
 
             .attachment-dropdown {
-                min-width: 160px;
+                min-width: 140px;
                 z-index: 1000;
             }
 
             .attachment-dropdown-item {
-                padding: 14px 16px;
-                font-size: 1rem;
+                padding: 12px 14px;
+                font-size: 0.9rem;
             }
 
             .images-preview-container {
                 gap: 6px;
+                margin-bottom: 8px;
             }
 
             .image-preview-item img {
-                max-width: 70px;
-                max-height: 60px;
+                max-width: 60px;
+                max-height: 50px;
             }
 
+            .remove-image-btn {
+                width: 18px;
+                height: 18px;
+                font-size: 12px;
+                top: -4px;
+                right: -4px;
+            }
+
+            /* Compact empty state */
             .empty-chat {
-                padding: 24px;
+                padding: 20px;
             }
 
             .empty-chat-icon {
-                font-size: 3rem;
+                font-size: 2.5rem;
+                margin-bottom: 12px;
             }
 
             .empty-chat h2 {
-                font-size: 1.2rem;
+                font-size: 1.1rem;
+                margin-bottom: 6px;
             }
 
             .empty-chat p {
+                font-size: 0.8rem;
+            }
+
+            /* Compact sidebar */
+            .sidebar {
+                width: 260px;
+            }
+
+            .sidebar-header {
+                padding: 12px;
+            }
+
+            .sidebar-title {
                 font-size: 0.85rem;
             }
 
-            /* Modal mobile */
+            .sidebar-new-chat {
+                margin: 10px;
+                padding: 8px 14px;
+                font-size: 0.85rem;
+            }
+
+            .sidebar-search {
+                padding: 6px 10px;
+            }
+
+            .sidebar-search input {
+                padding: 6px 10px;
+                font-size: 0.8rem;
+            }
+
+            /* Compact history items */
+            .history-group-title {
+                font-size: 0.65rem;
+                padding: 10px 12px 4px;
+            }
+
+            .history-item {
+                padding: 8px 10px;
+                margin: 0 6px;
+                gap: 8px;
+            }
+
+            .history-item-icon {
+                width: 14px;
+                height: 14px;
+            }
+
+            .history-item-topic {
+                font-size: 0.8rem;
+            }
+
+            .history-item-delete {
+                padding: 6px;
+                opacity: 0.7;
+            }
+
+            /* Modal mobile - fullscreen style */
             .modal {
-                width: 95%;
-                max-height: 85vh;
+                width: 100%;
+                max-width: 100%;
+                max-height: 100vh;
+                border-radius: 0;
+                margin: 0;
             }
 
             .modal-header {
-                padding: 16px;
+                padding: 14px 16px;
+            }
+
+            .modal-title {
+                font-size: 1rem;
             }
 
             .modal-body {
                 padding: 16px;
+                overflow-y: auto;
+            }
+
+            /* Summary cards compact */
+            .summary-card {
+                padding: 5px 8px;
+            }
+
+            .summary-card-name {
+                font-size: 0.75rem;
+            }
+
+            .summary-card-content {
+                font-size: 0.8rem;
+            }
+
+            .summary-verdict {
+                padding: 6px 8px;
+            }
+
+            .verdict-label {
+                font-size: 0.7rem;
+            }
+
+            .verdict-content {
+                font-size: 0.8rem;
+            }
+
+            /* Status and stop button compact */
+            .chat-status {
+                font-size: 0.8rem;
+                padding: 2px 0;
+            }
+
+            .stop-btn {
+                padding: 6px 12px;
+                font-size: 0.8rem;
+            }
+
+            /* Jump button compact */
+            .jump-to-summary-btn {
+                padding: 8px;
+                font-size: 0.85rem;
+                margin-bottom: 8px;
             }
         }
 
