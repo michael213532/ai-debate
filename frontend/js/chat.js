@@ -738,3 +738,164 @@ async function exportToPdf() {
         btn.disabled = false;
     }
 }
+
+// ============ CHAT HISTORY ============
+
+// Open history modal
+document.getElementById('history-btn')?.addEventListener('click', () => {
+    const modal = document.getElementById('history-modal');
+    modal.classList.add('active');
+    loadChatHistory();
+});
+
+// Close history modal
+document.getElementById('history-close-btn')?.addEventListener('click', () => {
+    document.getElementById('history-modal').classList.remove('active');
+});
+
+// Close on overlay click
+document.getElementById('history-modal')?.addEventListener('click', (e) => {
+    if (e.target === e.currentTarget) {
+        e.currentTarget.classList.remove('active');
+    }
+});
+
+// Load chat history from API
+async function loadChatHistory() {
+    const list = document.getElementById('history-list');
+    list.innerHTML = '<p style="color: var(--text-secondary); text-align: center;">Loading...</p>';
+
+    try {
+        const response = await fetch(`${API_BASE}/api/debates`, {
+            headers: getAuthHeaders()
+        });
+
+        if (!response.ok) throw new Error('Failed to load history');
+
+        const debates = await response.json();
+
+        if (debates.length === 0) {
+            list.innerHTML = '<div class="history-empty">No conversations yet.<br>Start chatting to see your history here.</div>';
+            return;
+        }
+
+        list.innerHTML = debates.map(debate => {
+            const date = debate.created_at ? new Date(debate.created_at).toLocaleDateString() : '';
+            const topic = debate.topic.length > 60 ? debate.topic.substring(0, 60) + '...' : debate.topic;
+            return `
+                <div class="history-item" data-id="${debate.id}">
+                    <div class="history-item-topic">${escapeHtml(topic)}</div>
+                    <div class="history-item-meta">${date} • ${debate.status}</div>
+                </div>
+            `;
+        }).join('');
+
+        // Add click handlers
+        list.querySelectorAll('.history-item').forEach(item => {
+            item.addEventListener('click', () => {
+                loadConversation(item.dataset.id);
+            });
+        });
+
+    } catch (error) {
+        console.error('Error loading history:', error);
+        list.innerHTML = '<div class="history-empty">Failed to load history.</div>';
+    }
+}
+
+// Load a specific conversation
+async function loadConversation(debateId) {
+    try {
+        const response = await fetch(`${API_BASE}/api/debates/${debateId}`, {
+            headers: getAuthHeaders()
+        });
+
+        if (!response.ok) throw new Error('Failed to load conversation');
+
+        const data = await response.json();
+        const debate = data.debate;
+        const messages = data.messages;
+
+        // Close modal
+        document.getElementById('history-modal').classList.remove('active');
+
+        // Clear current chat
+        const container = document.getElementById('chat-messages');
+        container.innerHTML = '';
+
+        // Remove empty state if present
+        const emptyState = document.querySelector('.empty-chat');
+        if (emptyState) emptyState.remove();
+
+        // Add user message (the topic)
+        addUserMessage(debate.topic);
+
+        // Group messages by round
+        const rounds = {};
+        let summary = null;
+
+        messages.forEach(msg => {
+            if (msg.round === 0) {
+                summary = msg;
+            } else {
+                if (!rounds[msg.round]) rounds[msg.round] = [];
+                rounds[msg.round].push(msg);
+            }
+        });
+
+        // Add AI messages from each round
+        for (const round of Object.keys(rounds).sort((a, b) => a - b)) {
+            for (const msg of rounds[round]) {
+                addHistoryAiMessage(msg.model_name, msg.provider, msg.content);
+            }
+        }
+
+        // Add summary if exists
+        if (summary) {
+            const summaryMsg = document.createElement('div');
+            summaryMsg.className = 'message ai';
+            summaryMsg.innerHTML = `
+                <div class="message-header">
+                    <span class="ensemble-badge">Ensemble</span>
+                    <span>Summary</span>
+                </div>
+                <div class="message-content"></div>
+            `;
+            container.appendChild(summaryMsg);
+
+            const contentEl = summaryMsg.querySelector('.message-content');
+            const formattedHtml = formatSummaryAsCards(summary.content);
+            if (formattedHtml) {
+                contentEl.innerHTML = formattedHtml;
+            } else {
+                contentEl.textContent = summary.content;
+            }
+        }
+
+        // Update current session ID
+        currentSessionId = debateId;
+
+        scrollToBottom(container);
+
+    } catch (error) {
+        console.error('Error loading conversation:', error);
+        alert('Failed to load conversation.');
+    }
+}
+
+// Add AI message from history (already complete, no streaming)
+function addHistoryAiMessage(modelName, provider, content) {
+    const container = document.getElementById('chat-messages');
+    const msg = document.createElement('div');
+    msg.className = 'message ai-individual';
+    msg.dataset.model = modelName;
+    msg.dataset.provider = provider;
+    msg.innerHTML = `
+        <div class="ai-model-header">
+            <span class="ai-model-name">${escapeHtml(modelName)}</span>
+            <span class="ai-provider-tag">${escapeHtml(provider)}</span>
+        </div>
+        <div class="message-content">${escapeHtml(content)}</div>
+    `;
+    container.appendChild(msg);
+}
