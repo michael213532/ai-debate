@@ -1385,6 +1385,24 @@
         .provider-bubble.connected::after {
             content: ' ✓';
         }
+        /* Jump to Summary button */
+        .jump-to-summary-btn {
+            display: none;
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 12px;
+            background: linear-gradient(135deg, var(--primary-color), #8b5cf6);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+        .jump-to-summary-btn:hover {
+            opacity: 0.9;
+        }
     </style>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>

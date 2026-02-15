@@ -139,10 +139,25 @@ async function sendMessage() {
     updateChatStatus('Starting discussion...');
 
     try {
+        // Build topic - include previous conversation context if continuing
+        let topic = message;
+        if (window.loadedConversationTopic && conversationHistory.length > 0) {
+            // Build context from previous conversation
+            let context = `Previous conversation:\nUser: ${window.loadedConversationTopic}\n`;
+            conversationHistory.forEach(msg => {
+                if (msg.role === 'assistant') {
+                    context += `${msg.content}\n`;
+                }
+            });
+            topic = `${context}\n---\nUser's follow-up: ${message}`;
+            // Clear the context so next message starts fresh
+            window.loadedConversationTopic = null;
+        }
+
         // Create a new debate/session
         const summarizerIndex = getSummarizerIndex(selectedModels);
         const requestBody = {
-            topic: message,
+            topic: topic,
             config: {
                 models: selectedModels,
                 rounds: 1, // Each AI gives one opinion
@@ -253,7 +268,12 @@ function handleWebSocketMessage(message) {
             break;
 
         case 'summary_end':
-            // Summary complete
+            // Summary complete - show jump button if user scrolled up
+            const container = document.getElementById('chat-messages');
+            const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 150;
+            if (!isNearBottom) {
+                showJumpToSummary();
+            }
             break;
 
         case 'debate_end':
@@ -556,10 +576,49 @@ async function sendIntervention() {
     updateChatStatus('Processing your input...');
 }
 
-// Scroll to bottom
-function scrollToBottom(element) {
-    element.scrollTop = element.scrollHeight;
+// Scroll to bottom (only when user is already near bottom or forced)
+let autoScrollEnabled = true;
+
+function scrollToBottom(element, force = false) {
+    if (force || autoScrollEnabled) {
+        // Check if user is near the bottom (within 100px)
+        const isNearBottom = element.scrollHeight - element.scrollTop - element.clientHeight < 100;
+        if (force || isNearBottom) {
+            element.scrollTop = element.scrollHeight;
+        }
+    }
 }
+
+// Jump to summary button
+function showJumpToSummary() {
+    let btn = document.getElementById('jump-to-summary-btn');
+    if (!btn) {
+        btn = document.createElement('button');
+        btn.id = 'jump-to-summary-btn';
+        btn.className = 'jump-to-summary-btn';
+        btn.innerHTML = '↓ Jump to Summary';
+        btn.onclick = () => {
+            const container = document.getElementById('chat-messages');
+            container.scrollTop = container.scrollHeight;
+            hideJumpToSummary();
+        };
+        document.querySelector('.chat-input-area').prepend(btn);
+    }
+    btn.style.display = 'block';
+}
+
+function hideJumpToSummary() {
+    const btn = document.getElementById('jump-to-summary-btn');
+    if (btn) btn.style.display = 'none';
+}
+
+// Track scroll position to show/hide jump button
+document.getElementById('chat-messages')?.addEventListener('scroll', function() {
+    const isNearBottom = this.scrollHeight - this.scrollTop - this.clientHeight < 150;
+    if (isNearBottom) {
+        hideJumpToSummary();
+    }
+});
 
 // Clean up on page unload
 window.addEventListener('beforeunload', () => {
@@ -1067,7 +1126,29 @@ async function loadConversation(debateId) {
         // Update current session ID
         currentSessionId = debateId;
 
-        scrollToBottom(container);
+        // Store conversation context for continuing
+        conversationHistory = [];
+        conversationHistory.push({ role: 'user', content: debate.topic });
+        messages.forEach(msg => {
+            if (msg.round > 0) {
+                conversationHistory.push({
+                    role: 'assistant',
+                    content: `${msg.model_name}: ${msg.content}`
+                });
+            }
+        });
+        if (summary) {
+            conversationHistory.push({ role: 'assistant', content: summary.content });
+        }
+
+        // Store original topic for context
+        window.loadedConversationTopic = debate.topic;
+
+        // Enable continuing the conversation
+        setInputLocked(false);
+        updateSendButton();
+
+        scrollToBottom(container, true);
 
     } catch (error) {
         console.error('Error loading conversation:', error);
