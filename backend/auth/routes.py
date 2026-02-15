@@ -70,7 +70,7 @@ async def register(request: RegisterRequest):
             # Create new user
             user_id = str(uuid.uuid4())
             password_hash = hash_password(request.password)
-            now = datetime.utcnow().isoformat()
+            now = datetime.utcnow()
 
             await db.execute(
                 """INSERT INTO users (id, email, password_hash, privacy_accepted, privacy_accepted_at)
@@ -134,7 +134,7 @@ async def get_me(current_user: User = Depends(get_current_user)):
 async def accept_privacy(current_user: User = Depends(get_current_user)):
     """Accept the privacy policy (for existing users)."""
     async with get_db() as db:
-        now = datetime.utcnow().isoformat()
+        now = datetime.utcnow()
         await db.execute(
             "UPDATE users SET privacy_accepted = 1, privacy_accepted_at = ? WHERE id = ?",
             (now, current_user.id)
