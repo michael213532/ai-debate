@@ -436,8 +436,9 @@ function escapeHtml(text) {
 
 // Setup Wizard functionality
 let tutorialStep = 1;
-const totalSteps = 4;
+const totalSteps = 3;
 let setupComplete = false;
+let currentSetupProvider = 'google'; // Track which provider is being set up
 
 function showTutorial() {
     const modal = document.getElementById('tutorial-modal');
@@ -445,8 +446,8 @@ function showTutorial() {
         modal.style.display = 'flex';
         modal.classList.add('active');
         tutorialStep = 1;
+        currentSetupProvider = 'google'; // Start with Gemini
         updateTutorialStep();
-        setupWizardListeners();
         updateSetupUI();
     }
 }
@@ -482,14 +483,17 @@ function updateSetupUI() {
 
     // Update next button based on current step
     if (nextBtn) {
-        if (tutorialStep === totalSteps) {
-            nextBtn.disabled = !hasEnoughProviders || !hasEnoughModels;
-            nextBtn.textContent = "Start Chatting";
-        } else if (tutorialStep === 3) {
+        if (tutorialStep === 1) {
+            nextBtn.disabled = !hasEnoughProviders;
+            nextBtn.textContent = hasEnoughProviders ? 'Next' : 'Add 2+ Keys';
+        } else if (tutorialStep === 2) {
             nextBtn.disabled = !hasEnoughModels;
             nextBtn.textContent = hasEnoughModels ? 'Next' : 'Select 2+ Models';
         }
     }
+
+    // Update provider bubbles to show connected state
+    updateProviderBubbles();
 }
 
 function updateTutorialStep() {
@@ -521,17 +525,20 @@ function updateTutorialStep() {
     }
 
     if (nextBtn) {
-        if (tutorialStep === totalSteps) {
-            // Final step - check both providers and models
+        if (tutorialStep === 1) {
+            // API key step - need at least 2 providers
             const hasEnoughProviders = isSetupComplete();
-            const hasEnoughModels = selectedModels.length >= 2;
-            nextBtn.disabled = !hasEnoughProviders || !hasEnoughModels;
-            nextBtn.textContent = "Start Chatting";
-        } else if (tutorialStep === 3) {
+            nextBtn.disabled = !hasEnoughProviders;
+            nextBtn.textContent = hasEnoughProviders ? 'Next' : 'Add 2+ Keys';
+        } else if (tutorialStep === 2) {
             // Model selection step - need at least 2 models
             const hasEnoughModels = selectedModels.length >= 2;
             nextBtn.disabled = !hasEnoughModels;
             nextBtn.textContent = hasEnoughModels ? 'Next' : 'Select 2+ Models';
+        } else if (tutorialStep === totalSteps) {
+            // Final step
+            nextBtn.disabled = false;
+            nextBtn.textContent = "Start Chatting";
         } else {
             nextBtn.disabled = false;
             nextBtn.textContent = 'Next';
@@ -540,23 +547,27 @@ function updateTutorialStep() {
 
     // Update title
     const titles = {
-        1: "Quick Start Setup",
-        2: "Add Your API Keys",
-        3: "Choose Your Models",
-        4: "Ready to Go!"
+        1: "Add Your API Keys",
+        2: "Choose Your Models",
+        3: "Ready to Go!"
     };
     const titleEl = document.getElementById('tutorial-title');
     if (titleEl) {
         titleEl.textContent = titles[tutorialStep] || '';
     }
 
-    // Populate model selection on step 3
-    if (tutorialStep === 3) {
+    // Setup API key step
+    if (tutorialStep === 1) {
+        setupApiKeyStep();
+    }
+
+    // Populate model selection on step 2
+    if (tutorialStep === 2) {
         populateSetupModels();
     }
 
     // Update connected count on last step
-    if (tutorialStep === 4) {
+    if (tutorialStep === 3) {
         updateSetupConnectedCount();
     }
 
@@ -570,28 +581,20 @@ async function updateSetupConnectedCount() {
     const progressEl = document.getElementById('setup-key-progress');
     const count = configuredProviders.size;
 
-    // Update step 2 progress
+    // Update step 1 progress
     if (progressEl) {
         if (count >= 2) {
-            progressEl.textContent = `${count} keys added - you're all set!`;
+            progressEl.textContent = `${count} keys added - ready to continue!`;
             progressEl.style.color = '#22c55e';
         } else {
-            progressEl.textContent = `${count} of 2 required keys added`;
+            progressEl.textContent = `${count} of 2 keys added`;
             progressEl.style.color = 'var(--text-secondary)';
         }
     }
 
-    // Update step 4 final status
+    // Update step 3 final status
     if (countEl) {
-        if (count === 0) {
-            countEl.style.background = '#fef2f2';
-            countEl.style.color = '#dc2626';
-            countEl.textContent = 'No providers connected yet. Go back to add at least 2 API keys.';
-        } else if (count === 1) {
-            countEl.style.background = '#fef3c7';
-            countEl.style.color = '#d97706';
-            countEl.textContent = '1 provider connected. You need 2 API keys to start - add 1 more!';
-        } else {
+        if (count >= 2) {
             countEl.style.background = '#f0fdf4';
             countEl.style.color = '#166534';
             countEl.textContent = `${count} providers connected! You're ready to start.`;
@@ -599,203 +602,163 @@ async function updateSetupConnectedCount() {
     }
 }
 
-// Show error message with helpful labeling
-function showSetupError(statusEl, message, dismissable = true) {
-    statusEl.className = 'setup-status error';
+// Setup the API key step (step 1)
+function setupApiKeyStep() {
+    const input = document.getElementById('setup-key-input');
+    const saveBtn = document.getElementById('setup-save-btn');
+    const getKeyBtn = document.getElementById('setup-get-key-btn');
+    const statusEl = document.getElementById('setup-status');
 
-    // Use labelError to get helpful error info
-    const errorInfo = labelError(message);
-
-    statusEl.innerHTML = `
-        <div class="error-content" style="flex: 1;">
-            <div style="font-weight: 600; color: ${errorInfo.color};">${errorInfo.label}</div>
-            ${errorInfo.help ? `<div style="font-size: 0.8rem; margin-top: 2px; opacity: 0.9;">${errorInfo.help}</div>` : ''}
-        </div>
-        ${dismissable ? `<button class="error-dismiss-btn" onclick="this.parentElement.textContent=''; this.parentElement.className='setup-status';">Dismiss</button>` : ''}
-    `;
-}
-
-// Setup wizard API key save & test functionality
-function setupWizardListeners() {
-    // Update progress indicator on wizard open
+    // Update progress and bubbles
     updateSetupConnectedCount();
+    updateProviderBubbles();
 
-    document.querySelectorAll('.setup-provider').forEach(providerEl => {
-        const provider = providerEl.dataset.provider;
-        const input = providerEl.querySelector('.setup-key-input');
-        const saveBtn = providerEl.querySelector('.setup-save-btn');
-        const deleteBtn = providerEl.querySelector('.setup-delete-btn');
-        const statusEl = providerEl.querySelector('.setup-status');
+    // Check if current provider is already configured
+    const isConfigured = configuredProviders.has(currentSetupProvider);
 
-        // Check if this provider is already configured
-        const isConfigured = configuredProviders.has(provider);
-        const getKeyBtn = providerEl.querySelector('.get-key-btn');
+    if (isConfigured) {
+        input.value = '••••••••••••••••';
+        input.disabled = true;
+        getKeyBtn.style.display = 'none';
+        saveBtn.style.display = 'block';
+        saveBtn.textContent = 'Connected ✓';
+        saveBtn.disabled = true;
+        saveBtn.classList.remove('btn-primary');
+        saveBtn.classList.add('btn-secondary');
+        statusEl.innerHTML = '<span style="color: #22c55e;">Connected</span> - <a href="#" onclick="deleteCurrentProviderKey(); return false;" style="color: var(--text-secondary);">Delete key</a>';
+    } else {
+        input.value = '';
+        input.disabled = false;
+        getKeyBtn.style.display = 'block';
+        saveBtn.style.display = 'none';
+        statusEl.textContent = '';
+    }
 
-        // Update UI based on configured state
-        if (isConfigured) {
-            input.value = '••••••••••••••••';
-            input.disabled = true;
-            saveBtn.textContent = 'Connected';
-            saveBtn.disabled = true;
-            saveBtn.classList.remove('btn-primary');
-            saveBtn.classList.add('btn-secondary');
-            if (deleteBtn) {
-                deleteBtn.style.display = 'inline-flex';
-            }
-            if (getKeyBtn) {
-                getKeyBtn.style.display = 'none';
-            }
-            statusEl.className = 'setup-status success';
-            statusEl.textContent = 'Connected';
-        } else {
-            input.value = '';
-            input.disabled = false;
+    // Update Get Key button text and URL
+    const bubble = document.querySelector(`.provider-bubble[data-provider="${currentSetupProvider}"]`);
+    if (bubble) {
+        getKeyBtn.href = bubble.dataset.url;
+        getKeyBtn.textContent = `Get ${bubble.dataset.name} API Key`;
+    }
+
+    // Input listener - show/hide buttons based on input
+    input.oninput = () => {
+        const hasValue = input.value.trim().length > 0;
+        if (hasValue && !input.value.startsWith('••')) {
+            getKeyBtn.style.display = 'none';
+            saveBtn.style.display = 'block';
             saveBtn.textContent = 'Save & Test';
             saveBtn.disabled = false;
             saveBtn.classList.remove('btn-secondary');
             saveBtn.classList.add('btn-primary');
-            if (deleteBtn) {
-                deleteBtn.style.display = 'none';
-            }
-            if (getKeyBtn) {
-                getKeyBtn.style.display = 'inline-block';
-            }
-            statusEl.className = 'setup-status';
-            statusEl.textContent = '';
+        } else if (!configuredProviders.has(currentSetupProvider)) {
+            getKeyBtn.style.display = 'block';
+            saveBtn.style.display = 'none';
         }
+    };
 
-        // Remove old listeners by cloning
-        const newSaveBtn = saveBtn.cloneNode(true);
-        saveBtn.parentNode.replaceChild(newSaveBtn, saveBtn);
+    // Save button click
+    saveBtn.onclick = async () => {
+        const apiKey = input.value.trim();
+        if (!apiKey || apiKey.startsWith('••')) return;
 
-        // Clone delete button too if it exists
-        let newDeleteBtn = null;
-        if (deleteBtn) {
-            newDeleteBtn = deleteBtn.cloneNode(true);
-            deleteBtn.parentNode.replaceChild(newDeleteBtn, deleteBtn);
+        saveBtn.disabled = true;
+        saveBtn.textContent = 'Testing...';
+        statusEl.innerHTML = '<span style="color: var(--text-secondary);">Saving and testing...</span>';
 
-            // Add delete listener
-            newDeleteBtn.addEventListener('click', async () => {
-                if (!confirm(`Delete the ${provider} API key?`)) {
-                    return;
-                }
-
-                newDeleteBtn.disabled = true;
-                newDeleteBtn.textContent = 'Deleting...';
-
-                try {
-                    const response = await fetch(`${API_BASE}/api/keys/${provider}`, {
-                        method: 'DELETE',
-                        headers: getAuthHeaders()
-                    });
-
-                    if (!response.ok) throw new Error('Failed to delete');
-
-                    // Refresh configured providers
-                    await loadConfiguredProviders();
-
-                    // Reset the input UI
-                    input.value = '';
-                    input.disabled = false;
-                    newSaveBtn.textContent = 'Save & Test';
-                    newSaveBtn.disabled = false;
-                    newSaveBtn.classList.remove('btn-secondary');
-                    newSaveBtn.classList.add('btn-primary');
-                    newDeleteBtn.style.display = 'none';
-                    if (getKeyBtn) {
-                        getKeyBtn.style.display = 'inline-block';
-                    }
-                    statusEl.className = 'setup-status';
-                    statusEl.textContent = '';
-
-                    // Update progress
-                    updateSetupConnectedCount();
-                    updateSetupUI();
-                    updateTutorialStep();
-                } catch (error) {
-                    console.error('Error deleting API key:', error);
-                    newDeleteBtn.disabled = false;
-                    newDeleteBtn.textContent = 'Delete';
-                    showSetupError(statusEl, 'Failed to delete key', false);
-                }
+        try {
+            // Save the key
+            const saveResponse = await fetch(`${API_BASE}/api/keys/${currentSetupProvider}`, {
+                method: 'POST',
+                headers: getAuthHeaders(),
+                body: JSON.stringify({ api_key: apiKey })
             });
-        }
 
-        newSaveBtn.addEventListener('click', async () => {
-            const apiKey = input.value.trim();
-            if (!apiKey || apiKey.startsWith('••')) {
-                showSetupError(statusEl, 'Please enter an API key', false);
-                return;
-            }
+            if (!saveResponse.ok) throw new Error('Failed to save key');
 
-            // Show testing state
-            newSaveBtn.disabled = true;
-            newSaveBtn.textContent = 'Testing...';
-            statusEl.className = 'setup-status testing';
-            statusEl.textContent = 'Saving and testing connection...';
+            // Test the key
+            const testResponse = await fetch(`${API_BASE}/api/keys/${currentSetupProvider}/test`, {
+                method: 'POST',
+                headers: getAuthHeaders()
+            });
 
-            try {
-                // Save the key
-                const saveResponse = await fetch(`${API_BASE}/api/keys/${provider}`, {
-                    method: 'POST',
-                    headers: getAuthHeaders(),
-                    body: JSON.stringify({ api_key: apiKey })
-                });
+            const testData = await testResponse.json();
 
-                if (!saveResponse.ok) {
-                    throw new Error('Failed to save key');
-                }
+            if (testData.valid) {
+                statusEl.innerHTML = '<span style="color: #22c55e;">Connected successfully!</span>';
+                input.value = '••••••••••••••••';
+                input.disabled = true;
+                saveBtn.textContent = 'Connected ✓';
+                saveBtn.disabled = true;
+                saveBtn.classList.remove('btn-primary');
+                saveBtn.classList.add('btn-secondary');
 
-                // Test the key
-                const testResponse = await fetch(`${API_BASE}/api/keys/${provider}/test`, {
-                    method: 'POST',
+                // Refresh and update UI
+                await loadConfiguredProviders();
+                updateSetupConnectedCount();
+                updateProviderBubbles();
+                updateSetupUI();
+                updateTutorialStep();
+            } else {
+                // Delete invalid key
+                await fetch(`${API_BASE}/api/keys/${currentSetupProvider}`, {
+                    method: 'DELETE',
                     headers: getAuthHeaders()
                 });
 
-                const testData = await testResponse.json();
-
-                if (testData.valid) {
-                    statusEl.className = 'setup-status success';
-                    statusEl.textContent = 'Connected successfully!';
-                    input.value = '••••••••••••••••';
-                    input.disabled = true;
-                    newSaveBtn.textContent = 'Connected';
-                    newSaveBtn.disabled = true;
-                    newSaveBtn.classList.remove('btn-primary');
-                    newSaveBtn.classList.add('btn-secondary');
-
-                    // Show delete button, hide get key button
-                    if (newDeleteBtn) {
-                        newDeleteBtn.style.display = 'inline-flex';
-                    }
-                    if (getKeyBtn) {
-                        getKeyBtn.style.display = 'none';
-                    }
-
-                    // Refresh configured providers and models
-                    await loadConfiguredProviders();
-
-                    // Update setup wizard UI (enable finish button if 2+ providers)
-                    updateSetupConnectedCount();
-                    updateSetupUI();
-                    updateTutorialStep();
-                } else {
-                    // Delete the invalid key
-                    await fetch(`${API_BASE}/api/keys/${provider}`, {
-                        method: 'DELETE',
-                        headers: getAuthHeaders()
-                    });
-
-                    showSetupError(statusEl, testData.error || 'Invalid API key. Please check and try again.');
-                    newSaveBtn.disabled = false;
-                    newSaveBtn.textContent = 'Save & Test';
-                }
-            } catch (error) {
-                showSetupError(statusEl, 'Connection failed. Check your internet and try again.');
-                newSaveBtn.disabled = false;
-                newSaveBtn.textContent = 'Save & Test';
+                const errorInfo = labelError(testData.error || 'Invalid API key');
+                statusEl.innerHTML = `<span style="color: #dc2626;">${errorInfo.label}</span>${errorInfo.help ? `<br><span style="font-size: 0.8rem; color: var(--text-secondary);">${errorInfo.help}</span>` : ''}`;
+                saveBtn.disabled = false;
+                saveBtn.textContent = 'Save & Test';
             }
+        } catch (error) {
+            statusEl.innerHTML = '<span style="color: #dc2626;">Connection failed. Check your internet.</span>';
+            saveBtn.disabled = false;
+            saveBtn.textContent = 'Save & Test';
+        }
+    };
+
+    // Provider bubble clicks
+    document.querySelectorAll('.provider-bubble').forEach(bubble => {
+        bubble.onclick = () => {
+            currentSetupProvider = bubble.dataset.provider;
+            document.querySelectorAll('.provider-bubble').forEach(b => b.classList.remove('active'));
+            bubble.classList.add('active');
+            setupApiKeyStep(); // Refresh the UI for new provider
+        };
+    });
+}
+
+// Delete current provider's API key
+async function deleteCurrentProviderKey() {
+    if (!confirm(`Delete the ${currentSetupProvider} API key?`)) return;
+
+    try {
+        await fetch(`${API_BASE}/api/keys/${currentSetupProvider}`, {
+            method: 'DELETE',
+            headers: getAuthHeaders()
         });
+
+        await loadConfiguredProviders();
+        setupApiKeyStep();
+        updateSetupConnectedCount();
+        updateProviderBubbles();
+        updateSetupUI();
+        updateTutorialStep();
+    } catch (error) {
+        console.error('Error deleting key:', error);
+    }
+}
+
+// Update provider bubbles to show connected state
+function updateProviderBubbles() {
+    document.querySelectorAll('.provider-bubble').forEach(bubble => {
+        const provider = bubble.dataset.provider;
+        if (configuredProviders.has(provider)) {
+            bubble.classList.add('connected');
+        } else {
+            bubble.classList.remove('connected');
+        }
     });
 }
 
