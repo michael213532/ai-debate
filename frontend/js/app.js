@@ -879,15 +879,12 @@ function populateSetupModels() {
     visibleModels.forEach((model) => {
         const isSelected = selectedModels.some(m => m.model_id === model.id && m.provider === model.provider);
 
-        const item = document.createElement('div');
+        const item = document.createElement('span');
         item.className = `setup-model-item ${isSelected ? 'selected' : ''}`;
         item.dataset.provider = model.provider;
         item.dataset.modelId = model.id;
-        item.innerHTML = `
-            <span class="setup-model-check">✓</span>
-            <span class="setup-model-name">${model.name}</span>
-            <span class="setup-model-provider">${model.provider}</span>
-        `;
+        item.textContent = model.name;
+        item.title = model.provider_name;
 
         item.addEventListener('click', () => {
             toggleSetupModel(model, item);
