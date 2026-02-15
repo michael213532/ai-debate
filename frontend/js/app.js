@@ -282,9 +282,15 @@ function renderModelTags() {
     });
 
     // Remove any selected models that are no longer visible (provider key was deleted)
-    const visibleModelIds = new Set(visibleModels.map(m => `${m.provider}:${m.id}`));
-    selectedModels = selectedModels.filter(m => visibleModelIds.has(`${m.provider}:${m.model_id}`));
-    saveSelectedModels();
+    // But only if we have models loaded (to avoid clearing during init)
+    if (visibleModels.length > 0 && selectedModels.length > 0) {
+        const visibleModelIds = new Set(visibleModels.map(m => `${m.provider}:${m.id}`));
+        const filtered = selectedModels.filter(m => visibleModelIds.has(`${m.provider}:${m.model_id}`));
+        if (filtered.length !== selectedModels.length) {
+            selectedModels = filtered;
+            saveSelectedModels();
+        }
+    }
 }
 
 // Handle model tag clicks
@@ -337,12 +343,21 @@ function loadSelectedModels() {
                 const providerConfigured = configuredProviders.has(savedModel.provider);
                 return modelExists && providerConfigured;
             });
+            // Save back in case some were filtered out
+            saveSelectedModels();
             renderModelTags();
             updateSendButton();
         } catch (e) {
             console.error('Error loading saved models:', e);
         }
     }
+}
+
+// Ensure selected models persist - call this after any model-related changes
+function syncSelectedModels() {
+    saveSelectedModels();
+    renderModelTags();
+    updateSendButton();
 }
 
 // Update send button state
@@ -446,7 +461,12 @@ function showTutorial() {
         modal.style.display = 'flex';
         modal.classList.add('active');
         tutorialStep = 1;
-        currentSetupProvider = 'google'; // Start with Gemini
+        // Start with first configured provider, or google if none
+        if (configuredProviders.size > 0) {
+            currentSetupProvider = Array.from(configuredProviders)[0];
+        } else {
+            currentSetupProvider = 'google';
+        }
         updateTutorialStep();
         updateSetupUI();
     }
