@@ -15,9 +15,7 @@ RUN mkdir -p /app/data
 
 ENV PYTHONUNBUFFERED=1
 ENV DATABASE_PATH=/app/data/ai_debate.db
-ENV PORT=8000
 
 EXPOSE 8000
 
-# Use shell to expand $PORT environment variable (Railway sets this dynamically)
-CMD ["/bin/sh", "-c", "uvicorn backend.main:app --host 0.0.0.0 --port $PORT"]
+CMD ["python", "-m", "uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "8000"]
