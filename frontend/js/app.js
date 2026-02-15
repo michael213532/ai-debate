@@ -364,8 +364,8 @@ document.getElementById('logout-btn').addEventListener('click', () => {
     window.location.href = '/';
 });
 
-// Settings button
-document.getElementById('settings-btn').addEventListener('click', () => {
+// Settings button (if it exists)
+document.getElementById('settings-btn')?.addEventListener('click', () => {
     openSettingsModal();
 });
 
@@ -854,9 +854,12 @@ function checkShowTutorial() {
 
 // Populate model selection in setup wizard (step 3)
 function populateSetupModels() {
-    const container = document.querySelector('.setup-model-scroll');
+    const container = document.getElementById('setup-model-scroll');
     const countEl = document.getElementById('setup-model-count');
-    if (!container) return;
+    if (!container) {
+        console.error('Setup model scroll container not found');
+        return;
+    }
 
     container.innerHTML = '';
 
