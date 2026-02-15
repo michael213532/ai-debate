@@ -853,10 +853,9 @@ function enableDragScroll(container) {
     });
 }
 
-// Populate model selection in setup wizard - shows models for current provider + all configured
+// Populate model selection in setup wizard - shows ONLY models for current provider
 function populateSetupModels() {
     const container = document.getElementById('setup-model-scroll');
-    const countEl = document.getElementById('setup-model-count');
     if (!container) {
         console.error('Setup model scroll container not found');
         return;
@@ -872,15 +871,10 @@ function populateSetupModels() {
 
     const isCurrentProviderConfigured = configuredProviders.has(currentSetupProvider);
 
-    // Get models for current provider (may be disabled if not configured)
+    // Get models ONLY for current provider
     const currentProviderModels = availableModels.filter(model => model.provider === currentSetupProvider);
 
-    // Get models from other configured providers
-    const otherConfiguredModels = availableModels.filter(
-        model => model.provider !== currentSetupProvider && configuredProviders.has(model.provider)
-    );
-
-    // Show current provider models first
+    // Show current provider models (greyed out if not configured)
     currentProviderModels.forEach((model) => {
         const isSelected = selectedModels.some(m => m.model_id === model.id && m.provider === model.provider);
         const isDisabled = !isCurrentProviderConfigured;
@@ -897,32 +891,6 @@ function populateSetupModels() {
                 toggleSetupModel(model, item);
             });
         }
-
-        container.appendChild(item);
-    });
-
-    // Add separator if we have both current and other models
-    if (currentProviderModels.length > 0 && otherConfiguredModels.length > 0) {
-        const separator = document.createElement('span');
-        separator.className = 'setup-model-separator';
-        separator.textContent = '|';
-        container.appendChild(separator);
-    }
-
-    // Show models from other configured providers
-    otherConfiguredModels.forEach((model) => {
-        const isSelected = selectedModels.some(m => m.model_id === model.id && m.provider === model.provider);
-
-        const item = document.createElement('span');
-        item.className = `setup-model-item ${isSelected ? 'selected' : ''}`;
-        item.dataset.provider = model.provider;
-        item.dataset.modelId = model.id;
-        item.textContent = model.name;
-        item.title = model.provider_name;
-
-        item.addEventListener('click', () => {
-            toggleSetupModel(model, item);
-        });
 
         container.appendChild(item);
     });
