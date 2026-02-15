@@ -26,6 +26,7 @@ class DebateOrchestrator:
         self.models = config.get("models", [])
         self.rounds = config.get("rounds", 3)
         self.summarizer_index = config.get("summarizer_index", 0)
+        self.previous_context = config.get("previous_context", None)  # Context from continued conversations
         self.messages: list[dict] = []
         self._stopped = False
         self.images = images or []  # Optional images for vision models
@@ -318,11 +319,20 @@ IMPORTANT RULES:
         Each model sees the user's message plus all previous responses in the conversation,
         so they can respond to what the previous model said.
         """
-        context = f"USER'S MESSAGE: {self.topic}\n\n"
+        context = ""
+
+        # If there's previous conversation context (from history), include it as background
+        if self.previous_context:
+            context += f"BACKGROUND - {self.previous_context}\n---\n\n"
+
+        context += f"USER'S CURRENT MESSAGE: {self.topic}\n\n"
 
         if not self.messages:
             # First model to respond - just answer the user
-            context += "Share your thoughts on this. Be natural and conversational. If the user is asking you to compare or choose something, make a clear choice and explain your reasoning with specific criteria."
+            if self.previous_context:
+                context += "The user is following up on a previous conversation. Answer their current question, taking the context into account if relevant."
+            else:
+                context += "Share your thoughts on this. Be natural and conversational. If the user is asking you to compare or choose something, make a clear choice and explain your reasoning with specific criteria."
         else:
             # Show the conversation so far
             context += "CONVERSATION SO FAR:\n\n"
@@ -371,7 +381,10 @@ IMPORTANT RULES:
 4. NO FLUFF: No intro like "Here's a summary". Jump straight into the format above.
 5. SHOW DISAGREEMENTS: If AIs disagreed, make that clear in their lines."""
 
-            context = f"USER'S QUESTION: {self.topic}\n\nHere's what each AI said:\n\n"
+            context = ""
+            if self.previous_context:
+                context += f"BACKGROUND CONTEXT:\n{self.previous_context}\n---\n\n"
+            context += f"USER'S CURRENT QUESTION: {self.topic}\n\nHere's what each AI said:\n\n"
             for msg in self.messages:
                 context += f"**{msg['model_name']}**: {msg['content']}\n\n"
             context += "---\nNow summarize the discussion. Highlight who said what, any agreements/disagreements, and give a final helpful takeaway."

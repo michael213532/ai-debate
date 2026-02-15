@@ -139,31 +139,29 @@ async function sendMessage() {
     updateChatStatus('Starting discussion...');
 
     try {
-        // Build topic - include previous conversation context if continuing
-        let topic = message;
-        if (window.loadedConversationTopic && conversationHistory.length > 0) {
-            // Build context from previous conversation
-            let context = `Previous conversation:\nUser: ${window.loadedConversationTopic}\n`;
-            conversationHistory.forEach(msg => {
-                if (msg.role === 'assistant') {
-                    context += `${msg.content}\n`;
-                }
-            });
-            topic = `${context}\n---\nUser's follow-up: ${message}`;
-            // Clear the context so next message starts fresh
-            window.loadedConversationTopic = null;
-        }
-
         // Create a new debate/session
         const summarizerIndex = getSummarizerIndex(selectedModels);
         const requestBody = {
-            topic: topic,
+            topic: message,
             config: {
                 models: selectedModels,
                 rounds: 1, // Each AI gives one opinion
                 summarizer_index: summarizerIndex
             }
         };
+
+        // Include previous conversation context if continuing from history
+        if (window.loadedConversationTopic && conversationHistory.length > 0) {
+            let context = `Previous conversation:\nUser: ${window.loadedConversationTopic}\n`;
+            conversationHistory.forEach(msg => {
+                if (msg.role === 'assistant') {
+                    context += `${msg.content}\n`;
+                }
+            });
+            requestBody.config.previous_context = context;
+            // Clear so next message starts fresh
+            window.loadedConversationTopic = null;
+        }
 
         // Add images if present
         if (imagesToSend) {
