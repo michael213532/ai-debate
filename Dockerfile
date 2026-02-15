@@ -10,11 +10,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY backend/ ./backend/
 COPY frontend/ ./frontend/
 
-# Create data directory for SQLite
-RUN mkdir -p /app/data
-
 ENV PYTHONUNBUFFERED=1
-ENV DATABASE_PATH=/app/data/ai_debate.db
 
 EXPOSE 8000
 
