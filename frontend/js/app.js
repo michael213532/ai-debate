@@ -436,7 +436,7 @@ function escapeHtml(text) {
 
 // Setup Wizard functionality
 let tutorialStep = 1;
-const totalSteps = 3;
+const totalSteps = 2;
 let setupComplete = false;
 let currentSetupProvider = 'google'; // Track which provider is being set up
 
@@ -482,18 +482,25 @@ function updateSetupUI() {
     }
 
     // Update next button based on current step
-    if (nextBtn) {
-        if (tutorialStep === 1) {
-            nextBtn.disabled = !hasEnoughProviders;
-            nextBtn.textContent = hasEnoughProviders ? 'Next' : 'Add 2+ Keys';
-        } else if (tutorialStep === 2) {
-            nextBtn.disabled = !hasEnoughModels;
-            nextBtn.textContent = hasEnoughModels ? 'Next' : 'Select 2+ Models';
+    if (nextBtn && tutorialStep === 1) {
+        const canProceed = hasEnoughProviders && hasEnoughModels;
+        nextBtn.disabled = !canProceed;
+        if (!hasEnoughProviders) {
+            nextBtn.textContent = 'Add 2+ Keys';
+        } else if (!hasEnoughModels) {
+            nextBtn.textContent = 'Select 2+ Models';
+        } else {
+            nextBtn.textContent = 'Next';
         }
     }
 
     // Update provider bubbles to show connected state
     updateProviderBubbles();
+
+    // Also refresh model selection when providers change
+    if (tutorialStep === 1) {
+        populateSetupModels();
+    }
 }
 
 function updateTutorialStep() {
@@ -526,15 +533,18 @@ function updateTutorialStep() {
 
     if (nextBtn) {
         if (tutorialStep === 1) {
-            // API key step - need at least 2 providers
+            // API key + model selection step - need both
             const hasEnoughProviders = isSetupComplete();
-            nextBtn.disabled = !hasEnoughProviders;
-            nextBtn.textContent = hasEnoughProviders ? 'Next' : 'Add 2+ Keys';
-        } else if (tutorialStep === 2) {
-            // Model selection step - need at least 2 models
             const hasEnoughModels = selectedModels.length >= 2;
-            nextBtn.disabled = !hasEnoughModels;
-            nextBtn.textContent = hasEnoughModels ? 'Next' : 'Select 2+ Models';
+            const canProceed = hasEnoughProviders && hasEnoughModels;
+            nextBtn.disabled = !canProceed;
+            if (!hasEnoughProviders) {
+                nextBtn.textContent = 'Add 2+ Keys';
+            } else if (!hasEnoughModels) {
+                nextBtn.textContent = 'Select 2+ Models';
+            } else {
+                nextBtn.textContent = 'Next';
+            }
         } else if (tutorialStep === totalSteps) {
             // Final step
             nextBtn.disabled = false;
@@ -547,27 +557,22 @@ function updateTutorialStep() {
 
     // Update title
     const titles = {
-        1: "Add Your API Keys",
-        2: "Choose Your Models",
-        3: "Ready to Go!"
+        1: "Setup",
+        2: "Ready to Go!"
     };
     const titleEl = document.getElementById('tutorial-title');
     if (titleEl) {
         titleEl.textContent = titles[tutorialStep] || '';
     }
 
-    // Setup API key step
+    // Setup API key + models step
     if (tutorialStep === 1) {
         setupApiKeyStep();
-    }
-
-    // Populate model selection on step 2
-    if (tutorialStep === 2) {
         populateSetupModels();
     }
 
     // Update connected count on last step
-    if (tutorialStep === 3) {
+    if (tutorialStep === 2) {
         updateSetupConnectedCount();
     }
 
@@ -925,6 +930,15 @@ function toggleSetupModel(model, element) {
 function updateSetupModelCount() {
     const countEl = document.getElementById('setup-model-count');
     if (!countEl) return;
+
+    // Check if any models are available
+    const visibleModels = availableModels.filter(model => configuredProviders.has(model.provider));
+
+    if (visibleModels.length === 0) {
+        countEl.style.color = 'var(--text-secondary)';
+        countEl.textContent = 'Add API keys to see available models';
+        return;
+    }
 
     const count = selectedModels.length;
     if (count < 2) {
