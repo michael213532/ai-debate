@@ -746,12 +746,48 @@ function openSidebar() {
     document.getElementById('sidebar').classList.add('open');
     document.getElementById('sidebar-overlay').classList.add('active');
     loadChatHistory();
+    dismissSidebarHint();
 }
 
 function closeSidebar() {
     document.getElementById('sidebar').classList.remove('open');
     document.getElementById('sidebar-overlay').classList.remove('active');
 }
+
+// Dismiss the sidebar hint (pulse + tooltip)
+function dismissSidebarHint() {
+    const toggle = document.getElementById('sidebar-toggle');
+    const tooltip = document.getElementById('sidebar-tooltip');
+    if (toggle) toggle.classList.remove('pulse');
+    if (tooltip) tooltip.classList.remove('show');
+    localStorage.setItem('sidebarHintSeen', 'true');
+}
+
+// Show sidebar hint for first-time users
+function showSidebarHint() {
+    if (localStorage.getItem('sidebarHintSeen')) return;
+
+    const toggle = document.getElementById('sidebar-toggle');
+    const tooltip = document.getElementById('sidebar-tooltip');
+
+    if (toggle && tooltip) {
+        // Start pulse animation
+        toggle.classList.add('pulse');
+
+        // Show tooltip after a short delay
+        setTimeout(() => {
+            tooltip.classList.add('show');
+        }, 500);
+
+        // Auto-hide tooltip after 5 seconds (but keep pulse until clicked)
+        setTimeout(() => {
+            tooltip.classList.remove('show');
+        }, 5500);
+    }
+}
+
+// Initialize sidebar hint after page load
+setTimeout(showSidebarHint, 1000);
 
 // Sidebar toggle button
 document.getElementById('sidebar-toggle')?.addEventListener('click', openSidebar);

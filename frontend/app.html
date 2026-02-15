@@ -146,10 +146,71 @@
             align-items: center;
             justify-content: center;
             margin-right: 12px;
+            position: relative;
         }
 
         .sidebar-toggle:hover {
             background: var(--surface-light);
+        }
+
+        /* Pulse animation for first-time users */
+        .sidebar-toggle.pulse {
+            animation: pulse-ring 2s ease-out infinite;
+        }
+
+        .sidebar-toggle.pulse::before {
+            content: '';
+            position: absolute;
+            inset: -4px;
+            border-radius: 10px;
+            background: var(--primary-color);
+            opacity: 0;
+            animation: pulse-bg 2s ease-out infinite;
+            z-index: -1;
+        }
+
+        @keyframes pulse-ring {
+            0% { box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.5); }
+            50% { box-shadow: 0 0 0 8px rgba(99, 102, 241, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(99, 102, 241, 0); }
+        }
+
+        @keyframes pulse-bg {
+            0%, 100% { opacity: 0; }
+            50% { opacity: 0.15; }
+        }
+
+        /* Tooltip for sidebar */
+        .sidebar-tooltip {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            margin-top: 8px;
+            background: var(--text-primary);
+            color: var(--bg-color);
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            white-space: nowrap;
+            z-index: 1001;
+            opacity: 0;
+            transform: translateY(-4px);
+            transition: opacity 0.2s, transform 0.2s;
+            pointer-events: none;
+        }
+
+        .sidebar-tooltip.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .sidebar-tooltip::before {
+            content: '';
+            position: absolute;
+            bottom: 100%;
+            left: 16px;
+            border: 6px solid transparent;
+            border-bottom-color: var(--text-primary);
         }
 
         /* History items in sidebar */
@@ -934,6 +995,7 @@
                             <line x1="3" y1="12" x2="21" y2="12"></line>
                             <line x1="3" y1="18" x2="21" y2="18"></line>
                         </svg>
+                        <div id="sidebar-tooltip" class="sidebar-tooltip">Your chat history lives here</div>
                     </button>
                     <img src="/logo.svg" alt="Ensemble AI" style="width: 32px; height: 32px;">
                     <span>Ensemble AI</span>
