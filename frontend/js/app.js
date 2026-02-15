@@ -618,6 +618,9 @@ function setupApiKeyStep() {
     updateSetupConnectedCount();
     updateProviderBubbles();
 
+    // Update model selection for current provider
+    populateSetupModels();
+
     // Check if current provider is already configured
     const isConfigured = configuredProviders.has(currentSetupProvider);
 
