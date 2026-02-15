@@ -19,61 +19,84 @@ async def init_db():
     else:
         await init_sqlite()
 
+async def close_db():
+    """Close database connections."""
+    global _pool
+    if _pool:
+        await _pool.close()
+        _pool = None
+
+
 async def init_postgres():
     """Initialize PostgreSQL database."""
     global _pool
-    _pool = await asyncpg.create_pool(DATABASE_URL, min_size=2, max_size=10)
+    print(f"Connecting to PostgreSQL...")
+    try:
+        _pool = await asyncpg.create_pool(DATABASE_URL, min_size=2, max_size=10)
+        print(f"PostgreSQL connection pool created")
+    except Exception as e:
+        print(f"Failed to create PostgreSQL pool: {e}")
+        raise
 
     async with _pool.acquire() as conn:
-        await conn.execute("""
-            CREATE TABLE IF NOT EXISTS users (
-                id TEXT PRIMARY KEY,
-                email TEXT UNIQUE NOT NULL,
-                password_hash TEXT NOT NULL,
-                stripe_customer_id TEXT,
-                subscription_status TEXT DEFAULT 'free',
-                subscription_end TIMESTAMP,
-                debates_used INTEGER DEFAULT 0,
-                debates_reset_month TEXT,
-                privacy_accepted INTEGER DEFAULT 0,
-                privacy_accepted_at TIMESTAMP,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-        """)
+        try:
+            await conn.execute("""
+                CREATE TABLE IF NOT EXISTS users (
+                    id TEXT PRIMARY KEY,
+                    email TEXT UNIQUE NOT NULL,
+                    password_hash TEXT NOT NULL,
+                    stripe_customer_id TEXT,
+                    subscription_status TEXT DEFAULT 'free',
+                    subscription_end TIMESTAMP,
+                    debates_used INTEGER DEFAULT 0,
+                    debates_reset_month TEXT,
+                    privacy_accepted INTEGER DEFAULT 0,
+                    privacy_accepted_at TIMESTAMP,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+            print("Created users table")
 
-        await conn.execute("""
-            CREATE TABLE IF NOT EXISTS user_api_keys (
-                id SERIAL PRIMARY KEY,
-                user_id TEXT NOT NULL REFERENCES users(id),
-                provider TEXT NOT NULL,
-                api_key_encrypted TEXT NOT NULL,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                UNIQUE(user_id, provider)
-            )
-        """)
+            await conn.execute("""
+                CREATE TABLE IF NOT EXISTS user_api_keys (
+                    id SERIAL PRIMARY KEY,
+                    user_id TEXT NOT NULL REFERENCES users(id),
+                    provider TEXT NOT NULL,
+                    api_key_encrypted TEXT NOT NULL,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    UNIQUE(user_id, provider)
+                )
+            """)
+            print("Created user_api_keys table")
 
-        await conn.execute("""
-            CREATE TABLE IF NOT EXISTS debates (
-                id TEXT PRIMARY KEY,
-                user_id TEXT NOT NULL REFERENCES users(id),
-                topic TEXT NOT NULL,
-                config JSONB NOT NULL,
-                status TEXT DEFAULT 'pending',
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-        """)
+            await conn.execute("""
+                CREATE TABLE IF NOT EXISTS debates (
+                    id TEXT PRIMARY KEY,
+                    user_id TEXT NOT NULL REFERENCES users(id),
+                    topic TEXT NOT NULL,
+                    config JSONB NOT NULL,
+                    status TEXT DEFAULT 'pending',
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+            print("Created debates table")
 
-        await conn.execute("""
-            CREATE TABLE IF NOT EXISTS messages (
-                id SERIAL PRIMARY KEY,
-                debate_id TEXT NOT NULL REFERENCES debates(id),
-                round INTEGER NOT NULL,
-                model_name TEXT NOT NULL,
-                provider TEXT NOT NULL,
-                content TEXT NOT NULL,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-        """)
+            await conn.execute("""
+                CREATE TABLE IF NOT EXISTS messages (
+                    id SERIAL PRIMARY KEY,
+                    debate_id TEXT NOT NULL REFERENCES debates(id),
+                    round INTEGER NOT NULL,
+                    model_name TEXT NOT NULL,
+                    provider TEXT NOT NULL,
+                    content TEXT NOT NULL,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+            print("Created messages table")
+            print("PostgreSQL initialization complete!")
+        except Exception as e:
+            print(f"Error creating tables: {e}")
+            raise
 
 async def init_sqlite():
     """Initialize SQLite database (for local development)."""
@@ -191,14 +214,18 @@ class PostgresDB:
                 if isinstance(p, (dict, list)):
                     params[i] = json.dumps(p)
 
-        try:
+        # Determine if this is a SELECT query (returns rows)
+        query_upper = query.strip().upper()
+        is_select = query_upper.startswith('SELECT')
+
+        if is_select:
             if params:
                 rows = await self.conn.fetch(query, *params)
             else:
                 rows = await self.conn.fetch(query)
             return PostgresCursor([dict(row) for row in rows])
-        except Exception:
-            # For INSERT/UPDATE/DELETE that don't return rows
+        else:
+            # INSERT/UPDATE/DELETE - use execute
             if params:
                 await self.conn.execute(query, *params)
             else:
