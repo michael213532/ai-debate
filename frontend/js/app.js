@@ -853,7 +853,7 @@ function enableDragScroll(container) {
     });
 }
 
-// Populate model selection in setup wizard - shows models for current provider
+// Populate model selection in setup wizard - shows models for current provider + all configured
 function populateSetupModels() {
     const container = document.getElementById('setup-model-scroll');
     const countEl = document.getElementById('setup-model-count');
@@ -870,23 +870,47 @@ function populateSetupModels() {
 
     container.innerHTML = '';
 
-    // Only show models for the current provider if it's configured
     const isCurrentProviderConfigured = configuredProviders.has(currentSetupProvider);
-    const visibleModels = isCurrentProviderConfigured
-        ? availableModels.filter(model => model.provider === currentSetupProvider)
-        : [];
 
-    if (visibleModels.length === 0) {
-        container.innerHTML = `
-            <div style="padding: 16px; text-align: center; color: var(--text-secondary); width: 100%; font-size: 0.85rem;">
-                ${isCurrentProviderConfigured ? 'No models available' : 'Add this API key to see models'}
-            </div>
-        `;
-        updateSetupModelCount();
-        return;
+    // Get models for current provider (may be disabled if not configured)
+    const currentProviderModels = availableModels.filter(model => model.provider === currentSetupProvider);
+
+    // Get models from other configured providers
+    const otherConfiguredModels = availableModels.filter(
+        model => model.provider !== currentSetupProvider && configuredProviders.has(model.provider)
+    );
+
+    // Show current provider models first
+    currentProviderModels.forEach((model) => {
+        const isSelected = selectedModels.some(m => m.model_id === model.id && m.provider === model.provider);
+        const isDisabled = !isCurrentProviderConfigured;
+
+        const item = document.createElement('span');
+        item.className = `setup-model-item ${isSelected ? 'selected' : ''} ${isDisabled ? 'disabled' : ''}`;
+        item.dataset.provider = model.provider;
+        item.dataset.modelId = model.id;
+        item.textContent = model.name;
+        item.title = isDisabled ? 'Add API key first' : model.provider_name;
+
+        if (!isDisabled) {
+            item.addEventListener('click', () => {
+                toggleSetupModel(model, item);
+            });
+        }
+
+        container.appendChild(item);
+    });
+
+    // Add separator if we have both current and other models
+    if (currentProviderModels.length > 0 && otherConfiguredModels.length > 0) {
+        const separator = document.createElement('span');
+        separator.className = 'setup-model-separator';
+        separator.textContent = '|';
+        container.appendChild(separator);
     }
 
-    visibleModels.forEach((model) => {
+    // Show models from other configured providers
+    otherConfiguredModels.forEach((model) => {
         const isSelected = selectedModels.some(m => m.model_id === model.id && m.provider === model.provider);
 
         const item = document.createElement('span');
@@ -934,22 +958,12 @@ function updateSetupModelCount() {
     const countEl = document.getElementById('setup-model-count');
     if (!countEl) return;
 
-    // Check if current provider is configured
-    const isCurrentConfigured = configuredProviders.has(currentSetupProvider);
-
-    if (!isCurrentConfigured) {
-        countEl.style.color = 'var(--text-secondary)';
-        countEl.textContent = 'Add this API key to select models';
-        return;
-    }
-
     // Show total selected across all providers
     const count = selectedModels.length;
-    const currentProviderCount = selectedModels.filter(m => m.provider === currentSetupProvider).length;
 
     if (count < 2) {
         countEl.style.color = 'var(--text-secondary)';
-        countEl.textContent = `${count} total selected — need at least 2`;
+        countEl.textContent = `${count} selected — need at least 2 models`;
     } else {
         countEl.style.color = '#22c55e';
         countEl.textContent = `${count} models selected ✓`;
