@@ -297,6 +297,8 @@ function handleWebSocketMessage(message) {
             setInputLocked(false);
             hideStopButton();
             showExportButton();
+            // Enable continuing this conversation with follow-up messages
+            window.continuingDebateId = currentSessionId;
             break;
 
         case 'error':

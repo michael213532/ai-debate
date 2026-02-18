@@ -108,7 +108,7 @@ function renderProviderList(providers) {
                 <span class="key-help-text">${info.keyHelp}</span>
             </div>
             <div class="provider-actions">
-                <input type="password" class="form-input api-key-input" placeholder="Paste your API key here..."
+                <input type="text" class="form-input api-key-input" placeholder="Paste your API key here..."
                        value="${provider.configured ? '••••••••••••••••' : ''}">
                 <button class="btn btn-primary btn-small save-key-btn">Save</button>
                 ${provider.configured ? `
