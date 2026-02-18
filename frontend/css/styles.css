@@ -738,14 +738,28 @@ a:hover {
     display: flex;
     gap: 8px;
     flex-wrap: wrap;
+    align-items: center;
+}
+
+.provider-actions .api-key-input {
+    flex: 1 1 100%;
+    margin-bottom: 8px;
+}
+
+.provider-actions .btn {
+    flex-shrink: 0;
 }
 
 .provider-item .api-key-input {
-    min-width: 0;
+    min-width: 200px;
+    flex: 1;
+    font-family: monospace;
+    font-size: 0.85rem;
 }
 
 .api-key-input {
     flex: 1;
+    width: 100%;
 }
 
 /* Debate History */

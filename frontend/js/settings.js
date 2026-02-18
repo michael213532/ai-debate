@@ -108,8 +108,8 @@ function renderProviderList(providers) {
                 <span class="key-help-text">${info.keyHelp}</span>
             </div>
             <div class="provider-actions">
-                <input type="text" class="form-input api-key-input" placeholder="Paste your API key here..."
-                       value="${provider.configured ? '••••••••••••••••' : ''}">
+                <input type="text" class="form-input api-key-input" placeholder="${provider.configured ? 'Key saved - paste new key to replace' : 'Paste your API key here...'}"
+                       value="">
                 <button class="btn btn-primary btn-small save-key-btn">Save</button>
                 ${provider.configured ? `
                     <button class="btn btn-secondary btn-small test-key-btn">Test</button>
@@ -126,13 +126,6 @@ function renderProviderList(providers) {
         const saveBtn = item.querySelector('.save-key-btn');
         const testBtn = item.querySelector('.test-key-btn');
         const deleteBtn = item.querySelector('.delete-key-btn');
-
-        // Clear placeholder on focus
-        input.addEventListener('focus', () => {
-            if (input.value.startsWith('••')) {
-                input.value = '';
-            }
-        });
 
         // Save key
         saveBtn.addEventListener('click', () => saveApiKey(provider, input.value));
@@ -151,7 +144,7 @@ function renderProviderList(providers) {
 
 // Save API key
 async function saveApiKey(provider, apiKey) {
-    if (!apiKey || apiKey.startsWith('••')) {
+    if (!apiKey || !apiKey.trim()) {
         return;
     }
 
