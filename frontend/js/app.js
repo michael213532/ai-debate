@@ -467,12 +467,19 @@ function showTutorial() {
         modal.style.display = 'flex';
         modal.classList.add('active');
         tutorialStep = 1;
-        // Start with first configured provider, or google if none
-        if (configuredProviders.size > 0) {
-            currentSetupProvider = Array.from(configuredProviders)[0];
-        } else {
-            currentSetupProvider = 'google';
+
+        // Reset provider selection - no provider selected initially
+        currentSetupProvider = null;
+
+        // Hide provider details section initially
+        const detailsSection = document.getElementById('provider-details-section');
+        if (detailsSection) {
+            detailsSection.style.display = 'none';
         }
+
+        // Remove active class from all provider bubbles
+        document.querySelectorAll('.provider-bubble').forEach(b => b.classList.remove('active'));
+
         updateTutorialStep();
         updateSetupUI();
     }
@@ -609,21 +616,9 @@ function updateTutorialStep() {
 // Update the connected providers count in setup wizard
 async function updateSetupConnectedCount() {
     const countEl = document.getElementById('setup-connected-count');
-    const progressEl = document.getElementById('setup-key-progress');
     const count = configuredProviders.size;
 
-    // Update step 1 progress
-    if (progressEl) {
-        if (count >= 2) {
-            progressEl.textContent = `${count} keys added - ready to continue!`;
-            progressEl.style.color = '#22c55e';
-        } else {
-            progressEl.textContent = `${count} of 2 keys added`;
-            progressEl.style.color = 'var(--text-secondary)';
-        }
-    }
-
-    // Update step 3 final status
+    // Update final step status
     if (countEl) {
         if (count >= 2) {
             countEl.style.background = '#f0fdf4';
@@ -639,10 +634,23 @@ function setupApiKeyStep() {
     const saveBtn = document.getElementById('setup-save-btn');
     const getKeyBtn = document.getElementById('setup-get-key-btn');
     const statusEl = document.getElementById('setup-status');
+    const detailsSection = document.getElementById('provider-details-section');
 
-    // Update progress and bubbles
-    updateSetupConnectedCount();
+    // Update bubbles
     updateProviderBubbles();
+
+    // If no provider selected, hide details and return
+    if (!currentSetupProvider) {
+        if (detailsSection) {
+            detailsSection.style.display = 'none';
+        }
+        return;
+    }
+
+    // Show details section when a provider is selected
+    if (detailsSection) {
+        detailsSection.style.display = 'block';
+    }
 
     // Update model selection for current provider
     populateSetupModels();
@@ -898,6 +906,12 @@ function populateSetupModels() {
     }
 
     container.innerHTML = '';
+
+    // If no provider selected, show nothing
+    if (!currentSetupProvider) {
+        updateSetupModelCount();
+        return;
+    }
 
     const isCurrentProviderConfigured = configuredProviders.has(currentSetupProvider);
 

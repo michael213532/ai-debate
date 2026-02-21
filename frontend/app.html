@@ -1326,35 +1326,11 @@
             <div class="modal-body">
                 <!-- Step 1: Add API Keys + Choose Models -->
                 <div class="tutorial-step" data-step="1">
-                    <!-- Progress -->
-                    <div id="setup-key-progress" style="text-align: center; margin-bottom: 12px; font-size: 0.85rem; color: var(--text-secondary);">
-                        0 of 2 keys added
-                    </div>
-
-                    <!-- Current provider display -->
-                    <div id="current-provider-setup">
-                        <!-- Get Key button -->
-                        <a id="setup-get-key-btn" href="https://aistudio.google.com/app/apikey" target="_blank" class="btn btn-primary" style="width: 100%; margin-bottom: 12px;">
-                            Get Gemini API Key
-                        </a>
-
-                        <!-- Input field -->
-                        <input type="password" id="setup-key-input" class="form-input" placeholder="Paste your API key here..." style="width: 100%; padding: 12px 14px; font-size: 0.95rem; margin-bottom: 10px;">
-
-                        <!-- Save & Test button (hidden initially) -->
-                        <button id="setup-save-btn" class="btn btn-primary" style="width: 100%; display: none;">
-                            Save & Test
-                        </button>
-
-                        <!-- Status message -->
-                        <div id="setup-status" style="margin-top: 8px; font-size: 0.85rem; text-align: center;"></div>
-                    </div>
-
-                    <!-- Provider selector bubbles -->
-                    <div style="margin-top: 16px;">
-                        <div style="text-align: center; font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 8px;">Choose provider:</div>
+                    <!-- Provider selector bubbles (on top) -->
+                    <div style="margin-bottom: 16px;">
+                        <div style="text-align: center; font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 10px;">Choose provider:</div>
                         <div id="provider-bubbles" style="display: flex; flex-wrap: wrap; gap: 6px; justify-content: center;">
-                            <button class="provider-bubble active" data-provider="google" data-url="https://aistudio.google.com/app/apikey" data-name="Gemini">Gemini</button>
+                            <button class="provider-bubble" data-provider="google" data-url="https://aistudio.google.com/app/apikey" data-name="Gemini">Gemini</button>
                             <button class="provider-bubble" data-provider="openai" data-url="https://platform.openai.com/api-keys" data-name="OpenAI">OpenAI</button>
                             <button class="provider-bubble" data-provider="anthropic" data-url="https://console.anthropic.com/settings/keys" data-name="Claude">Claude</button>
                             <button class="provider-bubble" data-provider="deepseek" data-url="https://platform.deepseek.com/api_keys" data-name="Deepseek">Deepseek</button>
@@ -1362,21 +1338,40 @@
                         </div>
                     </div>
 
-                    <!-- Divider -->
-                    <div style="border-top: 1px solid var(--border-color); margin: 20px 0;"></div>
+                    <!-- Hidden until provider selected -->
+                    <div id="provider-details-section" style="display: none;">
+                        <!-- Get Key + Paste Key section -->
+                        <div id="current-provider-setup">
+                            <!-- Get Key button -->
+                            <a id="setup-get-key-btn" href="#" target="_blank" class="btn btn-primary" style="width: 100%; margin-bottom: 12px;">
+                                Get API Key
+                            </a>
 
-                    <!-- Model Selection -->
-                    <div>
-                        <div style="text-align: center; font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 10px;">
-                            Select models for discussions:
+                            <!-- Input field -->
+                            <input type="password" id="setup-key-input" class="form-input" placeholder="Paste your API key here..." style="width: 100%; padding: 12px 14px; font-size: 0.95rem; margin-bottom: 10px;">
+
+                            <!-- Save & Test button (hidden initially) -->
+                            <button id="setup-save-btn" class="btn btn-primary" style="width: 100%; display: none;">
+                                Save & Test
+                            </button>
+
+                            <!-- Status message -->
+                            <div id="setup-status" style="margin-top: 8px; font-size: 0.85rem; text-align: center;"></div>
                         </div>
-                        <div id="setup-model-selection" class="setup-model-selection" style="padding: 12px;">
-                            <div id="setup-model-scroll" class="setup-model-scroll">
-                                <!-- Models will be populated here -->
+
+                        <!-- Model Selection -->
+                        <div style="margin-top: 16px;">
+                            <div style="text-align: center; font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 10px;">
+                                Choose models:
                             </div>
-                        </div>
-                        <div id="setup-model-count" style="text-align: center; margin-top: 8px; font-size: 0.85rem; color: var(--text-secondary);">
-                            Add API keys to see available models
+                            <div id="setup-model-selection" class="setup-model-selection" style="padding: 12px;">
+                                <div id="setup-model-scroll" class="setup-model-scroll">
+                                    <!-- Models will be populated here -->
+                                </div>
+                            </div>
+                            <div id="setup-model-count" style="text-align: center; margin-top: 8px; font-size: 0.85rem; color: var(--text-secondary);">
+                                Add API key to see models
+                            </div>
                         </div>
                     </div>
                 </div>
