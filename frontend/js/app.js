@@ -636,6 +636,16 @@ function setupApiKeyStep() {
     const statusEl = document.getElementById('setup-status');
     const detailsSection = document.getElementById('provider-details-section');
 
+    // Always set up provider bubble clicks first
+    document.querySelectorAll('.provider-bubble').forEach(bubble => {
+        bubble.onclick = () => {
+            currentSetupProvider = bubble.dataset.provider;
+            document.querySelectorAll('.provider-bubble').forEach(b => b.classList.remove('active'));
+            bubble.classList.add('active');
+            setupApiKeyStep(); // Refresh the UI for new provider
+        };
+    });
+
     // Update bubbles
     updateProviderBubbles();
 
@@ -759,16 +769,6 @@ function setupApiKeyStep() {
             saveBtn.textContent = 'Save & Test';
         }
     };
-
-    // Provider bubble clicks
-    document.querySelectorAll('.provider-bubble').forEach(bubble => {
-        bubble.onclick = () => {
-            currentSetupProvider = bubble.dataset.provider;
-            document.querySelectorAll('.provider-bubble').forEach(b => b.classList.remove('active'));
-            bubble.classList.add('active');
-            setupApiKeyStep(); // Refresh the UI for new provider
-        };
-    });
 }
 
 // Delete current provider's API key
