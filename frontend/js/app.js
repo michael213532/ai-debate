@@ -684,8 +684,9 @@ function setupApiKeyStep() {
     const isConfigured = configuredProviders.has(currentSetupProvider);
 
     if (isConfigured) {
-        input.value = '••••••••••••••••';
-        input.disabled = true;
+        input.value = '';
+        input.placeholder = 'Key saved securely — paste new key to replace';
+        input.disabled = false;
         getKeyBtn.style.display = 'none';
         saveBtn.style.display = 'block';
         saveBtn.textContent = 'Connected ✓';
@@ -711,16 +712,25 @@ function setupApiKeyStep() {
     // Input listener - show/hide buttons based on input
     input.oninput = () => {
         const hasValue = input.value.trim().length > 0;
-        if (hasValue && !input.value.startsWith('••')) {
+        if (hasValue) {
             getKeyBtn.style.display = 'none';
             saveBtn.style.display = 'block';
             saveBtn.textContent = 'Save & Test';
             saveBtn.disabled = false;
             saveBtn.classList.remove('btn-secondary');
             saveBtn.classList.add('btn-primary');
+            statusEl.textContent = '';
         } else if (!configuredProviders.has(currentSetupProvider)) {
             getKeyBtn.style.display = 'block';
             saveBtn.style.display = 'none';
+        } else {
+            // Provider is configured but input is empty - show connected state
+            saveBtn.style.display = 'block';
+            saveBtn.textContent = 'Connected ✓';
+            saveBtn.disabled = true;
+            saveBtn.classList.remove('btn-primary');
+            saveBtn.classList.add('btn-secondary');
+            statusEl.innerHTML = '<span style="color: #22c55e;">Connected</span> - <a href="#" onclick="deleteCurrentProviderKey(); return false;" style="color: var(--text-secondary);">Delete key</a>';
         }
     };
 
