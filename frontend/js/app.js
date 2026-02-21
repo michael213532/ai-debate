@@ -502,9 +502,9 @@ function hideTutorial() {
     }
 }
 
-// Check if setup requirements are met (2+ providers)
+// Check if setup requirements are met (2+ models selected)
 function isSetupComplete() {
-    return configuredProviders.size >= 2;
+    return selectedModels.length >= 2;
 }
 
 // Update UI based on setup state
@@ -512,21 +512,17 @@ function updateSetupUI() {
     const appOverlay = document.getElementById('app-setup-overlay');
     const nextBtn = document.getElementById('tutorial-next');
 
-    const hasEnoughProviders = isSetupComplete();
     const hasEnoughModels = selectedModels.length >= 2;
 
     // Show/hide overlay on main app
     if (appOverlay) {
-        appOverlay.style.display = (hasEnoughProviders && hasEnoughModels) || setupComplete ? 'none' : 'block';
+        appOverlay.style.display = hasEnoughModels || setupComplete ? 'none' : 'block';
     }
 
     // Update next button based on current step
     if (nextBtn && tutorialStep === 1) {
-        const canProceed = hasEnoughProviders && hasEnoughModels;
-        nextBtn.disabled = !canProceed;
-        if (!hasEnoughProviders) {
-            nextBtn.textContent = 'Add 2+ Keys';
-        } else if (!hasEnoughModels) {
+        nextBtn.disabled = !hasEnoughModels;
+        if (!hasEnoughModels) {
             nextBtn.textContent = 'Select 2+ Models';
         } else {
             nextBtn.textContent = 'Next';
@@ -572,14 +568,10 @@ function updateTutorialStep() {
 
     if (nextBtn) {
         if (tutorialStep === 1) {
-            // API key + model selection step - need both
-            const hasEnoughProviders = isSetupComplete();
+            // Model selection step - need 2+ models
             const hasEnoughModels = selectedModels.length >= 2;
-            const canProceed = hasEnoughProviders && hasEnoughModels;
-            nextBtn.disabled = !canProceed;
-            if (!hasEnoughProviders) {
-                nextBtn.textContent = 'Add 2+ Keys';
-            } else if (!hasEnoughModels) {
+            nextBtn.disabled = !hasEnoughModels;
+            if (!hasEnoughModels) {
                 nextBtn.textContent = 'Select 2+ Models';
             } else {
                 nextBtn.textContent = 'Next';
@@ -868,12 +860,12 @@ function checkShowTutorial() {
     setupTutorialListeners();
 
     const completed = localStorage.getItem('tutorialCompleted');
-    const hasEnoughProviders = isSetupComplete();
+    const hasEnoughModels = isSetupComplete();
 
     // Show setup wizard if:
     // 1. Tutorial was never completed, OR
-    // 2. User doesn't have at least 2 API keys configured
-    if (!completed || !hasEnoughProviders) {
+    // 2. User doesn't have at least 2 models selected
+    if (!completed || !hasEnoughModels) {
         setupComplete = false;
         showTutorial();
     } else {
