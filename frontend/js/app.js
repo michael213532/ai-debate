@@ -477,6 +477,12 @@ function showTutorial() {
             detailsSection.style.display = 'none';
         }
 
+        // Collapse modal to initial size
+        const modalInner = document.getElementById('setup-modal-inner');
+        if (modalInner) {
+            modalInner.classList.remove('expanded');
+        }
+
         // Remove active class from all provider bubbles
         document.querySelectorAll('.provider-bubble').forEach(b => b.classList.remove('active'));
 
@@ -649,17 +655,26 @@ function setupApiKeyStep() {
     // Update bubbles
     updateProviderBubbles();
 
-    // If no provider selected, hide details and return
+    // Get the modal element for expansion
+    const modalInner = document.getElementById('setup-modal-inner');
+
+    // If no provider selected, hide details and collapse modal
     if (!currentSetupProvider) {
         if (detailsSection) {
             detailsSection.style.display = 'none';
         }
+        if (modalInner) {
+            modalInner.classList.remove('expanded');
+        }
         return;
     }
 
-    // Show details section when a provider is selected
+    // Show details section and expand modal when a provider is selected
     if (detailsSection) {
         detailsSection.style.display = 'block';
+    }
+    if (modalInner) {
+        modalInner.classList.add('expanded');
     }
 
     // Update model selection for current provider
