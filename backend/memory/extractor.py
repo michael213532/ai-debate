@@ -63,29 +63,36 @@ async def extract_and_save_memory(
             if msg.get("round", 0) > 0:  # Skip summaries
                 conversation += f"{msg['model_name']}: {msg['content']}\n\n"
 
-        # Create extraction prompt
-        system_prompt = """You are a memory extraction assistant. Analyze the conversation and extract:
+        # Create extraction prompt - be VERY selective
+        system_prompt = """You are a memory extraction assistant. Be VERY selective - only extract truly important, core information.
 
-1. User facts: Any personal information the user shared (name, preferences, interests, expertise areas)
-2. Debate summary: A concise 1-sentence summary of what was discussed
+ONLY extract these types of facts:
+1. User's name - ONLY if they explicitly say "I'm [name]" or "my name is [name]"
+2. Major profession/job - ONLY if they explicitly state it ("I'm a teacher", "I work as a developer")
+3. Core expertise - ONLY if they demonstrate deep knowledge in an area across the conversation
 
-Return ONLY valid JSON in this exact format (no markdown, no explanation):
+DO NOT extract:
+- Random topics they asked about (that's what the summary is for)
+- Casual mentions of interests
+- One-time preferences
+- Anything you have to infer or guess
+
+Return ONLY valid JSON (no markdown, no explanation):
 {
     "facts": [
-        {"type": "name", "key": "user_name", "value": "the user's name"},
-        {"type": "preference", "key": "preferred_language", "value": "Spanish"},
-        {"type": "interest", "key": "interest_1", "value": "photography"}
+        {"type": "name", "key": "user_name", "value": "Michael"},
+        {"type": "profession", "key": "profession", "value": "English teacher"}
     ],
-    "summary": "User asked about comparing AI models for image analysis"
+    "summary": "Asked about oral exam questions for students"
 }
 
 Rules:
-- Only include facts the user explicitly stated, don't infer
-- If user said "I'm Michael" or "my name is Michael", extract as name fact
-- For interests, use incremental keys like interest_1, interest_2
-- Summary should be max 10 words
-- If no facts found, return empty facts array
-- Always include a summary"""
+- Be EXTREMELY selective - most conversations should return 0-1 facts
+- Only extract what the user EXPLICITLY stated about themselves
+- Never infer or guess
+- Summary should be max 10 words describing the topic
+- Return empty facts array if nothing important was shared
+- The bar for saving a fact should be HIGH - only truly identifying information"""
 
         user_message = f"""Analyze this conversation and extract memory:
 
