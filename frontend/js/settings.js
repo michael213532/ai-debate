@@ -40,11 +40,11 @@ const PROVIDER_NAMES = Object.fromEntries(
     Object.entries(PROVIDER_INFO).map(([k, v]) => [k, v.name])
 );
 
-// Open settings modal
+// Open settings modal (Memory only)
 function openSettingsModal() {
     const modal = document.getElementById('settings-modal');
     modal.classList.add('active');
-    loadProviderSettings();
+    loadMemoryFacts();
 }
 
 // Close settings modal
@@ -252,31 +252,7 @@ async function deleteApiKey(provider) {
 }
 
 
-// ============== SETTINGS TABS ==============
-
-// Initialize settings tabs
-document.querySelectorAll('.settings-tab').forEach(tab => {
-    tab.addEventListener('click', () => {
-        // Update active tab
-        document.querySelectorAll('.settings-tab').forEach(t => t.classList.remove('active'));
-        tab.classList.add('active');
-
-        // Show corresponding content
-        const tabName = tab.dataset.tab;
-        document.querySelectorAll('.settings-tab-content').forEach(content => {
-            content.style.display = 'none';
-        });
-        document.getElementById(`tab-${tabName}`).style.display = 'block';
-
-        // Load memory if switching to memory tab
-        if (tabName === 'memory') {
-            loadMemoryFacts();
-        }
-    });
-});
-
-
-// ============== MEMORY TAB ==============
+// ============== MEMORY ==============
 
 // Load memory facts
 async function loadMemoryFacts() {

@@ -452,6 +452,10 @@ function updateProfileDisplay(email, isPro) {
     if (avatar) avatar.textContent = initial;
     if (avatarLarge) avatarLarge.textContent = initial;
 
+    // Update inline name in sidebar profile button
+    const profileNameInline = document.getElementById('profile-name-inline');
+    if (profileNameInline) profileNameInline.textContent = email || 'Account';
+
     // Update email
     const profileEmail = document.getElementById('profile-email');
     if (profileEmail) profileEmail.textContent = email || 'User';
