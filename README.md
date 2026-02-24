@@ -1,6 +1,6 @@
-# AI Debate Arena
+# Ensemble AI
 
-A web application where users can prompt multiple AI models to debate and discuss topics, with models responding to each other in rounds until a refined conclusion emerges.
+A web application where multiple AI models discuss topics together, giving you diverse perspectives and a synthesized summary. Ask a question, watch AIs discuss, get a combined answer.
 
 ## Features
 
