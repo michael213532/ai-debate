@@ -10,10 +10,10 @@
         /* Sidebar - always visible on desktop */
         .sidebar {
             position: fixed;
-            top: 60px;
+            top: 0;
             left: 0;
             width: 260px;
-            height: calc(100vh - 60px);
+            height: 100vh;
             background: var(--surface);
             border-right: 1px solid var(--border-color);
             z-index: 100;
@@ -43,8 +43,12 @@
             display: none !important;
         }
 
-        /* Main content shifts right for sidebar */
+        /* Main content and header shift right for sidebar */
         .chat-layout {
+            margin-left: 260px;
+        }
+
+        .header {
             margin-left: 260px;
         }
 
@@ -838,6 +842,7 @@
             /* Compact header */
             .header {
                 height: 48px;
+                margin-left: 0;
             }
 
             .header-content {
@@ -1146,7 +1151,7 @@
         .app-setup-overlay {
             position: fixed;
             top: 60px;
-            left: 0;
+            left: 260px;
             right: 0;
             bottom: 0;
             background: rgba(15, 23, 42, 0.95);
@@ -1180,60 +1185,7 @@
         <header class="header">
             <div class="container header-content">
                 <div class="logo" style="display: flex; align-items: center;">
-                    <!-- Profile Menu (left side) -->
-                    <div class="profile-menu">
-                        <button id="profile-btn" class="profile-btn" title="Account">
-                            <div class="profile-avatar" id="profile-avatar">U</div>
-                        </button>
-                        <div id="profile-dropdown" class="profile-dropdown">
-                            <div class="profile-dropdown-header">
-                                <div class="profile-avatar-large" id="profile-avatar-large">U</div>
-                                <div class="profile-info">
-                                    <div class="profile-email" id="profile-email">user@example.com</div>
-                                    <div class="profile-plan" id="profile-plan">Free Plan</div>
-                                </div>
-                            </div>
-                            <div class="profile-dropdown-divider"></div>
-                            <button class="profile-dropdown-item" onclick="openSettingsModal()">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <circle cx="12" cy="12" r="3"></circle>
-                                    <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"></path>
-                                </svg>
-                                API Keys & Memory
-                            </button>
-                            <button class="profile-dropdown-item" onclick="showTutorial()">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <circle cx="12" cy="12" r="10"></circle>
-                                    <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
-                                    <line x1="12" y1="17" x2="12.01" y2="17"></line>
-                                </svg>
-                                Setup Wizard
-                            </button>
-                            <a href="/settings" class="profile-dropdown-item">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path>
-                                    <circle cx="12" cy="12" r="3"></circle>
-                                </svg>
-                                Settings
-                            </a>
-                            <div class="profile-dropdown-divider"></div>
-                            <button class="profile-dropdown-item" id="dropdown-upgrade-btn" style="display: none;">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path>
-                                </svg>
-                                Upgrade to Pro
-                            </button>
-                            <button class="profile-dropdown-item logout" id="dropdown-logout-btn">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
-                                    <polyline points="16 17 21 12 16 7"></polyline>
-                                    <line x1="21" y1="12" x2="9" y2="12"></line>
-                                </svg>
-                                Log out
-                            </button>
-                        </div>
-                    </div>
-                    <img src="/logo.svg" alt="Ensemble AI" style="width: 32px; height: 32px; margin-left: 12px;">
+                    <img src="/logo.svg" alt="Ensemble AI" style="width: 32px; height: 32px;">
                     <span>Ensemble AI</span>
                 </div>
                 <div class="header-actions">
@@ -1350,6 +1302,61 @@
     <!-- Sidebar -->
     <div id="sidebar-overlay" class="sidebar-overlay"></div>
     <aside id="sidebar" class="sidebar">
+        <!-- Profile Section (inside sidebar) -->
+        <div class="sidebar-profile">
+            <div class="profile-menu">
+                <button id="profile-btn" class="profile-btn" title="Account">
+                    <div class="profile-avatar" id="profile-avatar">U</div>
+                </button>
+                <div id="profile-dropdown" class="profile-dropdown">
+                    <div class="profile-dropdown-header">
+                        <div class="profile-avatar-large" id="profile-avatar-large">U</div>
+                        <div class="profile-info">
+                            <div class="profile-email" id="profile-email">user@example.com</div>
+                            <div class="profile-plan" id="profile-plan">Free Plan</div>
+                        </div>
+                    </div>
+                    <div class="profile-dropdown-divider"></div>
+                    <button class="profile-dropdown-item" onclick="openSettingsModal()">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="3"></circle>
+                            <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"></path>
+                        </svg>
+                        API Keys & Memory
+                    </button>
+                    <button class="profile-dropdown-item" onclick="showTutorial()">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+                            <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                        </svg>
+                        Setup Wizard
+                    </button>
+                    <a href="/settings" class="profile-dropdown-item">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path>
+                            <circle cx="12" cy="12" r="3"></circle>
+                        </svg>
+                        Settings
+                    </a>
+                    <div class="profile-dropdown-divider"></div>
+                    <button class="profile-dropdown-item" id="dropdown-upgrade-btn" style="display: none;">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path>
+                        </svg>
+                        Upgrade to Pro
+                    </button>
+                    <button class="profile-dropdown-item logout" id="dropdown-logout-btn">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                            <polyline points="16 17 21 12 16 7"></polyline>
+                            <line x1="21" y1="12" x2="9" y2="12"></line>
+                        </svg>
+                        Log out
+                    </button>
+                </div>
+            </div>
+        </div>
         <div class="sidebar-header">
             <span class="sidebar-title">Chat History</span>
             <button id="sidebar-close" class="sidebar-close">
@@ -1759,6 +1766,12 @@
             background: rgba(239, 68, 68, 0.1);
         }
 
+        /* Sidebar Profile Section */
+        .sidebar-profile {
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
         /* Profile Menu */
         .profile-menu {
             position: relative;
@@ -1790,13 +1803,13 @@
         .profile-dropdown {
             position: absolute;
             top: calc(100% + 8px);
-            right: 0;
-            width: 280px;
+            left: 0;
+            width: 260px;
             background: var(--surface);
             border: 1px solid var(--border-color);
             border-radius: 12px;
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-            z-index: 1000;
+            z-index: 1001;
             display: none;
             overflow: hidden;
         }
