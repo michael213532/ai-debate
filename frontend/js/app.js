@@ -117,6 +117,8 @@ async function checkAuth() {
 
         currentUser = await response.json();
         document.getElementById('user-email').textContent = currentUser.email;
+        // Update profile dropdown
+        updateProfileDisplay(currentUser.email, currentUser.subscription_status === 'active');
 
         // Check if user has accepted privacy policy
         if (!currentUser.privacy_accepted) {
@@ -226,8 +228,9 @@ async function loadSubscriptionStatus() {
 function renderSubscriptionStatus() {
     const badge = document.getElementById('subscription-status');
     const upgradeBtn = document.getElementById('upgrade-btn');
+    const isPro = subscriptionStatus.status === 'active';
 
-    if (subscriptionStatus.status === 'active') {
+    if (isPro) {
         badge.textContent = 'PRO';
         badge.className = 'subscription-badge pro';
         upgradeBtn.style.display = 'none';
@@ -238,10 +241,17 @@ function renderSubscriptionStatus() {
         upgradeBtn.style.display = 'inline-flex';
     }
 
+    // Update profile dropdown plan display
+    if (currentUser) {
+        updateProfileDisplay(currentUser.email, isPro);
+    }
 }
 
 // Handle upgrade button - go to pricing page
-document.getElementById('upgrade-btn').addEventListener('click', () => {
+document.getElementById('upgrade-btn')?.addEventListener('click', () => {
+    window.location.href = '/pricing';
+});
+document.getElementById('dropdown-upgrade-btn')?.addEventListener('click', () => {
     window.location.href = '/pricing';
 });
 
@@ -379,8 +389,12 @@ function updateSendButton() {
     sendBtn.disabled = !canSend;
 }
 
-// Logout
-document.getElementById('logout-btn').addEventListener('click', () => {
+// Logout (both old button and new dropdown)
+document.getElementById('logout-btn')?.addEventListener('click', () => {
+    localStorage.removeItem('token');
+    window.location.href = '/';
+});
+document.getElementById('dropdown-logout-btn')?.addEventListener('click', () => {
     localStorage.removeItem('token');
     window.location.href = '/';
 });
@@ -399,6 +413,64 @@ document.getElementById('help-btn')?.addEventListener('click', () => {
 document.getElementById('settings-btn-inline')?.addEventListener('click', () => {
     openSettingsModal();
 });
+
+// Profile dropdown toggle
+const profileBtn = document.getElementById('profile-btn');
+const profileDropdown = document.getElementById('profile-dropdown');
+
+if (profileBtn && profileDropdown) {
+    profileBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        profileDropdown.classList.toggle('open');
+    });
+
+    // Close dropdown when clicking outside
+    document.addEventListener('click', (e) => {
+        if (!profileDropdown.contains(e.target) && !profileBtn.contains(e.target)) {
+            profileDropdown.classList.remove('open');
+        }
+    });
+
+    // Close dropdown when clicking an item
+    profileDropdown.querySelectorAll('.profile-dropdown-item').forEach(item => {
+        item.addEventListener('click', () => {
+            profileDropdown.classList.remove('open');
+        });
+    });
+}
+
+// Update profile display
+function updateProfileDisplay(email, isPro) {
+    const initial = email ? email.charAt(0).toUpperCase() : 'U';
+
+    // Update avatars
+    const avatar = document.getElementById('profile-avatar');
+    const avatarLarge = document.getElementById('profile-avatar-large');
+    if (avatar) avatar.textContent = initial;
+    if (avatarLarge) avatarLarge.textContent = initial;
+
+    // Update email
+    const profileEmail = document.getElementById('profile-email');
+    if (profileEmail) profileEmail.textContent = email || 'User';
+
+    // Update plan
+    const profilePlan = document.getElementById('profile-plan');
+    if (profilePlan) {
+        if (isPro) {
+            profilePlan.textContent = 'Pro Plan';
+            profilePlan.classList.add('pro');
+        } else {
+            profilePlan.textContent = 'Free Plan';
+            profilePlan.classList.remove('pro');
+        }
+    }
+
+    // Show/hide upgrade button in dropdown
+    const dropdownUpgrade = document.getElementById('dropdown-upgrade-btn');
+    if (dropdownUpgrade) {
+        dropdownUpgrade.style.display = isPro ? 'none' : 'flex';
+    }
+}
 
 // Chat input handlers
 const chatInput = document.getElementById('chat-input');
