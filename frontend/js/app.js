@@ -443,6 +443,13 @@ if (chatInput) {
             loadSubscriptionStatus();
         }
 
+        // Check if we should open setup wizard (from settings page)
+        if (urlParams.get('openSetup') === 'true') {
+            window.history.replaceState({}, '', '/app');
+            showTutorial();
+            return;
+        }
+
         // Show tutorial for new users
         checkShowTutorial();
     }

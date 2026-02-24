@@ -404,13 +404,18 @@ FORMAT - Use this structure:
 ## The Bottom Line
 [2-3 sentences with actionable advice. What should the user actually DO based on this discussion? If it's a comparison, give a clear recommendation. If it's a question, give a direct answer. Be decisive and helpful.]
 
+---
+
+**In short:** [Write ONE paragraph (3-5 sentences) that someone could read instead of everything above. Synthesize the key insights, the consensus view, and the recommended action into a single flowing paragraph. This is for users who just want the quick answer without reading sections.]
+
 GUIDELINES:
 - Make the summary WORTH reading - it should give more value than reading individual responses
 - Highlight the BEST arguments and insights from each AI
 - If comparing things, clearly state which option "won" and why
 - Be specific - use concrete details from the responses
 - For technical questions, include the key facts/steps
-- For opinions, explain the reasoning behind different positions"""
+- For opinions, explain the reasoning behind different positions
+- The "In short" paragraph should stand alone as a complete answer"""
 
             context = ""
             if self.previous_context:
