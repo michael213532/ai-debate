@@ -10,12 +10,22 @@ from backend.config import AI_MODELS, ENCRYPTION_KEY, FREE_DEBATE_LIMIT
 from backend.auth.dependencies import get_current_user
 from backend.auth.jwt import verify_token
 from backend.database import get_db, User, Debate, Message
-from backend.memory import (
-    get_user_memory,
-    get_user_memory_context,
-    delete_user_fact,
-    clear_user_memory,
-)
+try:
+    from backend.memory import (
+        get_user_memory,
+        get_user_memory_context,
+        delete_user_fact,
+        clear_user_memory,
+    )
+    MEMORY_AVAILABLE = True
+except ImportError as e:
+    print(f"Memory module not available: {e}")
+    MEMORY_AVAILABLE = False
+    # Provide fallback functions
+    async def get_user_memory(user_id): return []
+    async def get_user_memory_context(user_id): return ""
+    async def delete_user_fact(user_id, fact_id): return False
+    async def clear_user_memory(user_id): return 0
 from .schemas import (
     CreateDebateRequest,
     DebateResponse,
