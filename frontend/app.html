@@ -7,24 +7,18 @@
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='35' cy='38' r='28' fill='%236366f1' opacity='0.85'/%3E%3Ccircle cx='65' cy='38' r='28' fill='%238b5cf6' opacity='0.85'/%3E%3Ccircle cx='50' cy='62' r='28' fill='%23a78bfa' opacity='0.85'/%3E%3C/svg%3E">
     <link rel="stylesheet" href="/css/styles.css">
     <style>
-        /* Sidebar */
+        /* Sidebar - always visible on desktop */
         .sidebar {
             position: fixed;
-            top: 0;
+            top: 60px;
             left: 0;
-            width: 280px;
-            height: 100vh;
+            width: 260px;
+            height: calc(100vh - 60px);
             background: var(--surface);
             border-right: 1px solid var(--border-color);
-            z-index: 1000;
-            transform: translateX(-100%);
-            transition: transform 0.25s ease;
+            z-index: 100;
             display: flex;
             flex-direction: column;
-        }
-
-        .sidebar.open {
-            transform: translateX(0);
         }
 
         .sidebar-header {
@@ -42,20 +36,16 @@
         }
 
         .sidebar-close {
-            background: none;
-            border: none;
-            color: var(--text-secondary);
-            cursor: pointer;
-            padding: 4px;
-            border-radius: 4px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            display: none;
         }
 
-        .sidebar-close:hover {
-            background: var(--surface-light);
-            color: var(--text-primary);
+        .sidebar-overlay {
+            display: none !important;
+        }
+
+        /* Main content shifts right for sidebar */
+        .chat-layout {
+            margin-left: 260px;
         }
 
         .sidebar-new-chat {
@@ -808,6 +798,43 @@
 
         /* Mobile styles */
         @media (max-width: 768px) {
+            /* Sidebar hidden on mobile */
+            .sidebar {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 280px;
+                height: 100vh;
+                transform: translateX(-100%);
+                transition: transform 0.25s ease;
+                z-index: 1000;
+            }
+            .sidebar.open {
+                transform: translateX(0);
+            }
+            .sidebar-close {
+                display: flex;
+            }
+            .sidebar-overlay {
+                display: block !important;
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: rgba(0,0,0,0.5);
+                z-index: 999;
+                opacity: 0;
+                visibility: hidden;
+            }
+            .sidebar-overlay.active {
+                opacity: 1;
+                visibility: visible;
+            }
+            .chat-layout {
+                margin-left: 0;
+            }
+
             /* Compact header */
             .header {
                 height: 48px;
@@ -825,11 +852,6 @@
             .logo img {
                 width: 26px;
                 height: 26px;
-            }
-
-            .sidebar-toggle {
-                padding: 6px;
-                margin-right: 8px;
             }
 
             .header-actions {
@@ -1158,22 +1180,7 @@
         <header class="header">
             <div class="container header-content">
                 <div class="logo" style="display: flex; align-items: center;">
-                    <!-- Mobile only: sidebar toggle -->
-                    <button id="sidebar-toggle" class="sidebar-toggle" title="Chat history">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <line x1="3" y1="6" x2="21" y2="6"></line>
-                            <line x1="3" y1="12" x2="21" y2="12"></line>
-                            <line x1="3" y1="18" x2="21" y2="18"></line>
-                        </svg>
-                    </button>
-                    <img src="/logo.svg" alt="Ensemble AI" style="width: 32px; height: 32px;">
-                    <span>Ensemble AI</span>
-                </div>
-                <div class="header-actions">
-                    <span id="subscription-status" class="subscription-badge"></span>
-                    <button id="upgrade-btn" class="btn btn-primary btn-small" style="display: none;">Upgrade</button>
-
-                    <!-- Profile Menu -->
+                    <!-- Profile Menu (left side) -->
                     <div class="profile-menu">
                         <button id="profile-btn" class="profile-btn" title="Account">
                             <div class="profile-avatar" id="profile-avatar">U</div>
@@ -1226,6 +1233,12 @@
                             </button>
                         </div>
                     </div>
+                    <img src="/logo.svg" alt="Ensemble AI" style="width: 32px; height: 32px; margin-left: 12px;">
+                    <span>Ensemble AI</span>
+                </div>
+                <div class="header-actions">
+                    <span id="subscription-status" class="subscription-badge"></span>
+                    <button id="upgrade-btn" class="btn btn-primary btn-small" style="display: none;">Upgrade</button>
                 </div>
             </div>
         </header>
