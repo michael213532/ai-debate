@@ -446,7 +446,8 @@ if (chatInput) {
         // Check if we should open setup wizard (from settings page)
         if (urlParams.get('openSetup') === 'true') {
             window.history.replaceState({}, '', '/app');
-            showTutorial();
+            // Small delay to ensure DOM is fully ready
+            setTimeout(() => showTutorial(), 100);
             return;
         }
 
