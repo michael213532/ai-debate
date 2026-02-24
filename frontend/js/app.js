@@ -116,9 +116,12 @@ async function checkAuth() {
         }
 
         currentUser = await response.json();
-        document.getElementById('user-email').textContent = currentUser.email;
+        const emailEl = document.getElementById('user-email');
+        if (emailEl) emailEl.textContent = currentUser.email;
         // Update profile dropdown
-        updateProfileDisplay(currentUser.email, currentUser.subscription_status === 'active');
+        if (typeof updateProfileDisplay === 'function') {
+            updateProfileDisplay(currentUser.email, currentUser.subscription_status === 'active');
+        }
 
         // Check if user has accepted privacy policy
         if (!currentUser.privacy_accepted) {
@@ -242,7 +245,7 @@ function renderSubscriptionStatus() {
     }
 
     // Update profile dropdown plan display
-    if (currentUser) {
+    if (currentUser && typeof updateProfileDisplay === 'function') {
         updateProfileDisplay(currentUser.email, isPro);
     }
 }
