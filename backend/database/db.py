@@ -96,6 +96,32 @@ async def init_postgres():
                 )
             """)
             print("Created messages table")
+
+            await conn.execute("""
+                CREATE TABLE IF NOT EXISTS user_memory (
+                    id SERIAL PRIMARY KEY,
+                    user_id TEXT NOT NULL REFERENCES users(id),
+                    fact_type TEXT NOT NULL,
+                    fact_key TEXT NOT NULL,
+                    fact_value TEXT NOT NULL,
+                    source_debate_id TEXT,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    UNIQUE(user_id, fact_key)
+                )
+            """)
+            print("Created user_memory table")
+
+            await conn.execute("""
+                CREATE TABLE IF NOT EXISTS debate_summaries (
+                    id SERIAL PRIMARY KEY,
+                    debate_id TEXT NOT NULL UNIQUE REFERENCES debates(id),
+                    user_id TEXT NOT NULL REFERENCES users(id),
+                    topic_summary TEXT NOT NULL,
+                    key_points JSONB,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+            print("Created debate_summaries table")
             print("PostgreSQL initialization complete!")
         except Exception as e:
             print(f"Error creating tables: {e}")
@@ -149,6 +175,29 @@ async def init_sqlite():
                 content TEXT NOT NULL,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (debate_id) REFERENCES debates(id)
+            );
+
+            CREATE TABLE IF NOT EXISTS user_memory (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id TEXT NOT NULL,
+                fact_type TEXT NOT NULL,
+                fact_key TEXT NOT NULL,
+                fact_value TEXT NOT NULL,
+                source_debate_id TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users(id),
+                UNIQUE(user_id, fact_key)
+            );
+
+            CREATE TABLE IF NOT EXISTS debate_summaries (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                debate_id TEXT NOT NULL UNIQUE,
+                user_id TEXT NOT NULL,
+                topic_summary TEXT NOT NULL,
+                key_points JSON,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (debate_id) REFERENCES debates(id),
+                FOREIGN KEY (user_id) REFERENCES users(id)
             );
         """)
         await db.commit()

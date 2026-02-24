@@ -117,3 +117,50 @@ class Message:
             content=row["content"],
             created_at=row["created_at"]
         )
+
+
+@dataclass
+class UserMemory:
+    id: int
+    user_id: str
+    fact_type: str  # 'name', 'preference', 'interest'
+    fact_key: str   # 'user_name', 'preferred_language'
+    fact_value: str
+    source_debate_id: Optional[str] = None
+    created_at: Optional[datetime] = None
+
+    @classmethod
+    def from_row(cls, row) -> "UserMemory":
+        return cls(
+            id=row["id"],
+            user_id=row["user_id"],
+            fact_type=row["fact_type"],
+            fact_key=row["fact_key"],
+            fact_value=row["fact_value"],
+            source_debate_id=row["source_debate_id"] if "source_debate_id" in row.keys() else None,
+            created_at=row["created_at"] if "created_at" in row.keys() else None
+        )
+
+
+@dataclass
+class DebateSummary:
+    id: int
+    debate_id: str
+    user_id: str
+    topic_summary: str
+    key_points: Optional[list] = None
+    created_at: Optional[datetime] = None
+
+    @classmethod
+    def from_row(cls, row) -> "DebateSummary":
+        key_points = row["key_points"] if "key_points" in row.keys() else None
+        if isinstance(key_points, str):
+            key_points = json.loads(key_points)
+        return cls(
+            id=row["id"],
+            debate_id=row["debate_id"],
+            user_id=row["user_id"],
+            topic_summary=row["topic_summary"],
+            key_points=key_points,
+            created_at=row["created_at"] if "created_at" in row.keys() else None
+        )

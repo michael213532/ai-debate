@@ -992,7 +992,7 @@ function updateSetupModelCount() {
 
     if (count < 2) {
         countEl.style.color = 'var(--text-secondary)';
-        countEl.textContent = `${count} selected — need at least 2 models`;
+        countEl.textContent = `Select at least 2 models to continue`;
     } else {
         countEl.style.color = '#22c55e';
         countEl.textContent = `${count} models selected ✓`;

@@ -2,13 +2,20 @@
 import uuid
 import json
 import asyncio
-from typing import Dict
+from typing import Dict, Optional
 from fastapi import APIRouter, HTTPException, status, Depends, WebSocket, WebSocketDisconnect
+from pydantic import BaseModel
 from cryptography.fernet import Fernet
 from backend.config import AI_MODELS, ENCRYPTION_KEY, FREE_DEBATE_LIMIT
 from backend.auth.dependencies import get_current_user
 from backend.auth.jwt import verify_token
 from backend.database import get_db, User, Debate, Message
+from backend.memory import (
+    get_user_memory,
+    get_user_memory_context,
+    delete_user_fact,
+    clear_user_memory,
+)
 from .schemas import (
     CreateDebateRequest,
     DebateResponse,
@@ -617,13 +624,18 @@ async def debate_websocket(websocket: WebSocket, debate_id: str):
             # For continuations, use the continuation_topic instead of full topic
             topic = config.pop("continuation_topic", None) or debate_row["topic"]
 
+            # Build user memory context for AI injection
+            user_memory_context = await get_user_memory_context(user_id)
+
             orchestrator = DebateOrchestrator(
                 debate_id=debate_id,
                 topic=topic,
                 config=config,
                 api_keys=api_keys,
                 on_message=broadcast_message,
-                images=images
+                images=images,
+                user_id=user_id,
+                user_memory_context=user_memory_context
             )
             active_debates[debate_id] = orchestrator
 
@@ -660,3 +672,53 @@ async def debate_websocket(websocket: WebSocket, debate_id: str):
             debate_connections[debate_id].remove(websocket)
         if debate_id in active_debates and not debate_connections.get(debate_id):
             del active_debates[debate_id]
+
+
+# Memory API Response Models
+class MemoryFactResponse(BaseModel):
+    id: int
+    fact_type: str
+    fact_key: str
+    fact_value: str
+    source_debate_id: Optional[str] = None
+    created_at: Optional[str] = None
+
+
+# Memory endpoints
+@router.get("/api/memory", response_model=list[MemoryFactResponse])
+async def list_memory_facts(current_user: User = Depends(get_current_user)):
+    """List all stored memory facts for the current user."""
+    facts = await get_user_memory(current_user.id)
+    return [
+        MemoryFactResponse(
+            id=fact.id,
+            fact_type=fact.fact_type,
+            fact_key=fact.fact_key,
+            fact_value=fact.fact_value,
+            source_debate_id=fact.source_debate_id,
+            created_at=str(fact.created_at) if fact.created_at else None
+        )
+        for fact in facts
+    ]
+
+
+@router.delete("/api/memory")
+async def clear_all_memory(current_user: User = Depends(get_current_user)):
+    """Clear all memory for the current user."""
+    count = await clear_user_memory(current_user.id)
+    return {"success": True, "deleted_count": count}
+
+
+@router.delete("/api/memory/{fact_id}")
+async def delete_memory_fact(
+    fact_id: int,
+    current_user: User = Depends(get_current_user)
+):
+    """Delete a specific memory fact."""
+    deleted = await delete_user_fact(current_user.id, fact_id)
+    if not deleted:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Memory fact not found"
+        )
+    return {"success": True}

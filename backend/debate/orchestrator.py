@@ -1,7 +1,7 @@
 """Debate orchestrator - manages the flow of debates."""
 import asyncio
 import json
-from typing import AsyncGenerator, Callable
+from typing import AsyncGenerator, Callable, Optional
 from backend.providers import ProviderRegistry
 from backend.database import get_db
 
@@ -16,7 +16,9 @@ class DebateOrchestrator:
         config: dict,
         api_keys: dict[str, str],
         on_message: Callable[[dict], None],
-        images: list = None
+        images: list = None,
+        user_id: Optional[str] = None,
+        user_memory_context: Optional[str] = None
     ):
         self.debate_id = debate_id
         self.topic = topic
@@ -32,6 +34,8 @@ class DebateOrchestrator:
         self._stopped = False
         self.images = images or []  # Optional images for vision models
         self._intervention_queue = asyncio.Queue()  # Queue for user interventions
+        self.user_id = user_id  # For memory extraction
+        self.user_memory_context = user_memory_context  # Memory context to inject
 
         # If images are attached, reorder models so vision-capable ones go first
         if self.images:
@@ -127,6 +131,10 @@ class DebateOrchestrator:
             # Generate summary if not stopped
             if not self._stopped and self.models:
                 await self._generate_summary()
+
+            # Extract and save memory asynchronously (don't block completion)
+            if self.user_id and not self._stopped:
+                asyncio.create_task(self._extract_and_save_memory())
 
             # Update status to completed
             status = "stopped" if self._stopped else "completed"
@@ -323,6 +331,10 @@ IMPORTANT RULES:
         """
         context = ""
 
+        # Inject user memory at the start (cross-session knowledge about the user)
+        if self.user_memory_context:
+            context += f"ABOUT THIS USER:\n{self.user_memory_context}\n---\n\n"
+
         # If there's previous conversation context (from history), include it as background
         if self.previous_context:
             context += f"BACKGROUND - {self.previous_context}\n---\n\n"
@@ -367,29 +379,46 @@ IMPORTANT RULES:
             provider = provider_class(self.api_keys[provider_name])
 
             # Build summary prompt
-            system_prompt = f"""You are {model_name}. Summarize this discussion for the user.
+            system_prompt = f"""You are {model_name}. Create a comprehensive summary that saves the user from having to read all the individual responses.
 
 IMPORTANT RULES:
 1. LANGUAGE: Respond in the SAME LANGUAGE the user used. Match their language exactly.
-2. FORMAT: Use this exact structure:
+2. NO FLUFF: No intro like "Here's a summary". Jump straight into the content.
 
-**[AI Name]**: [Their main point or choice in 1 sentence]
-**[AI Name]**: [Their main point or choice in 1 sentence]
+FORMAT - Use this structure:
+
+## Key Positions
+
+**[AI Name]**: [Their main point, reasoning, and any specific recommendations - 2-3 sentences capturing the essence of their argument]
+
+**[AI Name]**: [Same format - capture their unique perspective and key arguments]
+
 (repeat for each AI)
 
-**Bottom line**: [1 sentence final takeaway or recommendation]
+## Points of Agreement
+[What did most or all AIs agree on? Highlight the consensus - this is valuable because if multiple AIs agree, it's likely reliable advice]
 
-3. KEEP IT SHORT: One line per AI, max. Just their key point or choice.
-4. NO FLUFF: No intro like "Here's a summary". Jump straight into the format above.
-5. SHOW DISAGREEMENTS: If AIs disagreed, make that clear in their lines."""
+## Points of Disagreement
+[Where did opinions diverge? Why? This helps the user understand the tradeoffs and make their own decision]
+
+## The Bottom Line
+[2-3 sentences with actionable advice. What should the user actually DO based on this discussion? If it's a comparison, give a clear recommendation. If it's a question, give a direct answer. Be decisive and helpful.]
+
+GUIDELINES:
+- Make the summary WORTH reading - it should give more value than reading individual responses
+- Highlight the BEST arguments and insights from each AI
+- If comparing things, clearly state which option "won" and why
+- Be specific - use concrete details from the responses
+- For technical questions, include the key facts/steps
+- For opinions, explain the reasoning behind different positions"""
 
             context = ""
             if self.previous_context:
                 context += f"BACKGROUND CONTEXT:\n{self.previous_context}\n---\n\n"
-            context += f"USER'S CURRENT QUESTION: {self.topic}\n\nHere's what each AI said:\n\n"
+            context += f"USER'S QUESTION: {self.topic}\n\n---\n\nAI RESPONSES:\n\n"
             for msg in self.messages:
                 context += f"**{msg['model_name']}**: {msg['content']}\n\n"
-            context += "---\nNow summarize the discussion. Highlight who said what, any agreements/disagreements, and give a final helpful takeaway."
+            context += "---\n\nCreate a comprehensive summary following the format above. Make it valuable enough that the user doesn't need to read all the individual responses. Be specific, highlight key insights, and give a clear recommendation or answer."
 
             messages = [{"role": "user", "content": context}]
 
@@ -443,3 +472,18 @@ IMPORTANT RULES:
         """Broadcast a message to listeners."""
         if self.on_message:
             await self.on_message(message)
+
+    async def _extract_and_save_memory(self):
+        """Extract facts from the conversation and save to user memory."""
+        try:
+            from backend.memory import extract_and_save_memory
+            await extract_and_save_memory(
+                debate_id=self.debate_id,
+                user_id=self.user_id,
+                topic=self.topic,
+                messages=self.messages,
+                api_keys=self.api_keys
+            )
+        except Exception as e:
+            # Memory extraction failure shouldn't affect the debate
+            print(f"Memory extraction failed: {e}")

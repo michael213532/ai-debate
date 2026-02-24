@@ -250,3 +250,146 @@ async function deleteApiKey(provider) {
         alert('Failed to delete API key');
     }
 }
+
+
+// ============== SETTINGS TABS ==============
+
+// Initialize settings tabs
+document.querySelectorAll('.settings-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+        // Update active tab
+        document.querySelectorAll('.settings-tab').forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+
+        // Show corresponding content
+        const tabName = tab.dataset.tab;
+        document.querySelectorAll('.settings-tab-content').forEach(content => {
+            content.style.display = 'none';
+        });
+        document.getElementById(`tab-${tabName}`).style.display = 'block';
+
+        // Load memory if switching to memory tab
+        if (tabName === 'memory') {
+            loadMemoryFacts();
+        }
+    });
+});
+
+
+// ============== MEMORY TAB ==============
+
+// Load memory facts
+async function loadMemoryFacts() {
+    const list = document.getElementById('memory-list');
+    const clearBtn = document.getElementById('clear-all-memory-btn');
+
+    list.innerHTML = '<div class="memory-loading">Loading...</div>';
+    clearBtn.style.display = 'none';
+
+    try {
+        const response = await fetch(`${API_BASE}/api/memory`, {
+            headers: getAuthHeaders()
+        });
+
+        if (!response.ok) throw new Error('Failed to load memory');
+
+        const facts = await response.json();
+
+        if (facts.length === 0) {
+            list.innerHTML = `
+                <div class="memory-empty">
+                    <p>No memories yet</p>
+                    <p style="font-size: 0.85rem; margin-top: 8px;">
+                        Share information about yourself in conversations, and the AI will remember it for next time.
+                    </p>
+                </div>
+            `;
+            return;
+        }
+
+        // Show clear all button if there are facts
+        clearBtn.style.display = 'block';
+
+        // Group facts by type for display
+        list.innerHTML = facts.map(fact => {
+            const typeLabel = {
+                'name': 'Your Name',
+                'preference': 'Preference',
+                'interest': 'Interest'
+            }[fact.fact_type] || fact.fact_type;
+
+            const keyLabel = fact.fact_key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+
+            return `
+                <div class="memory-item" data-fact-id="${fact.id}">
+                    <div class="memory-item-content">
+                        <div class="memory-item-type">${typeLabel}</div>
+                        <div class="memory-item-value">
+                            <span class="memory-item-key">${keyLabel}:</span> ${fact.fact_value}
+                        </div>
+                    </div>
+                    <button class="memory-item-delete" onclick="deleteMemoryFact(${fact.id})" title="Delete this fact">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
+                        </svg>
+                    </button>
+                </div>
+            `;
+        }).join('');
+
+    } catch (error) {
+        console.error('Error loading memory:', error);
+        list.innerHTML = '<div class="memory-empty">Failed to load memory</div>';
+    }
+}
+
+// Delete a single memory fact
+async function deleteMemoryFact(factId) {
+    if (!confirm('Delete this memory fact?')) return;
+
+    try {
+        const response = await fetch(`${API_BASE}/api/memory/${factId}`, {
+            method: 'DELETE',
+            headers: getAuthHeaders()
+        });
+
+        if (!response.ok) throw new Error('Failed to delete fact');
+
+        // Remove from UI
+        const item = document.querySelector(`[data-fact-id="${factId}"]`);
+        if (item) {
+            item.remove();
+        }
+
+        // Check if list is now empty
+        const remaining = document.querySelectorAll('.memory-item');
+        if (remaining.length === 0) {
+            loadMemoryFacts(); // Reload to show empty state
+        }
+    } catch (error) {
+        console.error('Error deleting memory fact:', error);
+        alert('Failed to delete memory fact');
+    }
+}
+
+// Clear all memory
+document.getElementById('clear-all-memory-btn')?.addEventListener('click', async () => {
+    if (!confirm('Are you sure you want to clear all AI memory about you? This cannot be undone.')) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`${API_BASE}/api/memory`, {
+            method: 'DELETE',
+            headers: getAuthHeaders()
+        });
+
+        if (!response.ok) throw new Error('Failed to clear memory');
+
+        // Reload to show empty state
+        loadMemoryFacts();
+    } catch (error) {
+        console.error('Error clearing memory:', error);
+        alert('Failed to clear memory');
+    }
+});
