@@ -2,84 +2,150 @@
  * Main application logic
  */
 
+// Provider billing URLs
+const PROVIDER_BILLING_URLS = {
+    'openai': 'https://platform.openai.com/account/billing',
+    'anthropic': 'https://console.anthropic.com/settings/billing',
+    'google': 'https://console.cloud.google.com/billing',
+    'deepseek': 'https://platform.deepseek.com/usage',
+    'xai': 'https://console.x.ai/team/billing'
+};
+
+// Provider API key pages
+const PROVIDER_KEY_URLS = {
+    'openai': 'https://platform.openai.com/api-keys',
+    'anthropic': 'https://console.anthropic.com/settings/keys',
+    'google': 'https://aistudio.google.com/app/apikey',
+    'deepseek': 'https://platform.deepseek.com/api_keys',
+    'xai': 'https://console.x.ai/team/api-keys'
+};
+
 // Error labeling based on common API issues
 const ERROR_LABELS = {
     '401': {
         label: 'Invalid API Key',
         color: '#dc2626',
-        help: 'Double-check you copied the full key. Some providers require creating a new key.'
+        help: 'The API key is invalid or expired. Create a new one from your provider dashboard.',
+        actionType: 'key'
     },
     '429': {
         label: 'Rate Limited',
         color: '#f59e0b',
-        help: 'You\'ve hit usage limits. Wait a minute or check your quota on the provider\'s dashboard.'
+        help: 'Too many requests. Wait a minute or upgrade your plan for higher limits.',
+        actionType: 'billing'
     },
     '402': {
-        label: 'Payment Required',
+        label: 'No Credits',
         color: '#7c3aed',
-        help: 'Your account needs credits. Add a payment method on the provider\'s billing page.'
+        help: 'Your account has no credits. Add funds to continue using this AI.',
+        actionType: 'billing'
     },
     '403': {
         label: 'Access Denied',
         color: '#dc2626',
-        help: 'Your API key doesn\'t have permission for this model. Check your account settings.'
+        help: 'Your API key doesn\'t have access to this model. Check your plan or permissions.',
+        actionType: 'billing'
     },
     '404': {
         label: 'Model Not Found',
         color: '#6b7280',
-        help: 'This model may have been retired or renamed. Try a different model.'
+        help: 'This model was retired or renamed. Try selecting a different model.',
+        actionType: null
     },
     '500': {
         label: 'Provider Error',
         color: '#6b7280',
-        help: 'The AI provider is having issues. Try again in a moment.'
+        help: 'The AI provider is having technical issues. Try again in a moment.',
+        actionType: null
     },
     '503': {
-        label: 'Service Unavailable',
+        label: 'Overloaded',
         color: '#6b7280',
-        help: 'The AI provider is temporarily overloaded. Try again shortly.'
+        help: 'The AI service is temporarily overloaded. Try again in a few seconds.',
+        actionType: null
+    },
+    'insufficient_quota': {
+        label: 'No Credits',
+        color: '#7c3aed',
+        help: 'You\'ve run out of API credits. Add funds to your account.',
+        actionType: 'billing'
     }
 };
 
-// Parse error message and return labeled version
-function labelError(errorMessage) {
-    if (!errorMessage) return { label: 'Error', color: '#dc2626', message: 'Unknown error', help: '' };
+// Parse error message and return labeled version with action info
+function labelError(errorMessage, provider = null) {
+    if (!errorMessage) return { label: 'Error', color: '#dc2626', message: 'Unknown error', help: '', actionType: null, provider: null };
 
-    const msg = errorMessage.toString();
+    const msg = errorMessage.toString().toLowerCase();
+
+    // Check for insufficient_quota specifically (OpenAI)
+    if (msg.includes('insufficient_quota') || msg.includes('exceeded your current quota')) {
+        return {
+            ...ERROR_LABELS['insufficient_quota'],
+            message: errorMessage,
+            provider,
+            billingUrl: provider ? PROVIDER_BILLING_URLS[provider] : null
+        };
+    }
 
     // Check for status codes in error message
     for (const [code, info] of Object.entries(ERROR_LABELS)) {
-        if (msg.includes(code) || msg.toLowerCase().includes(info.label.toLowerCase())) {
+        if (msg.includes(code) || msg.includes(info.label.toLowerCase())) {
             return {
-                label: info.label,
-                color: info.color,
-                message: msg,
-                help: info.help
+                ...info,
+                message: errorMessage,
+                provider,
+                billingUrl: info.actionType === 'billing' && provider ? PROVIDER_BILLING_URLS[provider] : null,
+                keyUrl: info.actionType === 'key' && provider ? PROVIDER_KEY_URLS[provider] : null
             };
         }
     }
 
     // Check for common error patterns
-    if (msg.toLowerCase().includes('invalid') && msg.toLowerCase().includes('key')) {
-        return { ...ERROR_LABELS['401'], message: msg };
+    if (msg.includes('invalid') && msg.includes('key')) {
+        return {
+            ...ERROR_LABELS['401'],
+            message: errorMessage,
+            provider,
+            keyUrl: provider ? PROVIDER_KEY_URLS[provider] : null
+        };
     }
-    if (msg.toLowerCase().includes('rate') || msg.toLowerCase().includes('quota')) {
-        return { ...ERROR_LABELS['429'], message: msg };
+    if (msg.includes('rate') || msg.includes('quota') || msg.includes('limit')) {
+        return {
+            ...ERROR_LABELS['429'],
+            message: errorMessage,
+            provider,
+            billingUrl: provider ? PROVIDER_BILLING_URLS[provider] : null
+        };
     }
-    if (msg.toLowerCase().includes('credit') || msg.toLowerCase().includes('billing') || msg.toLowerCase().includes('payment')) {
-        return { ...ERROR_LABELS['402'], message: msg };
+    if (msg.includes('credit') || msg.includes('billing') || msg.includes('payment') || msg.includes('balance')) {
+        return {
+            ...ERROR_LABELS['402'],
+            message: errorMessage,
+            provider,
+            billingUrl: provider ? PROVIDER_BILLING_URLS[provider] : null
+        };
     }
-    if (msg.toLowerCase().includes('connection') || msg.toLowerCase().includes('network') || msg.toLowerCase().includes('timeout')) {
+    if (msg.includes('connection') || msg.includes('network') || msg.includes('timeout') || msg.includes('econnrefused')) {
         return {
             label: 'Connection Failed',
             color: '#6b7280',
-            message: msg,
-            help: 'Check your internet connection. VPNs or corporate networks may block API calls.'
+            message: errorMessage,
+            help: 'Check your internet connection. The AI provider may also be down.',
+            actionType: null,
+            provider
         };
     }
 
-    // Default
-    return { label: 'Error', color: '#dc2626', message: msg, help: '' };
+    // Default - show the actual error message
+    return {
+        label: 'Error',
+        color: '#dc2626',
+        message: errorMessage,
+        help: 'Something went wrong. Try again or check your API key settings.',
+        actionType: null,
+        provider
+    };
 }
 
 const API_BASE = '';

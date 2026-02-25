@@ -481,21 +481,61 @@ function finishAiDiscussion(modelName) {
     }
 }
 
-// Add AI discussion error with helpful labeling
+// Add AI discussion error with helpful labeling and action buttons
 function addAiDiscussionError(modelName, error) {
     const container = document.getElementById('chat-messages');
     const msg = container.querySelector(`.message.ai-individual[data-model="${modelName}"]`);
     if (msg) {
         msg.classList.remove('streaming');
         const content = msg.querySelector('.message-content');
+        const provider = msg.dataset.provider;
 
-        // Get labeled error info
-        const errorInfo = labelError(error);
+        // Get labeled error info with provider context
+        const errorInfo = labelError(error, provider);
+
+        // Build action button if applicable
+        let actionButton = '';
+        if (errorInfo.billingUrl) {
+            const providerName = provider.charAt(0).toUpperCase() + provider.slice(1);
+            actionButton = `
+                <a href="${errorInfo.billingUrl}" target="_blank" rel="noopener"
+                   style="display: inline-flex; align-items: center; gap: 6px; margin-top: 10px; padding: 8px 14px;
+                          background: ${errorInfo.color}; color: white; border-radius: 6px; text-decoration: none;
+                          font-size: 0.85rem; font-weight: 500;">
+                    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect>
+                        <line x1="1" y1="10" x2="23" y2="10"></line>
+                    </svg>
+                    Add Credits on ${providerName}
+                </a>
+            `;
+        } else if (errorInfo.keyUrl) {
+            const providerName = provider.charAt(0).toUpperCase() + provider.slice(1);
+            actionButton = `
+                <a href="${errorInfo.keyUrl}" target="_blank" rel="noopener"
+                   style="display: inline-flex; align-items: center; gap: 6px; margin-top: 10px; padding: 8px 14px;
+                          background: ${errorInfo.color}; color: white; border-radius: 6px; text-decoration: none;
+                          font-size: 0.85rem; font-weight: 500;">
+                    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"></path>
+                    </svg>
+                    Get New API Key
+                </a>
+            `;
+        }
 
         content.innerHTML = `
-            <div class="error-labeled" style="color: ${errorInfo.color};">
-                <div style="font-weight: 600; margin-bottom: 4px;">${errorInfo.label}</div>
-                ${errorInfo.help ? `<div style="font-size: 0.85rem; opacity: 0.9;">${errorInfo.help}</div>` : ''}
+            <div class="error-labeled">
+                <div style="display: flex; align-items: center; gap: 8px; color: ${errorInfo.color}; font-weight: 600; margin-bottom: 6px;">
+                    <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="12" y1="8" x2="12" y2="12"></line>
+                        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                    </svg>
+                    ${errorInfo.label}
+                </div>
+                <div style="font-size: 0.9rem; color: var(--text-secondary); line-height: 1.5;">${errorInfo.help}</div>
+                ${actionButton}
             </div>
         `;
     }
