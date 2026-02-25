@@ -331,14 +331,9 @@ IMPORTANT RULES:
         """
         context = ""
 
-        # Inject user name subtly if known (don't mention other memory)
+        # Inject user memory context if available
         if self.user_memory_context:
-            # Extract just the name if present for subtle personalization
-            for line in self.user_memory_context.split("\n"):
-                if line.startswith("Name:"):
-                    name = line.replace("Name:", "").strip()
-                    context += f"(The user's name is {name}. You may address them by name naturally, but don't mention that you 'remember' them.)\n\n"
-                    break
+            context += f"(USER INFO - only reference if relevant to their question: {self.user_memory_context}. Do NOT proactively mention past topics or say you 'remember' them - only bring up past topics if the user asks about them.)\n\n"
 
         # If there's previous conversation context (from history), include it as background
         if self.previous_context:

@@ -18,22 +18,27 @@ async def get_user_memory(user_id: str) -> list[UserMemory]:
 async def get_user_memory_context(user_id: str) -> str:
     """Build a context string from user memory for AI injection.
 
-    Only includes truly important facts (name, profession) - NOT recent topics.
-    Returns empty string if no important facts exist.
+    Includes name, profession, and recent topics (for reference if user asks).
     """
     facts = await get_user_memory(user_id)
+    recent_summaries = await get_recent_debate_summaries(user_id, limit=3)
 
-    if not facts:
+    if not facts and not recent_summaries:
         return ""
 
     lines = []
 
-    # Only include core identifying facts - name and profession
+    # Core identifying facts
     for fact in facts:
         if fact.fact_key == "user_name":
             lines.append(f"Name: {fact.fact_value}")
         elif fact.fact_key == "profession":
             lines.append(f"Profession: {fact.fact_value}")
+
+    # Recent topics (for reference only)
+    if recent_summaries:
+        topics = [s.topic_summary for s in recent_summaries]
+        lines.append(f"Recent topics: {', '.join(topics)}")
 
     return "\n".join(lines) if lines else ""
 
