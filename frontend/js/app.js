@@ -523,6 +523,11 @@ if (chatInput) {
         // Restore previously selected models
         loadSelectedModels();
 
+        // Load chat history (sidebar is always visible)
+        if (typeof loadChatHistory === 'function') {
+            loadChatHistory();
+        }
+
         // Check for subscription success/cancel from URL
         const urlParams = new URLSearchParams(window.location.search);
         if (urlParams.get('subscription') === 'success') {
