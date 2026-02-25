@@ -266,6 +266,9 @@ function renderSubscriptionStatus() {
 document.getElementById('dropdown-upgrade-btn')?.addEventListener('click', () => {
     window.location.href = '/pricing';
 });
+document.getElementById('mobile-dropdown-upgrade-btn')?.addEventListener('click', () => {
+    window.location.href = '/pricing';
+});
 
 // Render model tags - only show models with configured providers
 function renderModelTags() {
@@ -410,6 +413,10 @@ document.getElementById('dropdown-logout-btn')?.addEventListener('click', () => 
     localStorage.removeItem('token');
     window.location.href = '/';
 });
+document.getElementById('mobile-dropdown-logout-btn')?.addEventListener('click', () => {
+    localStorage.removeItem('token');
+    window.location.href = '/';
+});
 
 // Settings button (if it exists)
 document.getElementById('settings-btn')?.addEventListener('click', () => {
@@ -426,7 +433,7 @@ document.getElementById('settings-btn-inline')?.addEventListener('click', () => 
     openSettingsModal();
 });
 
-// Profile dropdown toggle
+// Profile dropdown toggle (desktop - in sidebar)
 const profileBtn = document.getElementById('profile-btn');
 const profileDropdown = document.getElementById('profile-dropdown');
 
@@ -434,13 +441,6 @@ if (profileBtn && profileDropdown) {
     profileBtn.addEventListener('click', (e) => {
         e.stopPropagation();
         profileDropdown.classList.toggle('open');
-    });
-
-    // Close dropdown when clicking outside
-    document.addEventListener('click', (e) => {
-        if (!profileDropdown.contains(e.target) && !profileBtn.contains(e.target)) {
-            profileDropdown.classList.remove('open');
-        }
     });
 
     // Close dropdown when clicking an item
@@ -451,41 +451,73 @@ if (profileBtn && profileDropdown) {
     });
 }
 
+// Mobile profile dropdown toggle (in header)
+const mobileProfileBtn = document.getElementById('mobile-profile-btn');
+const mobileProfileDropdown = document.getElementById('mobile-profile-dropdown');
+
+if (mobileProfileBtn && mobileProfileDropdown) {
+    mobileProfileBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        mobileProfileDropdown.classList.toggle('open');
+    });
+
+    // Close dropdown when clicking an item
+    mobileProfileDropdown.querySelectorAll('.profile-dropdown-item').forEach(item => {
+        item.addEventListener('click', () => {
+            mobileProfileDropdown.classList.remove('open');
+        });
+    });
+}
+
+// Close all dropdowns when clicking outside
+document.addEventListener('click', (e) => {
+    if (profileDropdown && !profileDropdown.contains(e.target) && !profileBtn?.contains(e.target)) {
+        profileDropdown.classList.remove('open');
+    }
+    if (mobileProfileDropdown && !mobileProfileDropdown.contains(e.target) && !mobileProfileBtn?.contains(e.target)) {
+        mobileProfileDropdown.classList.remove('open');
+    }
+});
+
 // Update profile display
 function updateProfileDisplay(email, isPro) {
     const initial = email ? email.charAt(0).toUpperCase() : 'U';
 
-    // Update avatars
-    const avatar = document.getElementById('profile-avatar');
-    const avatarLarge = document.getElementById('profile-avatar-large');
-    if (avatar) avatar.textContent = initial;
-    if (avatarLarge) avatarLarge.textContent = initial;
+    // Update avatars (desktop + mobile)
+    ['profile-avatar', 'profile-avatar-large', 'mobile-profile-avatar', 'mobile-profile-avatar-large'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = initial;
+    });
 
     // Update inline name in sidebar profile button
     const profileNameInline = document.getElementById('profile-name-inline');
     if (profileNameInline) profileNameInline.textContent = email || 'Account';
 
-    // Update email
-    const profileEmail = document.getElementById('profile-email');
-    if (profileEmail) profileEmail.textContent = email || 'User';
+    // Update email (desktop + mobile)
+    ['profile-email', 'mobile-profile-email'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = email || 'User';
+    });
 
-    // Update plan
-    const profilePlan = document.getElementById('profile-plan');
-    if (profilePlan) {
-        if (isPro) {
-            profilePlan.textContent = 'Pro Plan';
-            profilePlan.classList.add('pro');
-        } else {
-            profilePlan.textContent = 'Free Plan';
-            profilePlan.classList.remove('pro');
+    // Update plan (desktop + mobile)
+    ['profile-plan', 'mobile-profile-plan'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+            if (isPro) {
+                el.textContent = 'Pro Plan';
+                el.classList.add('pro');
+            } else {
+                el.textContent = 'Free Plan';
+                el.classList.remove('pro');
+            }
         }
-    }
+    });
 
-    // Show/hide upgrade button in dropdown
-    const dropdownUpgrade = document.getElementById('dropdown-upgrade-btn');
-    if (dropdownUpgrade) {
-        dropdownUpgrade.style.display = isPro ? 'none' : 'flex';
-    }
+    // Show/hide upgrade button in dropdown (desktop + mobile)
+    ['dropdown-upgrade-btn', 'mobile-dropdown-upgrade-btn'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.style.display = isPro ? 'none' : 'flex';
+    });
 }
 
 // Chat input handlers
