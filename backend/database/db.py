@@ -199,6 +199,9 @@ async def init_sqlite():
                 FOREIGN KEY (debate_id) REFERENCES debates(id),
                 FOREIGN KEY (user_id) REFERENCES users(id)
             );
+
+            CREATE INDEX IF NOT EXISTS idx_debates_user_created
+                ON debates(user_id, created_at DESC);
         """)
         await db.commit()
 

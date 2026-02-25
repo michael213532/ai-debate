@@ -351,10 +351,10 @@ async def continue_debate(
 
 @router.get("/api/debates", response_model=list[DebateResponse])
 async def list_debates(current_user: User = Depends(get_current_user)):
-    """List all debates for the current user."""
+    """List recent debates for the current user (max 50)."""
     async with get_db() as db:
         cursor = await db.execute(
-            "SELECT * FROM debates WHERE user_id = ? ORDER BY created_at DESC",
+            "SELECT * FROM debates WHERE user_id = ? ORDER BY created_at DESC LIMIT 50",
             (current_user.id,)
         )
         rows = await cursor.fetchall()
