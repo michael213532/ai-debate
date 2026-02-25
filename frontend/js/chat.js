@@ -575,12 +575,12 @@ function setInputLocked(locked) {
         sendBtn.classList.add('stop-mode');
         sendBtn.disabled = false;
         if (sendIcon) sendIcon.style.display = 'none';
-        if (stopIcon) stopIcon.style.display = 'block';
+        if (stopIcon) stopIcon.style.display = 'inline';
     } else {
         // Switch to send mode
         input.placeholder = 'Type your message...';
         sendBtn.classList.remove('stop-mode');
-        if (sendIcon) sendIcon.style.display = 'block';
+        if (sendIcon) sendIcon.style.display = 'inline';
         if (stopIcon) stopIcon.style.display = 'none';
         updateSendButton();
     }

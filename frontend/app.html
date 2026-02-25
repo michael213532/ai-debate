@@ -532,8 +532,11 @@
         .chat-buttons-row {
             display: flex;
             gap: 10px;
-            justify-content: flex-end;
             align-items: center;
+        }
+
+        .chat-buttons-spacer {
+            flex: 1;
         }
 
         .action-btn {
@@ -1456,14 +1459,10 @@
                                 </button>
                             </div>
                         </div>
+                        <div class="chat-buttons-spacer"></div>
                         <button id="send-btn" class="btn btn-primary action-btn" disabled>
-                            <svg id="send-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <line x1="22" y1="2" x2="11" y2="13"></line>
-                                <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
-                            </svg>
-                            <svg id="stop-icon" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" style="display: none;">
-                                <rect x="6" y="6" width="12" height="12" rx="2"></rect>
-                            </svg>
+                            <span id="send-icon">➤</span>
+                            <span id="stop-icon" style="display: none;">■</span>
                         </button>
                     </div>
                 </div>
