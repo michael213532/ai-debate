@@ -26,7 +26,7 @@ class DebateOrchestrator:
         self.api_keys = api_keys
         self.on_message = on_message
         self.models = config.get("models", [])
-        self.rounds = config.get("rounds", 3)
+        self.max_rounds = 10  # Maximum rounds before forcing end
         self.summarizer_index = config.get("summarizer_index", 0)
         self.previous_context = config.get("previous_context", None)  # Context from continued conversations
         self.start_round = config.get("start_round", 1)  # Starting round for continuations
@@ -109,16 +109,15 @@ class DebateOrchestrator:
                 )
                 await db.commit()
 
-            # Run each round (start from start_round for continuations)
-            end_round = self.start_round + self.rounds
-            for round_num in range(self.start_round, end_round):
-                if self._stopped:
-                    break
+            # Run rounds until agreement or max rounds reached
+            round_num = self.start_round
+            agreement_reached = False
 
+            while not self._stopped and round_num <= self.max_rounds:
                 await self._broadcast({
                     "type": "round_start",
                     "round": round_num,
-                    "total_rounds": self.rounds
+                    "total_rounds": "until agreement"
                 })
 
                 await self._run_round(round_num)
@@ -127,6 +126,18 @@ class DebateOrchestrator:
                     "type": "round_end",
                     "round": round_num
                 })
+
+                # Check for agreement after each round (need at least 2 responses)
+                if len(self.messages) >= 2:
+                    agreement_reached = await self._check_agreement()
+                    if agreement_reached:
+                        await self._broadcast({
+                            "type": "agreement_reached",
+                            "round": round_num
+                        })
+                        break
+
+                round_num += 1
 
             # Generate summary if not stopped
             if not self._stopped and self.models:
@@ -299,24 +310,24 @@ class DebateOrchestrator:
         """Build system prompt for a model."""
         base_prompt = f"""You are {model_name}. When asked who you are or what model you are, always say "{model_name}" - never use any other name.
 
-You are participating in a friendly discussion with other AI models.
+You are participating in a collaborative discussion with other AI models. The goal is to reach AGREEMENT on the best answer for the user.
 
 IMPORTANT RULES:
 1. IDENTITY: You are {model_name}. If asked your name or what model you are, say "{model_name}". Do not use any other name.
 
 2. LANGUAGE: Respond in the language of the USER'S CURRENT MESSAGE only. Ignore what language other AIs used. If the user wrote in English, respond in English even if other AIs used a different language.
 
-3. BE CONCISE: Keep your response short and focused - typically 3-6 sentences unless the topic truly requires more detail. No fluff, no repetition. Get to the point quickly like a helpful friend would.
+3. WORK TOWARDS AGREEMENT: This discussion continues until all AIs agree. Consider other AIs' points carefully. If they make good arguments, acknowledge them and update your position. Find common ground. Don't be stubborn - the goal is to help the user with the BEST answer, not to "win".
 
-4. BE HUMAN: Talk naturally like a thoughtful friend would. No robotic responses. Use casual language, share genuine opinions, and be personable.
+4. BE CONCISE: Keep your response short and focused - typically 3-6 sentences. No fluff, no repetition. Get to the point quickly.
 
-5. MAKE CLEAR CHOICES: When asked to compare or choose (like "which photo is better"), clearly state YOUR choice and explain WHY with specific criteria (lighting, composition, colors, mood, etc.).
+5. BE HUMAN: Talk naturally like a thoughtful friend would. No robotic responses. Use casual language and be personable.
 
-6. BE SPECIFIC: Give concrete reasons for your opinions. Don't be vague. If comparing images, point out specific details you notice.
+6. MAKE CLEAR CHOICES: When asked to compare or choose, clearly state YOUR choice and explain WHY with specific criteria.
 
-7. OWN YOUR OPINION: Say "I think..." or "In my view..." - make it clear this is YOUR perspective as {model_name}.
+7. BE SPECIFIC: Give concrete reasons for your opinions. Don't be vague.
 
-8. LONGER RESPONSES ONLY WHEN NEEDED: Only give longer responses if the user explicitly asks for detail ("explain in depth", "give me a comprehensive overview") or the task genuinely requires it (complex code, detailed analysis). Otherwise, keep it brief."""
+8. SIGNAL AGREEMENT: If you agree with another AI's conclusion, explicitly say so (e.g., "I agree with GPT-5 that..." or "After considering Gemini's point, I think they're right that..."). This helps reach consensus faster."""
 
         if role:
             base_prompt += f"\n\nYour perspective/role: {role}"
@@ -352,7 +363,7 @@ IMPORTANT RULES:
             context += "CONVERSATION SO FAR:\n\n"
             for msg in self.messages:
                 context += f"**{msg['model_name']}**: {msg['content']}\n\n"
-            context += "---\nNow it's your turn. Respond to what was just said - you can agree, disagree, add nuance, or offer a different perspective. Engage directly with the previous response like you're having a real conversation."
+            context += "---\nNow it's your turn. The discussion continues until everyone agrees. Consider the other perspectives - if they made good points, acknowledge them. Try to find common ground and work towards a consensus answer for the user."
 
         return context
 
@@ -477,6 +488,82 @@ GUIDELINES:
         """Broadcast a message to listeners."""
         if self.on_message:
             await self.on_message(message)
+
+    async def _check_agreement(self) -> bool:
+        """Check if all AIs have reached agreement on the topic.
+
+        Uses a fast model to analyze the latest responses and determine consensus.
+        Returns True if agreement reached, False otherwise.
+        """
+        # Get the most recent response from each model
+        latest_responses = {}
+        for msg in reversed(self.messages):
+            if msg["provider"] != "user" and msg["model_name"] not in latest_responses:
+                latest_responses[msg["model_name"]] = msg["content"]
+            if len(latest_responses) >= len(self.models):
+                break
+
+        if len(latest_responses) < 2:
+            return False
+
+        # Find a fast model to check agreement
+        check_models = [
+            ("google", "gemini-2.0-flash"),
+            ("openai", "gpt-5-mini"),
+            ("anthropic", "claude-haiku-4-5-20251001"),
+            ("deepseek", "deepseek-chat"),
+        ]
+
+        provider_name = None
+        model_id = None
+        for prov, model in check_models:
+            if prov in self.api_keys:
+                provider_name = prov
+                model_id = model
+                break
+
+        if not provider_name:
+            # No model available, assume no agreement to continue discussion
+            return False
+
+        try:
+            provider_class = ProviderRegistry.get(provider_name)
+            provider = provider_class(self.api_keys[provider_name])
+
+            # Build analysis prompt
+            responses_text = "\n\n".join([
+                f"**{name}**: {content[:500]}..." if len(content) > 500 else f"**{name}**: {content}"
+                for name, content in latest_responses.items()
+            ])
+
+            system_prompt = """You analyze AI discussions to detect agreement.
+Return ONLY "AGREE" or "DISAGREE" - nothing else.
+
+AGREE means: All AIs have the same position, recommendation, or answer. Minor wording differences are OK.
+DISAGREE means: AIs have different positions, recommendations, or conflicting views.
+
+Be strict - if there's ANY meaningful difference in their conclusions, return DISAGREE."""
+
+            user_message = f"""Topic: {self.topic}
+
+Latest AI positions:
+{responses_text}
+
+Do all AIs agree? Reply ONLY with AGREE or DISAGREE."""
+
+            full_response = ""
+            async for chunk in provider.generate_stream(
+                model=model_id,
+                messages=[{"role": "user", "content": user_message}],
+                system_prompt=system_prompt
+            ):
+                full_response += chunk
+
+            return "AGREE" in full_response.upper()
+
+        except Exception as e:
+            print(f"Agreement check failed: {e}")
+            return False
 
     async def _extract_and_save_memory(self):
         """Extract facts from the conversation and save to user memory."""
