@@ -505,23 +505,18 @@
             object-fit: cover;
         }
 
-        .chat-input-row {
-            display: flex;
-            gap: 12px;
-            align-items: flex-end;
-        }
-
         .chat-input {
-            flex: 1;
+            width: 100%;
             padding: 14px 18px;
             border: 1px solid var(--border-color);
-            border-radius: 24px;
+            border-radius: 16px;
             background: var(--background);
             color: var(--text-primary);
             font-size: 1rem;
             resize: none;
             max-height: 150px;
             font-family: inherit;
+            margin-bottom: 10px;
         }
 
         .chat-input:focus {
@@ -534,9 +529,16 @@
             cursor: not-allowed;
         }
 
-        .send-btn {
-            width: 48px;
-            height: 48px;
+        .chat-buttons-row {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            align-items: center;
+        }
+
+        .action-btn {
+            width: 44px;
+            height: 44px;
             border-radius: 50%;
             display: flex;
             align-items: center;
@@ -545,8 +547,18 @@
             flex-shrink: 0;
         }
 
-        .send-btn:disabled {
+        .action-btn:disabled {
             opacity: 0.5;
+        }
+
+        #send-btn.stop-mode {
+            background: #ef4444;
+            border-color: #ef4444;
+        }
+
+        #send-btn.stop-mode:hover {
+            background: #dc2626;
+            border-color: #dc2626;
         }
 
         /* Individual AI Response in Main Chat */
@@ -1015,27 +1027,21 @@
                 padding-bottom: max(10px, env(safe-area-inset-bottom));
             }
 
-            .chat-input-row {
-                gap: 8px;
-            }
-
             .chat-input {
                 padding: 14px 16px;
                 font-size: 16px; /* Prevents zoom on iOS */
                 min-height: 48px;
-                border-radius: 20px;
+                border-radius: 14px;
+                margin-bottom: 8px;
             }
 
-            .send-btn {
-                width: 42px;
-                height: 42px;
-                font-size: 1rem;
+            .chat-buttons-row {
+                gap: 8px;
             }
 
-            /* Compact attachment menu */
-            .attachment-menu .btn.send-btn {
-                width: 42px;
-                height: 42px;
+            .action-btn {
+                width: 40px;
+                height: 40px;
             }
 
             .attachment-dropdown {
@@ -1434,10 +1440,13 @@
                     <div id="chat-status" class="chat-status"></div>
                     <!-- Images Preview -->
                     <div id="images-preview-container" class="images-preview-container"></div>
-                    <div class="chat-input-row">
+                    <!-- Textarea on top -->
+                    <textarea id="chat-input" class="chat-input" placeholder="Type your message..." rows="1"></textarea>
+                    <!-- Buttons row below -->
+                    <div class="chat-buttons-row">
                         <input type="file" id="image-input" accept="image/jpeg,image/png,image/gif,image/webp" style="display: none;">
                         <div class="attachment-menu">
-                            <button id="attachment-btn" class="btn btn-secondary send-btn" title="Add attachment">+</button>
+                            <button id="attachment-btn" class="btn btn-secondary action-btn" title="Add attachment">+</button>
                             <div id="attachment-dropdown" class="attachment-dropdown">
                                 <button class="attachment-dropdown-item" id="add-image-btn">
                                     <span class="icon">🖼️</span> Add Image
@@ -1447,8 +1456,15 @@
                                 </button>
                             </div>
                         </div>
-                        <textarea id="chat-input" class="chat-input" placeholder="Type your message..." rows="1"></textarea>
-                        <button id="send-btn" class="btn btn-primary send-btn" disabled>➤</button>
+                        <button id="send-btn" class="btn btn-primary action-btn" disabled>
+                            <svg id="send-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="22" y1="2" x2="11" y2="13"></line>
+                                <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                            </svg>
+                            <svg id="stop-icon" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" style="display: none;">
+                                <rect x="6" y="6" width="12" height="12" rx="2"></rect>
+                            </svg>
+                        </button>
                     </div>
                 </div>
             </div>

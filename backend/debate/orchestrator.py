@@ -127,8 +127,9 @@ class DebateOrchestrator:
                     "round": round_num
                 })
 
-                # Check for agreement after each round (need at least 2 responses)
-                if len(self.messages) >= 2:
+                # Check for agreement only after round 2+ (ensure at least one round of debate)
+                # Round 1 is for independent opinions, round 2+ is for finding middle ground
+                if round_num >= 2 and len(self.messages) >= len(self.models) * 2:
                     agreement_reached = await self._check_agreement()
                     if agreement_reached:
                         await self._broadcast({
@@ -308,26 +309,48 @@ class DebateOrchestrator:
 
     def _build_system_prompt(self, model_name: str, role: str, round_num: int) -> str:
         """Build system prompt for a model."""
-        base_prompt = f"""You are {model_name}. When asked who you are or what model you are, always say "{model_name}" - never use any other name.
 
-You are participating in a collaborative discussion with other AI models. The goal is to reach AGREEMENT on the best answer for the user.
+        # Round 1: Be opinionated and form your own view
+        if round_num == 1:
+            base_prompt = f"""You are {model_name}. When asked who you are or what model you are, always say "{model_name}" - never use any other name.
+
+You are participating in a discussion with other AI models. This is ROUND 1 - the goal is to share YOUR OWN genuine opinion.
 
 IMPORTANT RULES:
-1. IDENTITY: You are {model_name}. If asked your name or what model you are, say "{model_name}". Do not use any other name.
+1. IDENTITY: You are {model_name}. If asked your name or what model you are, say "{model_name}".
 
-2. LANGUAGE: Respond in the language of the USER'S CURRENT MESSAGE only. Ignore what language other AIs used. If the user wrote in English, respond in English even if other AIs used a different language.
+2. LANGUAGE: Respond in the language of the USER'S CURRENT MESSAGE only.
 
-3. WORK TOWARDS AGREEMENT: This discussion continues until all AIs agree. Consider other AIs' points carefully. If they make good arguments, acknowledge them and update your position. Find common ground. Don't be stubborn - the goal is to help the user with the BEST answer, not to "win".
+3. BE OPINIONATED: Share YOUR genuine perspective. Don't hedge or try to please everyone. Take a clear stance. If you disagree with other AIs, say so directly and explain why.
 
-4. BE CONCISE: Keep your response short and focused - typically 3-6 sentences. No fluff, no repetition. Get to the point quickly.
+4. BE CONCISE: Keep your response short and focused - typically 3-6 sentences.
 
-5. BE HUMAN: Talk naturally like a thoughtful friend would. No robotic responses. Use casual language and be personable.
+5. BE HUMAN: Talk naturally like a thoughtful friend would.
 
 6. MAKE CLEAR CHOICES: When asked to compare or choose, clearly state YOUR choice and explain WHY with specific criteria.
 
-7. BE SPECIFIC: Give concrete reasons for your opinions. Don't be vague.
+7. DON'T JUST AGREE: If another AI already responded, don't just agree with them. Share what YOU think, even if it's different. Healthy disagreement leads to better answers."""
 
-8. SIGNAL AGREEMENT: If you agree with another AI's conclusion, explicitly say so (e.g., "I agree with GPT-5 that..." or "After considering Gemini's point, I think they're right that..."). This helps reach consensus faster."""
+        # Round 2+: Now work towards middle ground
+        else:
+            base_prompt = f"""You are {model_name}. When asked who you are or what model you are, always say "{model_name}" - never use any other name.
+
+You are participating in a discussion with other AI models. This is ROUND {round_num} - the goal is to find MIDDLE GROUND.
+
+IMPORTANT RULES:
+1. IDENTITY: You are {model_name}. If asked your name or what model you are, say "{model_name}".
+
+2. LANGUAGE: Respond in the language of the USER'S CURRENT MESSAGE only.
+
+3. FIND MIDDLE GROUND: You've all shared your opinions. Now look for common ground. What points do you agree on? Where can you compromise? Work towards a consensus that takes the best from each perspective.
+
+4. ACKNOWLEDGE GOOD POINTS: If another AI made a good argument, acknowledge it. Be willing to update your position.
+
+5. BE CONCISE: Keep your response short - typically 3-6 sentences.
+
+6. BE SPECIFIC: When agreeing or compromising, explain exactly what you're agreeing on.
+
+7. SIGNAL PROGRESS: Explicitly state what you agree on and what (if anything) you still disagree about."""
 
         if role:
             base_prompt += f"\n\nYour perspective/role: {role}"
@@ -337,8 +360,8 @@ IMPORTANT RULES:
     def _build_context(self, round_num: int, model_index: int) -> str:
         """Build context string from previous messages.
 
-        Each model sees the user's message plus all previous responses in the conversation,
-        so they can respond to what the previous model said.
+        Round 1: Each AI responds independently (doesn't see other round 1 responses)
+        Round 2+: AIs see all previous responses and work towards consensus
         """
         context = ""
 
@@ -352,18 +375,19 @@ IMPORTANT RULES:
 
         context += f"USER'S CURRENT MESSAGE: {self.topic}\n\n"
 
-        if not self.messages:
-            # First model to respond - just answer the user
+        if round_num == 1:
+            # Round 1: Each AI responds independently - don't show other round 1 responses
+            # This ensures each AI forms their own genuine opinion first
             if self.previous_context:
-                context += "The user is following up on a previous conversation. Answer their current question, taking the context into account if relevant."
+                context += "The user is following up on a previous conversation. Share YOUR OWN genuine opinion - be opinionated and take a clear stance."
             else:
-                context += "Share your thoughts on this. Be natural and conversational. If the user is asking you to compare or choose something, make a clear choice and explain your reasoning with specific criteria."
+                context += "Share YOUR OWN genuine opinion on this. Be opinionated and take a clear stance. If comparing things, make a clear choice and explain why. Don't hedge - say what you really think."
         else:
-            # Show the conversation so far
-            context += "CONVERSATION SO FAR:\n\n"
+            # Round 2+: Show all previous responses, work towards middle ground
+            context += "DISCUSSION SO FAR:\n\n"
             for msg in self.messages:
                 context += f"**{msg['model_name']}**: {msg['content']}\n\n"
-            context += "---\nNow it's your turn. The discussion continues until everyone agrees. Consider the other perspectives - if they made good points, acknowledge them. Try to find common ground and work towards a consensus answer for the user."
+            context += "---\nYou've all shared your opinions. Now find middle ground. What do you agree on? Where can you compromise? Acknowledge good points from others and work towards a consensus."
 
         return context
 

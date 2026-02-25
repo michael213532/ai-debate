@@ -33,16 +33,27 @@ function getSummarizerIndex(models) {
     return 0;
 }
 
-// Send button click - detect intervention vs new conversation
+// Send button click - send message or stop discussion
 document.getElementById('send-btn').addEventListener('click', () => {
-    if (isProcessing && chatWebSocket && chatWebSocket.readyState === WebSocket.OPEN) {
-        // During active discussion - send as intervention
-        sendIntervention();
+    const btn = document.getElementById('send-btn');
+    if (btn.classList.contains('stop-mode')) {
+        // Stop the discussion
+        stopDiscussion();
     } else {
         // Normal message send
         sendMessage();
     }
 });
+
+// Stop the current discussion
+function stopDiscussion() {
+    if (chatWebSocket && chatWebSocket.readyState === WebSocket.OPEN) {
+        chatWebSocket.send(JSON.stringify({ type: 'stop' }));
+        chatWebSocket.close();
+    }
+    updateChatStatus('Discussion stopped');
+    setInputLocked(false);
+}
 
 // Attachment menu toggle
 document.getElementById('attachment-btn').addEventListener('click', (e) => {
@@ -550,18 +561,29 @@ function updateChatStatus(text) {
     }
 }
 
-// Lock/unlock input - allows intervention during processing
+// Lock/unlock input - toggle between send and stop mode
 function setInputLocked(locked) {
     isProcessing = locked;
     const input = document.getElementById('chat-input');
+    const sendBtn = document.getElementById('send-btn');
+    const sendIcon = document.getElementById('send-icon');
+    const stopIcon = document.getElementById('stop-icon');
 
-    // Don't disable input - allow intervention during discussion
     if (locked) {
-        input.placeholder = 'Type to intervene in the discussion...';
+        // Switch to stop mode
+        input.placeholder = 'Discussion in progress...';
+        sendBtn.classList.add('stop-mode');
+        sendBtn.disabled = false;
+        if (sendIcon) sendIcon.style.display = 'none';
+        if (stopIcon) stopIcon.style.display = 'block';
     } else {
+        // Switch to send mode
         input.placeholder = 'Type your message...';
+        sendBtn.classList.remove('stop-mode');
+        if (sendIcon) sendIcon.style.display = 'block';
+        if (stopIcon) stopIcon.style.display = 'none';
+        updateSendButton();
     }
-    updateSendButton();
 }
 
 // Send an intervention message during discussion
