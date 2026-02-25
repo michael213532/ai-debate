@@ -331,9 +331,14 @@ IMPORTANT RULES:
         """
         context = ""
 
-        # Inject user memory at the start (cross-session knowledge about the user)
+        # Inject user name subtly if known (don't mention other memory)
         if self.user_memory_context:
-            context += f"ABOUT THIS USER:\n{self.user_memory_context}\n---\n\n"
+            # Extract just the name if present for subtle personalization
+            for line in self.user_memory_context.split("\n"):
+                if line.startswith("Name:"):
+                    name = line.replace("Name:", "").strip()
+                    context += f"(The user's name is {name}. You may address them by name naturally, but don't mention that you 'remember' them.)\n\n"
+                    break
 
         # If there's previous conversation context (from history), include it as background
         if self.previous_context:

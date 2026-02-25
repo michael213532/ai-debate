@@ -18,55 +18,22 @@ async def get_user_memory(user_id: str) -> list[UserMemory]:
 async def get_user_memory_context(user_id: str) -> str:
     """Build a context string from user memory for AI injection.
 
-    Returns a formatted string like:
-    - Name: Michael
-    - Interests: Photography, AI models
-    - Recent topics: Photo comparison (Feb 23), Model benchmarks (Feb 20)
+    Only includes truly important facts (name, profession) - NOT recent topics.
+    Returns empty string if no important facts exist.
     """
     facts = await get_user_memory(user_id)
-    recent_summaries = await get_recent_debate_summaries(user_id, limit=3)
 
-    if not facts and not recent_summaries:
+    if not facts:
         return ""
 
     lines = []
 
-    # Group facts by type for cleaner presentation
-    fact_groups = {}
-    for fact in facts:
-        if fact.fact_type not in fact_groups:
-            fact_groups[fact.fact_type] = []
-        fact_groups[fact.fact_type].append(fact)
-
-    # Format user name first if present
+    # Only include core identifying facts - name and profession
     for fact in facts:
         if fact.fact_key == "user_name":
-            lines.append(f"- Name: {fact.fact_value}")
-            break
-
-    # Format preferences
-    preferences = [f for f in facts if f.fact_type == "preference" and f.fact_key != "user_name"]
-    if preferences:
-        for pref in preferences:
-            lines.append(f"- {pref.fact_key.replace('_', ' ').title()}: {pref.fact_value}")
-
-    # Format interests
-    interests = [f for f in facts if f.fact_type == "interest"]
-    if interests:
-        interest_values = [i.fact_value for i in interests]
-        lines.append(f"- Interests: {', '.join(interest_values)}")
-
-    # Format recent debate topics
-    if recent_summaries:
-        recent_topics = []
-        for summary in recent_summaries:
-            # Format date nicely
-            if summary.created_at:
-                date_str = summary.created_at.strftime("%b %d")
-            else:
-                date_str = "recently"
-            recent_topics.append(f"{summary.topic_summary} ({date_str})")
-        lines.append(f"- Recent topics: {'; '.join(recent_topics)}")
+            lines.append(f"Name: {fact.fact_value}")
+        elif fact.fact_key == "profession":
+            lines.append(f"Profession: {fact.fact_value}")
 
     return "\n".join(lines) if lines else ""
 
