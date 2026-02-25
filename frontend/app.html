@@ -128,7 +128,7 @@
             visibility: visible;
         }
 
-        /* Sidebar toggle button */
+        /* Sidebar toggle button - hidden on desktop, visible on mobile */
         .sidebar-toggle {
             background: none;
             border: none;
@@ -136,10 +136,10 @@
             cursor: pointer;
             padding: 8px;
             border-radius: 6px;
-            display: flex;
+            display: none;
             align-items: center;
             justify-content: center;
-            margin-right: 12px;
+            margin-right: 8px;
             position: relative;
         }
 
@@ -802,6 +802,11 @@
 
         /* Mobile styles */
         @media (max-width: 768px) {
+            /* Show hamburger menu on mobile */
+            .sidebar-toggle {
+                display: flex;
+            }
+
             /* Sidebar hidden on mobile */
             .sidebar {
                 position: fixed;
@@ -1139,6 +1144,96 @@
                 font-size: 0.85rem;
                 margin-bottom: 8px;
             }
+
+            /* Profile section mobile */
+            .sidebar-profile {
+                padding: 10px 12px;
+            }
+
+            .profile-btn {
+                padding: 6px;
+            }
+
+            .profile-avatar {
+                width: 32px;
+                height: 32px;
+                font-size: 0.85rem;
+            }
+
+            .profile-name-inline {
+                font-size: 0.8rem;
+            }
+
+            /* Profile dropdown mobile - inside sidebar */
+            .profile-dropdown {
+                position: absolute;
+                bottom: calc(100% + 8px);
+                left: 0;
+                width: calc(100% - 24px);
+                margin: 0 12px;
+                max-height: 60vh;
+            }
+
+            .profile-dropdown-header {
+                padding: 12px;
+            }
+
+            .profile-avatar-large {
+                width: 40px;
+                height: 40px;
+                font-size: 1rem;
+            }
+
+            .profile-email {
+                font-size: 0.7rem;
+            }
+
+            .profile-plan {
+                font-size: 0.7rem;
+            }
+
+            .profile-dropdown-item {
+                padding: 10px 12px;
+                font-size: 0.85rem;
+            }
+
+            /* Upgrade modal mobile */
+            #upgrade-modal .modal {
+                max-width: 100%;
+                margin: 20px;
+                border-radius: 16px;
+            }
+
+            #upgrade-modal .modal-body {
+                padding: 20px 16px;
+            }
+
+            #upgrade-modal .modal-body > div:first-child {
+                font-size: 2.5rem;
+            }
+
+            #upgrade-modal .modal-body p {
+                font-size: 0.95rem;
+            }
+
+            #upgrade-modal .modal-body .btn {
+                padding: 10px 16px;
+                font-size: 0.9rem;
+            }
+
+            /* Setup overlay - full width on mobile */
+            .app-setup-overlay {
+                left: 0;
+                top: 48px;
+            }
+
+            .setup-overlay-content {
+                padding: 32px 20px;
+            }
+
+            .setup-overlay-content h2 {
+                font-size: 1.2rem;
+            }
         }
 
         /* Setup Overlay */
@@ -1178,6 +1273,13 @@
         <!-- Header -->
         <header class="header">
             <div class="container header-content">
+                <button id="sidebar-toggle" class="sidebar-toggle" title="Open chats">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="3" y1="12" x2="21" y2="12"></line>
+                        <line x1="3" y1="6" x2="21" y2="6"></line>
+                        <line x1="3" y1="18" x2="21" y2="18"></line>
+                    </svg>
+                </button>
                 <div class="logo" style="display: flex; align-items: center;">
                     <img src="/logo.svg" alt="Ensemble AI" style="width: 32px; height: 32px;">
                     <span>Ensemble AI</span>
