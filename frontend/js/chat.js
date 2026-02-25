@@ -192,9 +192,7 @@ async function sendMessage() {
 
             if (response.status === 402) {
                 setInputLocked(false);
-                if (confirm('You\'ve used all your free sessions. Upgrade to Pro for unlimited sessions?')) {
-                    window.location.href = '/pricing';
-                }
+                showUpgradeModal();
                 return;
             }
 

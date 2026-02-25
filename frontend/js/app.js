@@ -176,6 +176,21 @@ function showPrivacyModal() {
     });
 }
 
+// Upgrade modal (free limit reached)
+function showUpgradeModal() {
+    const modal = document.getElementById('upgrade-modal');
+    if (modal) {
+        modal.style.display = 'flex';
+    }
+}
+
+function closeUpgradeModal() {
+    const modal = document.getElementById('upgrade-modal');
+    if (modal) {
+        modal.style.display = 'none';
+    }
+}
+
 // Load available models
 async function loadModels() {
     try {
@@ -230,18 +245,15 @@ async function loadSubscriptionStatus() {
 // Render subscription status in header
 function renderSubscriptionStatus() {
     const badge = document.getElementById('subscription-status');
-    const upgradeBtn = document.getElementById('upgrade-btn');
     const isPro = subscriptionStatus.status === 'active';
 
     if (isPro) {
         badge.textContent = 'PRO';
         badge.className = 'subscription-badge pro';
-        upgradeBtn.style.display = 'none';
     } else {
         const remaining = subscriptionStatus.debates_limit - subscriptionStatus.debates_used;
         badge.textContent = `${remaining}/${subscriptionStatus.debates_limit} left`;
         badge.className = 'subscription-badge free';
-        upgradeBtn.style.display = 'inline-flex';
     }
 
     // Update profile dropdown plan display
@@ -250,10 +262,7 @@ function renderSubscriptionStatus() {
     }
 }
 
-// Handle upgrade button - go to pricing page
-document.getElementById('upgrade-btn')?.addEventListener('click', () => {
-    window.location.href = '/pricing';
-});
+// Handle upgrade button in dropdown - go to pricing page
 document.getElementById('dropdown-upgrade-btn')?.addEventListener('click', () => {
     window.location.href = '/pricing';
 });
