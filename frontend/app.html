@@ -597,28 +597,6 @@
             color: #ffffff;
         }
 
-        /* Stop Button */
-        .stop-btn {
-            background: var(--error-color);
-            color: white;
-            border: none;
-            padding: 8px 16px;
-            border-radius: 20px;
-            cursor: pointer;
-            font-size: 0.9rem;
-            display: none;
-            align-items: center;
-            gap: 6px;
-        }
-
-        .stop-btn.visible {
-            display: inline-flex;
-        }
-
-        .stop-btn:hover {
-            background: #dc2626;
-        }
-
         /* Chat Status Indicator */
         .chat-status {
             font-size: 0.85rem;
@@ -1127,15 +1105,10 @@
                 font-size: 0.8rem;
             }
 
-            /* Status and stop button compact */
+            /* Status compact */
             .chat-status {
                 font-size: 0.8rem;
                 padding: 2px 0;
-            }
-
-            .stop-btn {
-                padding: 6px 12px;
-                font-size: 0.8rem;
             }
 
             /* Jump button compact */
@@ -1342,7 +1315,6 @@
                             </div>
                         </div>
                         <textarea id="chat-input" class="chat-input" placeholder="Type your message..." rows="1"></textarea>
-                        <button id="stop-btn" class="stop-btn">Stop</button>
                         <button id="send-btn" class="btn btn-primary send-btn" disabled>➤</button>
                     </div>
                 </div>

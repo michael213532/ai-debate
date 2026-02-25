@@ -134,8 +134,7 @@ async function sendMessage() {
     input.value = '';
     input.style.height = 'auto';
 
-    // Show stop button and update status
-    showStopButton();
+    // Update status
     updateChatStatus('Starting discussion...');
 
     try {
@@ -210,7 +209,6 @@ async function sendMessage() {
     } catch (error) {
         console.error('Error starting session:', error);
         updateChatStatus('');
-        hideStopButton();
         setInputLocked(false);
         alert('Failed to start session. Please try again.');
     }
@@ -237,7 +235,6 @@ function connectWebSocket(sessionId) {
     chatWebSocket.onerror = (error) => {
         console.error('WebSocket error:', error);
         updateChatStatus('Connection error');
-        hideStopButton();
         setInputLocked(false);
     };
 
@@ -293,7 +290,6 @@ function handleWebSocketMessage(message) {
             updateChatStatus('');
             finishFinalResponse();
             setInputLocked(false);
-            hideStopButton();
             showExportButton();
             // Enable continuing this conversation with follow-up messages
             window.continuingDebateId = currentSessionId;
@@ -301,7 +297,6 @@ function handleWebSocketMessage(message) {
 
         case 'error':
             updateChatStatus('');
-            hideStopButton();
             setInputLocked(false);
             console.error('Session error:', message.message);
             break;
@@ -514,43 +509,6 @@ function updateChatStatus(text) {
         statusEl.classList.toggle('active', !!text);
     }
 }
-
-// Show stop button
-function showStopButton() {
-    const stopBtn = document.getElementById('stop-btn');
-    if (stopBtn) {
-        stopBtn.classList.add('visible');
-    }
-}
-
-// Hide stop button
-function hideStopButton() {
-    const stopBtn = document.getElementById('stop-btn');
-    if (stopBtn) {
-        stopBtn.classList.remove('visible');
-    }
-}
-
-// Stop the conversation
-function stopConversation() {
-    if (chatWebSocket && chatWebSocket.readyState === WebSocket.OPEN) {
-        chatWebSocket.send(JSON.stringify({ type: 'stop' }));
-    }
-
-    // Also call the REST endpoint as backup
-    if (currentSessionId) {
-        fetch(`${API_BASE}/api/debates/${currentSessionId}/stop`, {
-            method: 'POST',
-            headers: getAuthHeaders()
-        }).catch(console.error);
-    }
-
-    updateChatStatus('Stopping...');
-    hideStopButton();
-}
-
-// Stop button click handler
-document.getElementById('stop-btn')?.addEventListener('click', stopConversation);
 
 // Lock/unlock input - allows intervention during processing
 function setInputLocked(locked) {
