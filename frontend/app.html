@@ -819,6 +819,12 @@
 
         /* Mobile styles */
         @media (max-width: 768px) {
+            /* CRITICAL: Prevent horizontal overflow on mobile */
+            html, body {
+                overflow-x: hidden;
+                width: 100%;
+            }
+
             /* Show mobile profile button */
             .mobile-profile-wrapper {
                 display: flex !important;
@@ -909,12 +915,17 @@
             }
             .chat-layout {
                 margin-left: 0;
+                width: 100%;
+                max-width: 100vw;
+                overflow-x: hidden;
             }
 
             /* Compact header */
             .header {
                 height: 48px;
                 margin-left: 0;
+                width: 100%;
+                max-width: 100vw;
             }
 
             .header-content {
@@ -953,15 +964,29 @@
                 height: calc(100vh - 48px);
             }
 
+            /* Chat main container - prevent overflow */
+            .chat-main {
+                width: 100%;
+                max-width: 100%;
+                min-width: 0;
+                overflow-x: hidden;
+            }
+
             /* Compact setup section with scrollable models */
             .setup-section {
                 padding: 8px 10px;
+                width: 100%;
+                max-width: 100%;
+                min-width: 0;
+                overflow: hidden;
             }
 
             .setup-row {
                 flex-direction: row;
                 align-items: center;
                 gap: 8px;
+                width: 100%;
+                min-width: 0;
             }
 
             .setup-label {
@@ -976,6 +1001,9 @@
                 scrollbar-width: none;
                 -ms-overflow-style: none;
                 scroll-behavior: smooth;
+                min-width: 0;
+                width: 0;
+                flex: 1;
             }
 
             .model-tags::-webkit-scrollbar {
@@ -993,20 +1021,31 @@
             .chat-messages {
                 padding: 12px 10px;
                 gap: 12px;
+                width: 100%;
+                max-width: 100%;
+                min-width: 0;
+                overflow-x: hidden;
             }
 
             .message {
                 max-width: 92%;
                 padding: 10px 12px;
-                font-size: 0.88rem;
+                font-size: 0.9rem;
                 border-radius: 12px;
                 overflow: hidden;
                 box-sizing: border-box;
+                min-width: 0;
+                word-wrap: break-word;
+                overflow-wrap: break-word;
             }
 
             .message-content {
                 max-width: 100%;
+                min-width: 0;
                 overflow-x: auto;
+                word-wrap: break-word;
+                overflow-wrap: break-word;
+                word-break: break-word;
             }
 
             .message.ai .message-header {
@@ -1028,6 +1067,10 @@
             .chat-input-area {
                 padding: 10px 12px;
                 padding-bottom: max(10px, env(safe-area-inset-bottom));
+                width: 100%;
+                max-width: 100%;
+                min-width: 0;
+                box-sizing: border-box;
             }
 
             .chat-input {
@@ -1036,6 +1079,9 @@
                 min-height: 48px;
                 border-radius: 14px;
                 margin-bottom: 8px;
+                width: 100%;
+                max-width: 100%;
+                box-sizing: border-box;
             }
 
             .chat-buttons-row {
@@ -1060,6 +1106,9 @@
             .images-preview-container {
                 gap: 6px;
                 margin-bottom: 8px;
+                max-width: 100%;
+                overflow-x: auto;
+                flex-wrap: nowrap;
             }
 
             .image-preview-item img {
@@ -1073,6 +1122,13 @@
                 font-size: 12px;
                 top: -4px;
                 right: -4px;
+            }
+
+            /* Chat buttons row */
+            .chat-buttons-row {
+                width: 100%;
+                max-width: 100%;
+                box-sizing: border-box;
             }
 
             /* Compact empty state */
@@ -1288,14 +1344,42 @@
             .app-setup-overlay {
                 left: 0;
                 top: 48px;
+                width: 100%;
+                max-width: 100vw;
             }
 
             .setup-overlay-content {
                 padding: 32px 20px;
+                max-width: 100%;
             }
 
             .setup-overlay-content h2 {
                 font-size: 1.2rem;
+            }
+
+            /* Ensure app layout doesn't overflow */
+            .app-layout {
+                width: 100%;
+                max-width: 100vw;
+                overflow-x: hidden;
+            }
+
+            /* Container constraints */
+            .container {
+                width: 100%;
+                max-width: 100%;
+                padding: 0 10px;
+                box-sizing: border-box;
+            }
+
+            /* AI individual messages - prevent overflow */
+            .message.ai-individual {
+                max-width: 92%;
+                min-width: 0;
+            }
+
+            .message.ai-individual .ai-model-header {
+                flex-wrap: wrap;
             }
         }
 
@@ -1843,6 +1927,7 @@
             background: var(--background);
             color: var(--text-secondary);
             font-size: 0.85rem;
+            flex-shrink: 0;
             cursor: pointer;
             transition: all 0.2s;
         }
@@ -2090,6 +2175,55 @@
         }
         #help-btn, #header-settings-btn, #logout-btn {
             display: none !important;
+        }
+
+        /* Mobile fixes for tutorial/setup modal */
+        @media (max-width: 768px) {
+            #tutorial-modal .modal,
+            #setup-modal-inner {
+                width: 100%;
+                max-width: 100%;
+                margin: 0;
+                border-radius: 0;
+                max-height: 100vh;
+            }
+
+            #provider-bubbles {
+                overflow-x: auto;
+                flex-wrap: nowrap;
+                justify-content: flex-start;
+                padding-bottom: 8px;
+                -webkit-overflow-scrolling: touch;
+            }
+
+            .provider-bubble {
+                padding: 6px 12px;
+                font-size: 0.8rem;
+            }
+
+            #provider-details-section {
+                max-width: 100%;
+                overflow: hidden;
+            }
+
+            #setup-key-input {
+                font-size: 14px;
+            }
+
+            .setup-model-selection {
+                padding: 12px;
+                max-width: 100%;
+                overflow: hidden;
+            }
+
+            .setup-model-scroll {
+                max-width: 100%;
+            }
+
+            .setup-model-item {
+                padding: 5px 10px;
+                font-size: 0.75rem;
+            }
         }
     </style>
 
