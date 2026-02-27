@@ -909,27 +909,22 @@
         }
 
         .models-expand-btn {
-            background: var(--surface-light);
-            border: 1px solid var(--border-color);
-            color: var(--text-primary);
+            background: var(--primary-color);
+            border: none;
+            color: white;
             cursor: pointer;
-            padding: 8px 16px;
-            border-radius: 8px;
-            font-size: 0.9rem;
+            padding: 8px 14px;
+            border-radius: 6px;
+            font-size: 0.85rem;
             font-weight: 500;
             display: flex;
+            flex-direction: row;
             align-items: center;
-            gap: 8px;
-            margin-left: 8px;
-        }
-
-        .models-expand-btn svg {
-            order: -1;
+            gap: 6px;
         }
 
         .models-expand-btn:hover {
-            border-color: var(--primary-color);
-            background: var(--background);
+            background: var(--primary-hover);
         }
 
         .models-selected-count {
@@ -1694,10 +1689,10 @@
                 <!-- Collapsed Models Bar -->
                 <div id="models-collapsed-bar" class="models-collapsed-bar">
                     <button id="models-expand-btn" class="models-expand-btn">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                             <path d="M6 9l6 6 6-6"/>
                         </svg>
-                        <span style="margin-left: 2px;">Models</span>
+                        Models
                     </button>
                     <span id="models-selected-count" class="models-selected-count"></span>
                 </div>
