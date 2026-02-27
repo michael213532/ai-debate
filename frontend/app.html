@@ -30,15 +30,6 @@
             border-bottom: 1px solid var(--border-color);
         }
 
-        .sidebar-logo {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            font-size: 1.1rem;
-            font-weight: 700;
-            color: var(--text-primary);
-        }
-
         .sidebar-title {
             font-size: 0.9rem;
             font-weight: 600;
@@ -324,6 +315,16 @@
             display: flex;
             flex-direction: column;
             min-width: 0;
+        }
+
+        .main-logo-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 16px 24px;
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--text-primary);
         }
 
         .chat-messages {
@@ -1596,6 +1597,11 @@
         <div class="chat-layout">
             <!-- Main Chat Area -->
             <div class="chat-main">
+                <!-- Logo Header -->
+                <div class="main-logo-header">
+                    <img src="/logo.svg" alt="Ensemble AI" style="width: 28px; height: 28px;">
+                    <span>Ensemble AI</span>
+                </div>
                 <!-- Model Selection Bar -->
                 <div class="setup-section">
                     <div class="setup-row">
@@ -1679,10 +1685,7 @@
     <div id="sidebar-overlay" class="sidebar-overlay"></div>
     <aside id="sidebar" class="sidebar">
         <div class="sidebar-header">
-            <div class="sidebar-logo">
-                <img src="/logo.svg" alt="Ensemble AI" style="width: 28px; height: 28px;">
-                <span>Ensemble AI</span>
-            </div>
+            <span class="sidebar-title">Chats</span>
             <button id="sidebar-close" class="sidebar-close">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <line x1="18" y1="6" x2="6" y2="18"></line>
