@@ -191,6 +191,13 @@ class DebateOrchestrator:
                     "provider": "user",
                     "content": intervention
                 })
+                # Save user message to database
+                await self._save_message(
+                    round_num=round_num,
+                    model_name="User",
+                    provider="user",
+                    content=intervention
+                )
                 # Broadcast the user intervention as a message
                 await self._broadcast({
                     "type": "user_intervention",

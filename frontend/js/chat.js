@@ -1144,10 +1144,15 @@ async function loadConversation(debateId) {
             }
         });
 
-        // Add AI messages from each round
+        // Add AI and user messages from each round
         for (const round of Object.keys(rounds).sort((a, b) => a - b)) {
             for (const msg of rounds[round]) {
-                addHistoryAiMessage(msg.model_name, msg.provider, msg.content);
+                if (msg.provider === 'user') {
+                    // Display user message
+                    addUserMessage(msg.content);
+                } else {
+                    addHistoryAiMessage(msg.model_name, msg.provider, msg.content);
+                }
             }
         }
 
