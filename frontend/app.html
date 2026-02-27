@@ -853,9 +853,14 @@
 
         /* Setup Section */
         .setup-section {
-            padding: 16px 24px;
+            padding: 12px 24px;
             border-bottom: 1px solid var(--border-color);
             background: var(--surface);
+            transition: all 0.2s ease;
+        }
+
+        .setup-section.collapsed {
+            display: none;
         }
 
         .setup-row {
@@ -867,6 +872,62 @@
 
         .setup-label {
             font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        .models-toggle-btn {
+            margin-left: auto;
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .models-toggle-btn:hover {
+            background: var(--surface-light);
+            color: var(--text-primary);
+        }
+
+        /* Collapsed bar to reopen models */
+        .models-collapsed-bar {
+            display: none;
+            padding: 8px 24px;
+            border-bottom: 1px solid var(--border-color);
+            background: var(--surface);
+        }
+
+        .models-collapsed-bar.show {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .models-expand-btn {
+            background: none;
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            cursor: pointer;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .models-expand-btn:hover {
+            border-color: var(--primary-color);
+            color: var(--text-primary);
+        }
+
+        .models-selected-count {
+            font-size: 0.8rem;
             color: var(--text-secondary);
         }
 
@@ -1624,13 +1685,29 @@
         <div class="chat-layout">
             <!-- Main Chat Area -->
             <div class="chat-main">
+                <!-- Collapsed Models Bar -->
+                <div id="models-collapsed-bar" class="models-collapsed-bar">
+                    <button id="models-expand-btn" class="models-expand-btn">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M6 9l6 6 6-6"/>
+                        </svg>
+                        Models
+                    </button>
+                    <span id="models-selected-count" class="models-selected-count"></span>
+                </div>
+
                 <!-- Model Selection Bar -->
-                <div class="setup-section">
+                <div id="setup-section" class="setup-section">
                     <div class="setup-row">
                         <span class="setup-label">Models:</span>
                         <div id="model-tags" class="model-tags">
                             <!-- Model tags loaded here -->
                         </div>
+                        <button id="models-collapse-btn" class="models-toggle-btn" title="Collapse">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M18 15l-6-6-6 6"/>
+                            </svg>
+                        </button>
                     </div>
                 </div>
 
@@ -2374,5 +2451,39 @@
     <script src="/js/app.js"></script>
     <script src="/js/settings.js"></script>
     <script src="/js/chat.js"></script>
+    <script>
+        // Models bar collapse/expand
+        const setupSection = document.getElementById('setup-section');
+        const collapsedBar = document.getElementById('models-collapsed-bar');
+        const collapseBtn = document.getElementById('models-collapse-btn');
+        const expandBtn = document.getElementById('models-expand-btn');
+        const selectedCount = document.getElementById('models-selected-count');
+
+        function updateSelectedCount() {
+            const count = selectedModels ? selectedModels.length : 0;
+            selectedCount.textContent = count > 0 ? `${count} selected` : '';
+        }
+
+        function collapseModels() {
+            setupSection.classList.add('collapsed');
+            collapsedBar.classList.add('show');
+            updateSelectedCount();
+            localStorage.setItem('modelsCollapsed', 'true');
+        }
+
+        function expandModels() {
+            setupSection.classList.remove('collapsed');
+            collapsedBar.classList.remove('show');
+            localStorage.setItem('modelsCollapsed', 'false');
+        }
+
+        collapseBtn.addEventListener('click', collapseModels);
+        expandBtn.addEventListener('click', expandModels);
+
+        // Restore state on load
+        if (localStorage.getItem('modelsCollapsed') === 'true') {
+            collapseModels();
+        }
+    </script>
 </body>
 </html>
