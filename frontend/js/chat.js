@@ -1128,31 +1128,36 @@ async function loadConversation(debateId) {
             );
         }
 
-        // Add user message (the topic) with images
-        addUserMessage(debate.topic, imageDataUrls);
+        // Get original topic (first part before any "---" for old data compatibility)
+        const originalTopic = debate.topic.split(/\s*---\s*/)[0].trim();
 
-        // Group messages by round
-        const rounds = {};
+        // Separate summary from other messages
         let summary = null;
-
+        const chatMessages = [];
         messages.forEach(msg => {
             if (msg.round === 0) {
                 summary = msg;
             } else {
-                if (!rounds[msg.round]) rounds[msg.round] = [];
-                rounds[msg.round].push(msg);
+                chatMessages.push(msg);
             }
         });
 
-        // Add AI and user messages from each round
-        for (const round of Object.keys(rounds).sort((a, b) => a - b)) {
-            for (const msg of rounds[round]) {
-                if (msg.provider === 'user') {
-                    // Display user message
-                    addUserMessage(msg.content);
-                } else {
-                    addHistoryAiMessage(msg.model_name, msg.provider, msg.content);
-                }
+        // Sort messages by round and created_at
+        chatMessages.sort((a, b) => {
+            if (a.round !== b.round) return a.round - b.round;
+            return new Date(a.created_at) - new Date(b.created_at);
+        });
+
+        // Display messages in order
+        // First: original topic as user message
+        addUserMessage(originalTopic, imageDataUrls);
+
+        // Then: all other messages in chronological order
+        for (const msg of chatMessages) {
+            if (msg.provider === 'user') {
+                addUserMessage(msg.content);
+            } else {
+                addHistoryAiMessage(msg.model_name, msg.provider, msg.content);
             }
         }
 

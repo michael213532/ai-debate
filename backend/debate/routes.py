@@ -333,11 +333,17 @@ async def continue_debate(
             config_data["images"] = [img.model_dump() for img in request.images]
         config_json = json.dumps(config_data)
 
-        # Update debate with new topic (append follow-up) and reset status
-        new_topic = f"{original_topic}\n---\n{request.topic}"
+        # Save the new user message as a separate message record
         await db.execute(
-            "UPDATE debates SET topic = ?, config = ?, status = ? WHERE id = ?",
-            (new_topic, config_json, "pending", debate_id)
+            """INSERT INTO messages (debate_id, round, model_name, provider, content)
+               VALUES (?, ?, ?, ?, ?)""",
+            (debate_id, start_round, "User", "user", request.topic)
+        )
+
+        # Update debate config and reset status (keep original topic)
+        await db.execute(
+            "UPDATE debates SET config = ?, status = ? WHERE id = ?",
+            (config_json, "pending", debate_id)
         )
         await db.commit()
 
