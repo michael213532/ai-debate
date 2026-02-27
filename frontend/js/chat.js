@@ -364,56 +364,89 @@ function finishFinalResponse() {
     }
 }
 
-// Format summary text as styled cards
+// Format summary text with chat-style lines (like AI messages)
 function formatSummaryAsCards(text) {
     const lines = text.split('\n').filter(line => line.trim());
-    let cards = [];
+    let entries = [];
     let bottomLine = '';
+    let inShort = '';
+    let finalAnswer = '';
 
     for (const line of lines) {
-        // Match **Name**: content or **Bottom line**: content
+        // Match **Name**: content
         const match = line.match(/\*\*([^*]+)\*\*[:\s]*(.+)/);
         if (match) {
-            const name = match[1].trim();
+            const name = match[1].trim().toLowerCase();
             const content = match[2].trim();
 
-            if (name.toLowerCase() === 'bottom line' || name.toLowerCase() === 'verdict') {
+            if (name === 'bottom line' || name === 'verdict') {
                 bottomLine = content;
+            } else if (name === 'in short') {
+                inShort = content;
+            } else if (name === 'final answer' || name === 'final version') {
+                finalAnswer = content;
             } else {
-                cards.push({ name, content });
+                entries.push({ name: match[1].trim(), content });
             }
         }
     }
 
     // If we couldn't parse anything, return null to keep original
-    if (cards.length === 0 && !bottomLine) {
+    if (entries.length === 0 && !bottomLine && !inShort && !finalAnswer) {
         return null;
     }
 
-    // Build HTML
-    let html = '<div class="summary-cards">';
+    // Build HTML with chat-style formatting
+    let html = '<div class="summary-formatted">';
 
-    for (const card of cards) {
-        const providerClass = getProviderClassFromName(card.name);
+    for (const entry of entries) {
+        const providerClass = getProviderClassFromName(entry.name);
+        const borderColor = getProviderColor(entry.name);
         html += `
-            <div class="summary-card ${providerClass}">
-                <span class="summary-card-name">${escapeHtml(card.name)}</span>
-                <span class="summary-card-content">${escapeHtml(card.content)}</span>
+            <div class="summary-entry ${providerClass}" style="border-left: 2px solid ${borderColor}; padding-left: 12px; margin: 8px 0;">
+                <span class="summary-entry-name" style="font-weight: 600; color: ${borderColor};">${escapeHtml(entry.name)}</span>
+                <span class="summary-entry-content" style="color: var(--text-primary); margin-left: 8px;">${escapeHtml(entry.content)}</span>
             </div>
         `;
     }
 
     if (bottomLine) {
         html += `
-            <div class="summary-verdict">
-                <span class="verdict-label">Bottom line</span>
-                <span class="verdict-content">${escapeHtml(bottomLine)}</span>
+            <div style="margin-top: 16px; padding: 12px; background: var(--surface-light); border-radius: 8px;">
+                <strong>Bottom line:</strong> ${escapeHtml(bottomLine)}
+            </div>
+        `;
+    }
+
+    if (inShort) {
+        html += `
+            <div style="margin-top: 12px; padding: 12px; background: var(--surface-light); border-radius: 8px;">
+                <strong>In short:</strong> ${escapeHtml(inShort)}
+            </div>
+        `;
+    }
+
+    if (finalAnswer) {
+        html += `
+            <div style="margin-top: 12px; padding: 12px; background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(139, 92, 246, 0.1)); border: 1px solid var(--primary-color); border-radius: 8px;">
+                <strong style="color: var(--primary-color);">Final Answer:</strong> ${escapeHtml(finalAnswer)}
             </div>
         `;
     }
 
     html += '</div>';
     return html;
+}
+
+// Get provider color from AI model name
+function getProviderColor(name) {
+    const n = name.toLowerCase();
+    if (n.includes('gpt') || n.includes('openai')) return '#3b82f6';
+    if (n.includes('claude') || n.includes('anthropic')) return '#f97316';
+    if (n.includes('gemini') || n.includes('google')) return '#eab308';
+    if (n.includes('deepseek')) return '#a855f7';
+    if (n.includes('grok') || n.includes('xai')) return '#6b7280';
+    return 'var(--primary-color)';
 }
 
 // Get provider class from AI model name
