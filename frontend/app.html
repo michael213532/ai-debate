@@ -621,12 +621,20 @@
         }
 
         #send-btn.stop-mode {
-            background: #ef4444;
+            background: #1f2937;
             border-radius: 50%;
         }
 
+        [data-theme="dark"] #send-btn.stop-mode {
+            background: #e5e7eb;
+        }
+
         #send-btn.stop-mode:hover {
-            background: #dc2626;
+            background: #374151;
+        }
+
+        [data-theme="dark"] #send-btn.stop-mode:hover {
+            background: #d1d5db;
         }
 
         #send-btn.stop-mode svg {
@@ -637,6 +645,10 @@
             content: '■';
             font-size: 0.9rem;
             color: white;
+        }
+
+        [data-theme="dark"] #send-btn.stop-mode::after {
+            color: #1f2937;
         }
 
         /* Individual AI Response in Main Chat */
