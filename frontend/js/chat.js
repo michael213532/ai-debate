@@ -566,22 +566,16 @@ function setInputLocked(locked) {
     isProcessing = locked;
     const input = document.getElementById('chat-input');
     const sendBtn = document.getElementById('send-btn');
-    const sendIcon = document.getElementById('send-icon');
-    const stopIcon = document.getElementById('stop-icon');
 
     if (locked) {
         // Switch to stop mode
         input.placeholder = 'Discussion in progress...';
         sendBtn.classList.add('stop-mode');
         sendBtn.disabled = false;
-        if (sendIcon) sendIcon.style.display = 'none';
-        if (stopIcon) stopIcon.style.display = 'inline';
     } else {
         // Switch to send mode
-        input.placeholder = 'Type your message...';
+        input.placeholder = 'How can I help you today?';
         sendBtn.classList.remove('stop-mode');
-        if (sendIcon) sendIcon.style.display = 'inline';
-        if (stopIcon) stopIcon.style.display = 'none';
         updateSendButton();
     }
 }

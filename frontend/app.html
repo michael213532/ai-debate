@@ -382,11 +382,24 @@
             51%, 100% { opacity: 0; }
         }
 
-        /* Chat Input */
+        /* Chat Input - Claude-style unified container */
         .chat-input-area {
-            padding: 16px 24px;
-            border-top: 1px solid var(--border-color);
-            background: var(--surface);
+            padding: 16px 24px 24px;
+            background: transparent;
+        }
+
+        .chat-input-container {
+            background: #2f2f2f;
+            border: 1px solid #3f3f3f;
+            border-radius: 24px;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            transition: border-color 0.15s;
+        }
+
+        .chat-input-container:focus-within {
+            border-color: #525252;
         }
 
         /* Images Preview Container */
@@ -394,7 +407,11 @@
             display: flex;
             flex-wrap: wrap;
             gap: 8px;
-            margin-bottom: 12px;
+            margin-bottom: 8px;
+        }
+
+        .images-preview-container:empty {
+            display: none;
         }
 
         .image-preview-item {
@@ -439,16 +456,16 @@
 
         .attachment-dropdown {
             position: absolute;
-            bottom: 100%;
+            bottom: calc(100% + 8px);
             left: 0;
-            margin-bottom: 8px;
-            background: var(--surface);
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-            min-width: 150px;
+            background: #3f3f3f;
+            border: 1px solid #525252;
+            border-radius: 12px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+            min-width: 160px;
             display: none;
             z-index: 10;
+            overflow: hidden;
         }
 
         .attachment-dropdown.open {
@@ -458,27 +475,20 @@
         .attachment-dropdown-item {
             display: flex;
             align-items: center;
-            gap: 8px;
-            padding: 10px 14px;
+            gap: 10px;
+            padding: 12px 16px;
             cursor: pointer;
-            color: var(--text-primary);
+            color: #e5e5e5;
             font-size: 0.9rem;
             border: none;
             background: none;
             width: 100%;
             text-align: left;
+            transition: background 0.15s;
         }
 
         .attachment-dropdown-item:hover {
-            background: var(--surface-light);
-        }
-
-        .attachment-dropdown-item:first-child {
-            border-radius: 8px 8px 0 0;
-        }
-
-        .attachment-dropdown-item:last-child {
-            border-radius: 0 0 8px 8px;
+            background: #525252;
         }
 
         .attachment-dropdown-item:disabled {
@@ -507,21 +517,24 @@
 
         .chat-input {
             width: 100%;
-            padding: 14px 18px;
-            border: 1px solid var(--border-color);
-            border-radius: 16px;
-            background: var(--background);
+            padding: 16px 20px 8px;
+            border: none;
+            border-radius: 24px 24px 0 0;
+            background: transparent;
             color: var(--text-primary);
             font-size: 1rem;
             resize: none;
             max-height: 150px;
             font-family: inherit;
-            margin-bottom: 10px;
+            margin-bottom: 0;
+        }
+
+        .chat-input::placeholder {
+            color: #9ca3af;
         }
 
         .chat-input:focus {
             outline: none;
-            border-color: var(--primary-color);
         }
 
         .chat-input:disabled {
@@ -533,6 +546,7 @@
             display: flex;
             gap: 10px;
             align-items: center;
+            padding: 8px 12px 12px;
         }
 
         .chat-buttons-spacer {
@@ -540,14 +554,42 @@
         }
 
         .action-btn {
-            width: 44px;
-            height: 44px;
+            width: 36px;
+            height: 36px;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.2rem;
+            font-size: 1.1rem;
             flex-shrink: 0;
+        }
+
+        .action-btn.attachment-btn {
+            background: transparent;
+            border: none;
+            color: #9ca3af;
+            font-size: 1.4rem;
+            font-weight: 300;
+        }
+
+        .action-btn.attachment-btn:hover {
+            color: var(--text-primary);
+        }
+
+        .action-btn.send-btn {
+            background: transparent;
+            border: none;
+            color: #6b7280;
+            transition: all 0.15s;
+        }
+
+        .action-btn.send-btn:not(:disabled) {
+            background: var(--text-primary);
+            color: #1f2937;
+        }
+
+        .action-btn.send-btn:not(:disabled):hover {
+            background: #d1d5db;
         }
 
         .action-btn:disabled {
@@ -556,12 +598,21 @@
 
         #send-btn.stop-mode {
             background: #ef4444;
-            border-color: #ef4444;
+            border-radius: 50%;
         }
 
         #send-btn.stop-mode:hover {
             background: #dc2626;
-            border-color: #dc2626;
+        }
+
+        #send-btn.stop-mode svg {
+            display: none;
+        }
+
+        #send-btn.stop-mode::after {
+            content: '■';
+            font-size: 0.9rem;
+            color: white;
         }
 
         /* Individual AI Response in Main Chat */
@@ -1073,12 +1124,15 @@
                 box-sizing: border-box;
             }
 
+            .chat-input-container {
+                border-radius: 20px;
+            }
+
             .chat-input {
-                padding: 14px 16px;
+                padding: 14px 16px 6px;
                 font-size: 16px; /* Prevents zoom on iOS */
-                min-height: 48px;
-                border-radius: 14px;
-                margin-bottom: 8px;
+                min-height: 44px;
+                border-radius: 20px 20px 0 0;
                 width: 100%;
                 max-width: 100%;
                 box-sizing: border-box;
@@ -1086,11 +1140,12 @@
 
             .chat-buttons-row {
                 gap: 8px;
+                padding: 6px 10px 10px;
             }
 
             .action-btn {
-                width: 40px;
-                height: 40px;
+                width: 36px;
+                height: 36px;
             }
 
             .attachment-dropdown {
@@ -1527,27 +1582,30 @@
                     <div id="chat-status" class="chat-status"></div>
                     <!-- Images Preview -->
                     <div id="images-preview-container" class="images-preview-container"></div>
-                    <!-- Textarea on top -->
-                    <textarea id="chat-input" class="chat-input" placeholder="Type your message..." rows="1"></textarea>
-                    <!-- Buttons row below -->
-                    <div class="chat-buttons-row">
-                        <input type="file" id="image-input" accept="image/jpeg,image/png,image/gif,image/webp" style="display: none;">
-                        <div class="attachment-menu">
-                            <button id="attachment-btn" class="btn btn-secondary action-btn" title="Add attachment">+</button>
-                            <div id="attachment-dropdown" class="attachment-dropdown">
-                                <button class="attachment-dropdown-item" id="add-image-btn">
-                                    <span class="icon">🖼️</span> Add Image
-                                </button>
-                                <button class="attachment-dropdown-item" id="export-pdf-btn">
-                                    <span class="icon">📄</span> Export PDF <span class="pro-badge">PRO</span>
-                                </button>
+                    <!-- Unified input container -->
+                    <div class="chat-input-container">
+                        <textarea id="chat-input" class="chat-input" placeholder="How can I help you today?" rows="1"></textarea>
+                        <!-- Buttons row below -->
+                        <div class="chat-buttons-row">
+                            <input type="file" id="image-input" accept="image/jpeg,image/png,image/gif,image/webp" style="display: none;">
+                            <div class="attachment-menu">
+                                <button id="attachment-btn" class="action-btn attachment-btn" title="Add attachment">+</button>
+                                <div id="attachment-dropdown" class="attachment-dropdown">
+                                    <button class="attachment-dropdown-item" id="add-image-btn">
+                                        <span class="icon">🖼️</span> Add Image
+                                    </button>
+                                    <button class="attachment-dropdown-item" id="export-pdf-btn">
+                                        <span class="icon">📄</span> Export PDF <span class="pro-badge">PRO</span>
+                                    </button>
+                                </div>
                             </div>
+                            <div class="chat-buttons-spacer"></div>
+                            <button id="send-btn" class="action-btn send-btn" disabled>
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M12 19V5M5 12l7-7 7 7"/>
+                                </svg>
+                            </button>
                         </div>
-                        <div class="chat-buttons-spacer"></div>
-                        <button id="send-btn" class="btn btn-primary action-btn" disabled>
-                            <span id="send-icon">➤</span>
-                            <span id="stop-icon" style="display: none;">■</span>
-                        </button>
                     </div>
                 </div>
             </div>
