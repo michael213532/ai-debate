@@ -372,12 +372,21 @@ function formatSummaryAsCards(text) {
     let inShort = '';
     let finalAnswer = '';
 
+    // Skip section headers
+    const skipNames = ['key positions', 'points of agreement', 'points of disagreement', 'the bottom line', 'summary', 'overview'];
+
     for (const line of lines) {
+        // Skip markdown headers
+        if (line.startsWith('#')) continue;
+
         // Match **Name**: content
         const match = line.match(/\*\*([^*]+)\*\*[:\s]*(.+)/);
         if (match) {
             const name = match[1].trim().toLowerCase();
             const content = match[2].trim();
+
+            // Skip section headers
+            if (skipNames.includes(name)) continue;
 
             if (name === 'bottom line' || name === 'verdict') {
                 bottomLine = content;
