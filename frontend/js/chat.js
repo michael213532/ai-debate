@@ -685,7 +685,8 @@ function handleImageSelect(event) {
     // Validate file type
     const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
     if (!validTypes.includes(file.type)) {
-        alert('Please select a valid image file (JPG, PNG, GIF, or WebP)');
+        alert('Only images are supported (JPG, PNG, GIF, WebP).\n\nPDFs and other files cannot be sent to the AIs.');
+        event.target.value = '';
         return;
     }
 
