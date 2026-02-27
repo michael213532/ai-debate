@@ -55,29 +55,16 @@ function stopDiscussion() {
     setInputLocked(false);
 }
 
-// Attachment menu toggle
-document.getElementById('attachment-btn').addEventListener('click', (e) => {
-    e.stopPropagation();
-    toggleAttachmentMenu();
-});
-
-// Add image button in dropdown
-document.getElementById('add-image-btn').addEventListener('click', (e) => {
-    e.stopPropagation();
-    closeAttachmentMenu();
+// Add image button - opens file picker directly
+document.getElementById('add-image-btn').addEventListener('click', () => {
     document.getElementById('image-input').click();
 });
 
-// Export PDF button in dropdown
-document.getElementById('export-pdf-btn').addEventListener('click', (e) => {
-    e.stopPropagation();
-    closeAttachmentMenu();
-
+// Export PDF button
+document.getElementById('export-pdf-btn').addEventListener('click', () => {
     // Check if user is Pro
     if (subscriptionStatus?.status !== 'active') {
-        if (confirm('Export to PDF is a Pro feature. Upgrade now for unlimited sessions and PDF exports?')) {
-            window.location.href = '/pricing';
-        }
+        alert('Export to PDF is a Pro feature. Upgrade to Pro for unlimited exports.');
         return;
     }
 
@@ -93,22 +80,9 @@ document.getElementById('export-pdf-btn').addEventListener('click', (e) => {
 // Image file selected
 document.getElementById('image-input').addEventListener('change', handleImageSelect);
 
-// Close dropdown when clicking outside
-document.addEventListener('click', () => {
-    closeAttachmentMenu();
-});
-
-// Toggle attachment dropdown
-function toggleAttachmentMenu() {
-    const dropdown = document.getElementById('attachment-dropdown');
-    dropdown.classList.toggle('open');
-}
-
-// Close attachment dropdown
-function closeAttachmentMenu() {
-    const dropdown = document.getElementById('attachment-dropdown');
-    dropdown.classList.remove('open');
-}
+// Dummy functions for compatibility
+function toggleAttachmentMenu() {}
+function closeAttachmentMenu() {}
 
 // Send a message
 async function sendMessage() {
