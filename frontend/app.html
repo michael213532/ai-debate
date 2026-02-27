@@ -623,6 +623,9 @@
         #send-btn.stop-mode {
             background: #1f2937;
             border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
         [data-theme="dark"] #send-btn.stop-mode {
@@ -643,8 +646,9 @@
 
         #send-btn.stop-mode::after {
             content: '■';
-            font-size: 0.9rem;
+            font-size: 0.85rem;
             color: white;
+            line-height: 1;
         }
 
         [data-theme="dark"] #send-btn.stop-mode::after {
