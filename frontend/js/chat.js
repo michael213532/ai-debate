@@ -410,7 +410,7 @@ function formatSummaryAsCards(text) {
 
     for (const entry of entries) {
         const borderColor = getProviderColor(entry.name);
-        html += `<div style="border-left: 2px solid ${borderColor}; padding-left: 8px; margin-bottom: 1px;"><span style="font-weight: 600; color: ${borderColor};">${escapeHtml(entry.name)}</span> <span style="color: var(--text-primary);">${escapeHtml(entry.content)}</span></div>`;
+        html += `<div style="border-left: 2px solid ${borderColor}; padding-left: 8px; margin-bottom: 6px;"><span style="font-weight: 600; color: ${borderColor};">${escapeHtml(entry.name)}</span> <span style="color: var(--text-primary);">${escapeHtml(entry.content)}</span></div>`;
     }
 
     if (bottomLine) {
