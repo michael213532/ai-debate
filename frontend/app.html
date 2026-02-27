@@ -583,35 +583,42 @@
         }
 
         .action-btn.attachment-btn {
-            background: var(--surface-light);
-            border: 1px solid var(--border-color);
-            color: var(--text-primary);
-            font-size: 1.3rem;
-            font-weight: 400;
+            background: var(--primary-color);
+            border: 2px solid var(--primary-color);
+            color: white;
+            font-size: 1.4rem;
+            font-weight: 600;
             transition: all 0.15s;
+            width: 40px;
+            height: 40px;
         }
 
         .action-btn.attachment-btn:hover {
-            background: var(--border-color);
-            border-color: var(--text-secondary);
+            background: var(--primary-hover);
+            border-color: var(--primary-hover);
+            transform: scale(1.05);
         }
 
         .action-btn.send-btn {
             background: var(--surface-light);
-            border: 1px solid var(--border-color);
+            border: 2px solid var(--border-color);
             color: var(--text-secondary);
             transition: all 0.15s;
+            width: 40px;
+            height: 40px;
         }
 
         .action-btn.send-btn:not(:disabled) {
             background: var(--primary-color);
             border-color: var(--primary-color);
             color: white;
+            box-shadow: 0 2px 8px rgba(99, 102, 241, 0.4);
         }
 
         .action-btn.send-btn:not(:disabled):hover {
             background: var(--primary-hover);
             border-color: var(--primary-hover);
+            transform: scale(1.05);
         }
 
         .action-btn:disabled {
