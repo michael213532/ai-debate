@@ -303,23 +303,22 @@
             font-size: 0.85rem;
         }
 
-        .chat-layout {
-            display: flex;
-            flex-direction: column;
-            height: calc(100vh - 60px);
-            overflow: hidden;
-        }
-
         .main-logo-header {
             display: flex;
             align-items: center;
             gap: 10px;
             padding: 16px 24px;
+            margin-left: 260px;
             font-size: 1.25rem;
             font-weight: 700;
             color: var(--text-primary);
             border-bottom: 1px solid var(--border-color);
-            flex-shrink: 0;
+        }
+
+        .chat-layout {
+            display: flex;
+            height: calc(100vh - 120px);
+            overflow: hidden;
         }
 
         /* Main Chat Area */
@@ -328,7 +327,6 @@
             display: flex;
             flex-direction: column;
             min-width: 0;
-            overflow: hidden;
         }
 
         .chat-messages {
@@ -1015,6 +1013,12 @@
                 overflow-x: hidden;
             }
 
+            .main-logo-header {
+                margin-left: 0;
+                padding: 12px 16px;
+                font-size: 1.1rem;
+            }
+
             /* Compact header */
             .header {
                 height: 48px;
@@ -1609,13 +1613,14 @@
             </div>
         </div>
 
+        <!-- Logo Header - top of main area -->
+        <div class="main-logo-header">
+            <img src="/logo.svg" alt="Ensemble AI" style="width: 28px; height: 28px;">
+            <span>Ensemble AI</span>
+        </div>
+
         <!-- Main Chat Layout -->
         <div class="chat-layout">
-            <!-- Logo Header - top of main area -->
-            <div class="main-logo-header">
-                <img src="/logo.svg" alt="Ensemble AI" style="width: 28px; height: 28px;">
-                <span>Ensemble AI</span>
-            </div>
             <!-- Main Chat Area -->
             <div class="chat-main">
                 <!-- Model Selection Bar -->
