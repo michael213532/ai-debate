@@ -598,6 +598,13 @@ if (chatInput) {
 
     chatInput.addEventListener('keydown', (e) => {
         if (e.key === 'Enter' && !e.shiftKey) {
+            // On mobile (width <= 768px), Enter creates a new line instead of sending
+            const isMobile = window.innerWidth <= 768;
+            if (isMobile) {
+                // Let the default behavior happen (insert newline)
+                return;
+            }
+
             e.preventDefault();
             // Check if we're in a discussion (intervention) or starting new
             if (typeof isProcessing !== 'undefined' && isProcessing && chatWebSocket && chatWebSocket.readyState === WebSocket.OPEN) {
