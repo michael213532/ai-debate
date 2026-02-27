@@ -876,17 +876,14 @@
         }
 
         .models-toggle-btn {
-            margin-left: auto;
             background: none;
             border: none;
             color: var(--text-secondary);
             cursor: pointer;
-            padding: 4px 8px;
+            padding: 6px;
             border-radius: 4px;
-            font-size: 0.8rem;
             display: flex;
             align-items: center;
-            gap: 4px;
         }
 
         .models-toggle-btn:hover {
@@ -1700,15 +1697,15 @@
                 <!-- Model Selection Bar -->
                 <div id="setup-section" class="setup-section">
                     <div class="setup-row">
-                        <span class="setup-label">Models:</span>
-                        <div id="model-tags" class="model-tags">
-                            <!-- Model tags loaded here -->
-                        </div>
                         <button id="models-collapse-btn" class="models-toggle-btn" title="Collapse">
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <path d="M18 15l-6-6-6 6"/>
                             </svg>
                         </button>
+                        <span class="setup-label" style="margin-left: 4px;">Models:</span>
+                        <div id="model-tags" class="model-tags">
+                            <!-- Model tags loaded here -->
+                        </div>
                     </div>
                 </div>
 
