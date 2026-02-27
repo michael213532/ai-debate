@@ -566,31 +566,35 @@
         }
 
         .action-btn.attachment-btn {
-            background: transparent;
-            border: none;
-            color: var(--text-secondary);
-            font-size: 1.4rem;
-            font-weight: 300;
+            background: var(--surface-light);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            font-size: 1.3rem;
+            font-weight: 400;
+            transition: all 0.15s;
         }
 
         .action-btn.attachment-btn:hover {
-            color: var(--text-primary);
+            background: var(--border-color);
+            border-color: var(--text-secondary);
         }
 
         .action-btn.send-btn {
-            background: transparent;
-            border: none;
+            background: var(--surface-light);
+            border: 1px solid var(--border-color);
             color: var(--text-secondary);
             transition: all 0.15s;
         }
 
         .action-btn.send-btn:not(:disabled) {
             background: var(--primary-color);
+            border-color: var(--primary-color);
             color: white;
         }
 
         .action-btn.send-btn:not(:disabled):hover {
             background: var(--primary-hover);
+            border-color: var(--primary-hover);
         }
 
         .action-btn:disabled {
