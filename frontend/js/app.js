@@ -509,9 +509,13 @@ if (profileBtn && profileDropdown) {
         profileDropdown.classList.toggle('open');
     });
 
-    // Close dropdown when clicking an item
+    // Close dropdown when clicking an item (except theme toggle)
     profileDropdown.querySelectorAll('.profile-dropdown-item').forEach(item => {
-        item.addEventListener('click', () => {
+        item.addEventListener('click', (e) => {
+            // Don't close if clicking theme switch
+            if (item.querySelector('.theme-switch') && !e.target.closest('a')) {
+                return;
+            }
             profileDropdown.classList.remove('open');
         });
     });
@@ -527,9 +531,13 @@ if (mobileProfileBtn && mobileProfileDropdown) {
         mobileProfileDropdown.classList.toggle('open');
     });
 
-    // Close dropdown when clicking an item
+    // Close dropdown when clicking an item (except theme toggle)
     mobileProfileDropdown.querySelectorAll('.profile-dropdown-item').forEach(item => {
-        item.addEventListener('click', () => {
+        item.addEventListener('click', (e) => {
+            // Don't close if clicking theme switch
+            if (item.querySelector('.theme-switch') && !e.target.closest('a')) {
+                return;
+            }
             mobileProfileDropdown.classList.remove('open');
         });
     });
