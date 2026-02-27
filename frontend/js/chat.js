@@ -406,12 +406,12 @@ function formatSummaryAsCards(text) {
     }
 
     // Build HTML with chat-style formatting
-    let html = '<div class="summary-formatted" style="display: flex; flex-direction: column; gap: 2px; font-size: 0.85rem;">';
+    let html = '<div class="summary-formatted" style="display: flex; flex-direction: column; gap: 0; font-size: 0.85rem;">';
 
     for (const entry of entries) {
         const borderColor = getProviderColor(entry.name);
         html += `
-            <div style="border-left: 2px solid ${borderColor}; padding: 1px 0 1px 8px;">
+            <div style="border-left: 2px solid ${borderColor}; padding: 2px 0 2px 8px; margin: 0;">
                 <span style="font-weight: 600; color: ${borderColor};">${escapeHtml(entry.name)}</span>
                 <span style="color: var(--text-primary); margin-left: 5px;">${escapeHtml(entry.content)}</span>
             </div>
@@ -420,7 +420,7 @@ function formatSummaryAsCards(text) {
 
     if (bottomLine) {
         html += `
-            <div style="margin-top: 6px; padding: 6px 10px; background: var(--surface-light); border-radius: 4px; font-size: 0.85rem;">
+            <div style="margin-top: 4px; padding: 4px 8px; background: var(--surface-light); border-radius: 4px; font-size: 0.85rem;">
                 <strong>Bottom line:</strong> ${escapeHtml(bottomLine)}
             </div>
         `;
@@ -428,7 +428,7 @@ function formatSummaryAsCards(text) {
 
     if (inShort) {
         html += `
-            <div style="margin-top: 4px; padding: 6px 10px; background: var(--surface-light); border-radius: 4px; font-size: 0.85rem;">
+            <div style="margin-top: 3px; padding: 4px 8px; background: var(--surface-light); border-radius: 4px; font-size: 0.85rem;">
                 <strong>In short:</strong> ${escapeHtml(inShort)}
             </div>
         `;
@@ -436,7 +436,7 @@ function formatSummaryAsCards(text) {
 
     if (finalAnswer) {
         html += `
-            <div style="margin-top: 4px; padding: 6px 10px; background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(139, 92, 246, 0.1)); border: 1px solid var(--primary-color); border-radius: 4px; font-size: 0.85rem;">
+            <div style="margin-top: 3px; padding: 4px 8px; background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(139, 92, 246, 0.1)); border: 1px solid var(--primary-color); border-radius: 4px; font-size: 0.85rem;">
                 <strong style="color: var(--primary-color);">Final Answer:</strong> ${escapeHtml(finalAnswer)}
             </div>
         `;
