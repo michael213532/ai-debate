@@ -330,6 +330,7 @@
             padding: 16px;
             border-radius: 16px;
             line-height: 1.6;
+            flex-shrink: 0;
         }
 
         .message.user {
@@ -1076,6 +1077,9 @@
                 max-width: 100%;
                 min-width: 0;
                 overflow-x: hidden;
+                overflow-y: auto;
+                flex: 1;
+                min-height: 0;
             }
 
             .message {
@@ -1083,11 +1087,14 @@
                 padding: 10px 12px;
                 font-size: 0.9rem;
                 border-radius: 12px;
-                overflow: hidden;
+                overflow: visible;
                 box-sizing: border-box;
                 min-width: 0;
                 word-wrap: break-word;
                 overflow-wrap: break-word;
+                flex-shrink: 0;
+                height: auto;
+                min-height: fit-content;
             }
 
             .message-content {
