@@ -353,18 +353,22 @@
 
         .message.ai {
             align-self: flex-start;
-            background: var(--surface);
-            border: 1px solid var(--border-color);
-            border-bottom-left-radius: 4px;
+            background: transparent;
+            border: none;
+            border-radius: 0;
+            border-left: 4px solid var(--primary-color);
+            padding: 12px 16px;
+            max-width: 100%;
         }
 
         .message.ai .message-header {
-            font-size: 0.8rem;
-            color: var(--text-secondary);
-            margin-bottom: 8px;
+            font-size: 0.9rem;
+            color: var(--text-primary);
+            margin-bottom: 6px;
             display: flex;
             align-items: center;
             gap: 8px;
+            font-weight: 700;
         }
 
         .message.ai .message-header .ensemble-badge {
@@ -634,27 +638,35 @@
         /* Individual AI Response in Main Chat */
         .message.ai-individual {
             align-self: flex-start;
-            background: var(--surface);
-            border: 1px solid var(--border-color);
-            border-bottom-left-radius: 4px;
+            background: transparent;
+            border: none;
+            border-radius: 0;
             border-left: 3px solid var(--primary-color);
+            padding: 12px 16px;
+            margin: 8px 0;
+            max-width: 100%;
         }
 
         .message.ai-individual .ai-model-header {
             display: flex;
             align-items: center;
             gap: 8px;
-            margin-bottom: 8px;
-            font-size: 0.85rem;
+            margin-bottom: 6px;
+            font-size: 0.9rem;
         }
 
         .message.ai-individual .ai-model-name {
-            font-weight: 600;
+            font-weight: 700;
+            font-size: 0.95rem;
         }
 
         .message.ai-individual .ai-provider-tag {
-            font-size: 0.75rem;
-            color: var(--text-secondary);
+            display: none;
+        }
+
+        .message.ai-individual .message-content {
+            color: var(--text-primary);
+            line-height: 1.7;
         }
 
         .message.ai-individual.streaming .message-content::after {
@@ -664,35 +676,35 @@
 
         /* Provider-specific colors for inline AI messages */
         .message.ai-individual[data-provider="openai"] {
-            border-left-color: #3b82f6;
+            border-left: 4px solid #3b82f6;
         }
         .message.ai-individual[data-provider="openai"] .ai-model-name {
             color: #3b82f6;
         }
 
         .message.ai-individual[data-provider="anthropic"] {
-            border-left-color: #f97316;
+            border-left: 4px solid #f97316;
         }
         .message.ai-individual[data-provider="anthropic"] .ai-model-name {
             color: #f97316;
         }
 
         .message.ai-individual[data-provider="google"] {
-            border-left-color: #eab308;
+            border-left: 4px solid #eab308;
         }
         .message.ai-individual[data-provider="google"] .ai-model-name {
             color: #eab308;
         }
 
         .message.ai-individual[data-provider="deepseek"] {
-            border-left-color: #a855f7;
+            border-left: 4px solid #a855f7;
         }
         .message.ai-individual[data-provider="deepseek"] .ai-model-name {
             color: #a855f7;
         }
 
         .message.ai-individual[data-provider="xai"] {
-            border-left-color: #1f2937;
+            border-left: 4px solid #1f2937;
         }
         .message.ai-individual[data-provider="xai"] .ai-model-name {
             color: #1f2937;
