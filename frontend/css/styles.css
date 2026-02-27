@@ -1,4 +1,4 @@
-/* CSS Variables */
+/* CSS Variables - Light Theme (Default) */
 :root {
     --primary-color: #6366f1;
     --primary-hover: #4f46e5;
@@ -6,14 +6,84 @@
     --success-color: #22c55e;
     --error-color: #ef4444;
     --warning-color: #f59e0b;
+    --background: #ffffff;
+    --bg-color: #ffffff;
+    --surface: #f8fafc;
+    --surface-light: #f1f5f9;
+    --card-background: #ffffff;
+    --text-primary: #1e293b;
+    --text-secondary: #64748b;
+    --border-color: #e2e8f0;
+    --border-radius: 8px;
+    --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+/* Dark Theme */
+[data-theme="dark"] {
     --background: #0f172a;
+    --bg-color: #0f172a;
     --surface: #1e293b;
     --surface-light: #334155;
+    --card-background: #1e293b;
     --text-primary: #f8fafc;
     --text-secondary: #94a3b8;
     --border-color: #475569;
-    --border-radius: 8px;
     --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+}
+
+/* Theme Toggle Switch */
+.theme-toggle {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.theme-switch {
+    position: relative;
+    width: 48px;
+    height: 26px;
+    flex-shrink: 0;
+}
+
+.theme-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.theme-slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: var(--surface-light);
+    border: 1px solid var(--border-color);
+    transition: 0.3s;
+    border-radius: 26px;
+}
+
+.theme-slider:before {
+    position: absolute;
+    content: "";
+    height: 18px;
+    width: 18px;
+    left: 3px;
+    bottom: 3px;
+    background-color: var(--text-secondary);
+    transition: 0.3s;
+    border-radius: 50%;
+}
+
+.theme-switch input:checked + .theme-slider {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+.theme-switch input:checked + .theme-slider:before {
+    transform: translateX(22px);
+    background-color: white;
 }
 
 /* Reset & Base */
@@ -29,6 +99,7 @@ body {
     color: var(--text-primary);
     line-height: 1.6;
     min-height: 100vh;
+    transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 a {
@@ -972,9 +1043,13 @@ a:hover {
 }
 
 .toast-notification.toast-warning {
-    background: linear-gradient(135deg, #78350f 0%, #451a03 100%);
+    background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
     border: 2px solid var(--warning-color);
-    box-shadow: 0 4px 20px rgba(245, 158, 11, 0.3);
+    box-shadow: 0 4px 20px rgba(245, 158, 11, 0.2);
+}
+
+[data-theme="dark"] .toast-notification.toast-warning {
+    background: linear-gradient(135deg, #78350f 0%, #451a03 100%);
 }
 
 .toast-notification.toast-info {

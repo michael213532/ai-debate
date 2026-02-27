@@ -6,6 +6,7 @@
     <title>Settings - Ensemble AI</title>
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='35' cy='38' r='28' fill='%236366f1' opacity='0.85'/%3E%3Ccircle cx='65' cy='38' r='28' fill='%238b5cf6' opacity='0.85'/%3E%3Ccircle cx='50' cy='62' r='28' fill='%23a78bfa' opacity='0.85'/%3E%3C/svg%3E">
     <link rel="stylesheet" href="/css/styles.css">
+    <script src="/js/theme.js"></script>
     <style>
         .settings-container {
             max-width: 600px;
@@ -112,7 +113,7 @@
             background: rgba(34, 197, 94, 0.1);
             border: 1px solid rgba(34, 197, 94, 0.3);
             border-radius: 8px;
-            color: #22c55e;
+            color: var(--success-color);
             font-size: 0.9rem;
             margin-top: 16px;
         }
@@ -156,6 +157,24 @@
                     Back
                 </a>
                 <h1>Settings</h1>
+            </div>
+
+            <div class="settings-section">
+                <h2>Appearance</h2>
+                <p>Customize how Ensemble AI looks.</p>
+
+                <div class="setting-row">
+                    <label class="setting-label">Theme</label>
+                    <div class="setting-description">Choose between light and dark mode.</div>
+                    <div class="theme-toggle">
+                        <span style="font-size: 1.1rem;">&#9728;</span>
+                        <label class="theme-switch">
+                            <input type="checkbox" id="theme-toggle-settings">
+                            <span class="theme-slider"></span>
+                        </label>
+                        <span style="font-size: 1.1rem;">&#9790;</span>
+                    </div>
+                </div>
             </div>
 
             <div class="settings-section">
