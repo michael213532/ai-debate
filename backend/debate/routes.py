@@ -611,10 +611,11 @@ async def debate_websocket(websocket: WebSocket, debate_id: str):
             await websocket.close(code=4004, reason="Debate not found")
             return
 
-    # Add to connections
+    # Add to connections (prevent duplicates)
     if debate_id not in debate_connections:
         debate_connections[debate_id] = []
-    debate_connections[debate_id].append(websocket)
+    if websocket not in debate_connections[debate_id]:
+        debate_connections[debate_id].append(websocket)
 
     async def broadcast_message(message: dict):
         """Broadcast message to all connected clients."""

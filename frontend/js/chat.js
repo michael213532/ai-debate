@@ -201,6 +201,17 @@ async function sendMessage() {
 
 // Connect to WebSocket
 function connectWebSocket(sessionId) {
+    // Close any existing connection first to prevent duplicates
+    if (chatWebSocket) {
+        try {
+            chatWebSocket.onclose = null; // Prevent cleanup handler from running
+            chatWebSocket.close();
+        } catch (e) {
+            // Ignore errors when closing
+        }
+        chatWebSocket = null;
+    }
+
     const token = localStorage.getItem('token');
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const wsUrl = `${protocol}//${window.location.host}/ws/debates/${sessionId}?token=${token}`;

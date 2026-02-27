@@ -10,7 +10,7 @@ _pool = None
 
 def is_postgres():
     """Check if we're using PostgreSQL."""
-    return bool(DATABASE_URL)
+    return bool(DATABASE_URL) and DATABASE_URL.startswith(('postgresql://', 'postgres://'))
 
 async def init_db():
     """Initialize the database with required tables."""

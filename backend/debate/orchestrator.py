@@ -450,7 +450,7 @@ FORMAT - Use this structure:
 
 **In short:** [Write ONE paragraph (3-5 sentences) that someone could read instead of everything above. Synthesize the key insights, the consensus view, and the recommended action into a single flowing paragraph. This is for users who just want the quick answer without reading sections.]
 
-**Final Answer:** [Give the DEFINITIVE answer or recommendation based on the consensus. This should be the single best answer/choice/solution that incorporates all the insights. Be specific and actionable - if it's a question, answer it directly. If it's a comparison, state the winner. If it's advice, give the exact steps. This is the "if you only read one thing" answer.]
+**Final Answer:** [Give ONE clear, decisive answer. Do NOT say "both" or "it depends" - pick the single best option based on the discussion. If comparing A vs B, state "Choose A" or "Choose B". If asked a question, give the direct answer. This must be a SINGLE definitive recommendation that a user can act on immediately without any further decision-making required.]
 
 GUIDELINES:
 - Make the summary WORTH reading - it should give more value than reading individual responses
