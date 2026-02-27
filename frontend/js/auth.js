@@ -5,14 +5,6 @@
 const API_BASE = '';
 let isLoginMode = true;
 
-// Check if already logged in
-(function checkAuth() {
-    const token = localStorage.getItem('token');
-    if (token) {
-        window.location.href = '/app';
-    }
-})();
-
 // Toggle between login and register
 document.getElementById('auth-toggle-link').addEventListener('click', (e) => {
     e.preventDefault();
