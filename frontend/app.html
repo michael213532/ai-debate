@@ -900,7 +900,7 @@
         /* Collapsed bar to reopen models */
         .models-collapsed-bar {
             display: none;
-            padding: 10px 24px;
+            padding: 12px 24px;
             border-bottom: 1px solid var(--border-color);
             background: var(--surface);
         }
@@ -908,31 +908,46 @@
         .models-collapsed-bar.show {
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: 4px;
         }
 
         .models-expand-btn {
-            background: var(--primary-color);
+            background: none;
             border: none;
-            color: white;
+            color: var(--text-primary);
             cursor: pointer;
-            padding: 8px 14px;
-            border-radius: 6px;
-            font-size: 0.85rem;
-            font-weight: 500;
+            padding: 6px;
+            border-radius: 4px;
             display: flex;
-            flex-direction: row;
             align-items: center;
-            gap: 6px;
+        }
+
+        .models-expand-btn svg {
+            width: 18px;
+            height: 18px;
+            stroke-width: 2.5;
         }
 
         .models-expand-btn:hover {
-            background: var(--primary-hover);
+            background: var(--surface-light);
+            color: var(--primary-color);
+        }
+
+        .models-expand-label {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-left: 4px;
+            cursor: pointer;
+        }
+
+        .models-expand-label:hover {
+            color: var(--text-primary);
         }
 
         .models-selected-count {
             font-size: 0.85rem;
             color: var(--text-secondary);
+            margin-left: 8px;
         }
 
         .model-tags {
@@ -1691,12 +1706,12 @@
             <div class="chat-main">
                 <!-- Collapsed Models Bar -->
                 <div id="models-collapsed-bar" class="models-collapsed-bar">
-                    <button id="models-expand-btn" class="models-expand-btn">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <button id="models-expand-btn" class="models-expand-btn" title="Expand">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                             <path d="M6 9l6 6 6-6"/>
                         </svg>
-                        Models
                     </button>
+                    <span class="models-expand-label" onclick="expandModels()">Models:</span>
                     <span id="models-selected-count" class="models-selected-count"></span>
                 </div>
 
