@@ -8,16 +8,14 @@
     --warning-color: #f59e0b;
     --background: #ffffff;
     --bg-color: #ffffff;
-    --surface: #ffffff;
-    --surface-light: #f8fafc;
+    --surface: #f8fafc;
+    --surface-light: #f1f5f9;
     --card-background: #ffffff;
     --text-primary: #1e293b;
     --text-secondary: #64748b;
-    --border-color: #d1d5db;
-    --border-strong: #9ca3af;
+    --border-color: #e2e8f0;
     --border-radius: 8px;
-    --shadow: 0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06);
-    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
 }
 
 /* Dark Theme */
@@ -30,9 +28,7 @@
     --text-primary: #f8fafc;
     --text-secondary: #94a3b8;
     --border-color: #475569;
-    --border-strong: #64748b;
-    --shadow: 0 1px 3px rgba(0, 0, 0, 0.3), 0 1px 2px rgba(0, 0, 0, 0.2);
-    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
+    --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
 }
 
 /* Theme Toggle Switch */
@@ -124,13 +120,12 @@ a:hover {
 
 /* Header */
 .header {
-    background-color: var(--card-background);
-    border-bottom: 2px solid var(--border-color);
+    background-color: var(--surface);
+    border-bottom: 1px solid var(--border-color);
     padding: 16px 0;
     position: sticky;
     top: 0;
     z-index: 100;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
 .header-content {
@@ -166,7 +161,7 @@ a:hover {
 /* Buttons */
 .btn {
     padding: 10px 20px;
-    border: 1px solid transparent;
+    border: none;
     border-radius: var(--border-radius);
     font-size: 1rem;
     font-weight: 500;
@@ -175,29 +170,24 @@ a:hover {
     display: inline-flex;
     align-items: center;
     gap: 8px;
-    box-shadow: var(--shadow);
 }
 
 .btn-primary {
     background-color: var(--primary-color);
     color: white;
-    border-color: var(--primary-hover);
 }
 
 .btn-primary:hover {
     background-color: var(--primary-hover);
-    box-shadow: var(--shadow-md);
 }
 
 .btn-secondary {
-    background-color: var(--surface);
+    background-color: var(--surface-light);
     color: var(--text-primary);
-    border: 1px solid var(--border-color);
 }
 
 .btn-secondary:hover {
-    background-color: var(--surface-light);
-    border-color: var(--border-strong);
+    background-color: var(--border-color);
 }
 
 .btn-danger {
@@ -227,31 +217,25 @@ a:hover {
 .form-label {
     display: block;
     margin-bottom: 6px;
-    color: var(--text-primary);
+    color: var(--text-secondary);
     font-size: 0.9rem;
-    font-weight: 600;
+    font-weight: 500;
 }
 
 .form-input {
     width: 100%;
     padding: 12px;
-    background-color: var(--background);
+    background-color: var(--surface);
     border: 1px solid var(--border-color);
     border-radius: var(--border-radius);
     color: var(--text-primary);
     font-size: 1rem;
-    transition: border-color 0.2s ease, box-shadow 0.2s ease;
-    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.05);
-}
-
-.form-input:hover {
-    border-color: var(--border-strong);
+    transition: border-color 0.2s ease;
 }
 
 .form-input:focus {
     outline: none;
     border-color: var(--primary-color);
-    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
 }
 
 .form-input::placeholder {
@@ -260,11 +244,11 @@ a:hover {
 
 /* Cards */
 .card {
-    background-color: var(--card-background);
+    background-color: var(--surface);
     border: 1px solid var(--border-color);
     border-radius: var(--border-radius);
     padding: 24px;
-    box-shadow: var(--shadow-md);
+    box-shadow: var(--shadow);
 }
 
 .card-header {
@@ -276,7 +260,6 @@ a:hover {
 .card-title {
     font-size: 1.25rem;
     font-weight: 600;
-    color: var(--text-primary);
 }
 
 /* Auth Pages */
@@ -382,24 +365,20 @@ a:hover {
     align-items: center;
     gap: 8px;
     padding: 12px;
-    background-color: var(--card-background);
+    background-color: var(--surface-light);
     border: 1px solid var(--border-color);
     border-radius: var(--border-radius);
     cursor: pointer;
     transition: all 0.2s ease;
-    box-shadow: var(--shadow);
 }
 
 .model-checkbox:hover {
     border-color: var(--primary-color);
-    box-shadow: var(--shadow-md);
 }
 
 .model-checkbox.selected {
     border-color: var(--primary-color);
-    border-width: 2px;
-    background-color: rgba(99, 102, 241, 0.08);
-    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+    background-color: rgba(99, 102, 241, 0.1);
 }
 
 .model-checkbox.disabled {
@@ -626,16 +605,15 @@ a:hover {
 }
 
 .modal {
-    background-color: var(--card-background);
-    border: 1px solid var(--border-strong);
-    border-radius: 12px;
+    background-color: var(--surface);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
     width: 90%;
     max-width: 600px;
     max-height: 90vh;
     overflow-y: auto;
     transform: scale(0.9);
     transition: transform 0.2s ease;
-    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
 }
 
 .modal-overlay.active .modal {
@@ -682,16 +660,10 @@ a:hover {
 
 .provider-item {
     padding: 16px;
-    background-color: var(--card-background);
+    background-color: var(--surface-light);
     border: 1px solid var(--border-color);
     border-radius: var(--border-radius);
     overflow: hidden;
-    box-shadow: var(--shadow);
-    transition: border-color 0.2s ease, box-shadow 0.2s ease;
-}
-
-.provider-item:hover {
-    border-color: var(--border-strong);
 }
 
 .provider-header {
@@ -1051,14 +1023,14 @@ a:hover {
     bottom: 20px;
     left: 50%;
     transform: translateX(-50%) translateY(100px);
-    background: var(--card-background);
-    border: 1px solid var(--border-strong);
+    background: var(--surface);
+    border: 1px solid var(--border-color);
     border-radius: var(--border-radius);
     padding: 14px 18px;
     display: flex;
     align-items: center;
     gap: 10px;
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
     z-index: 10000;
     opacity: 0;
     transition: transform 0.3s ease, opacity 0.3s ease;
