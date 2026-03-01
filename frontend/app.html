@@ -1237,25 +1237,42 @@
                 display: none !important;
             }
 
-            .chat-layout {
-                height: calc(100vh - 48px);
+            /* Lock viewport - no page scroll on mobile */
+            .app-layout {
+                height: 100vh;
+                overflow: hidden;
+                display: flex;
+                flex-direction: column;
             }
 
-            /* Chat main container - prevent overflow */
+            .chat-layout {
+                flex: 1;
+                height: auto;
+                min-height: 0;
+                display: flex;
+                flex-direction: column;
+            }
+
+            /* Chat main container - fills remaining space */
             .chat-main {
+                flex: 1;
                 width: 100%;
                 max-width: 100%;
                 min-width: 0;
-                overflow-x: hidden;
+                min-height: 0;
+                overflow: hidden;
+                display: flex;
+                flex-direction: column;
             }
 
-            /* Compact setup section with scrollable models */
+            /* Compact setup section - minimal height */
             .setup-section {
-                padding: 8px 10px;
+                padding: 6px 10px;
                 width: 100%;
                 max-width: 100%;
                 min-width: 0;
                 overflow: visible;
+                flex-shrink: 0;
             }
 
             .setup-row {
@@ -1272,8 +1289,8 @@
 
             .model-tags {
                 flex-wrap: wrap;
-                padding: 8px 0;
-                max-height: 200px;
+                padding: 4px 0;
+                max-height: 80px;
                 overflow-y: auto;
                 -webkit-overflow-scrolling: touch;
                 min-width: 0;
@@ -1297,7 +1314,7 @@
             }
 
 
-            /* More chat space */
+            /* Chat messages - scrollable area that fills remaining space */
             .chat-messages {
                 padding: 12px 10px;
                 gap: 12px;
@@ -1349,14 +1366,15 @@
                 margin-bottom: 6px;
             }
 
-            /* Larger input area for easier typing */
+            /* Input area - fixed at bottom */
             .chat-input-area {
-                padding: 10px 12px;
-                padding-bottom: max(10px, env(safe-area-inset-bottom));
+                padding: 8px 10px;
+                padding-bottom: max(8px, env(safe-area-inset-bottom));
                 width: 100%;
                 max-width: 100%;
                 min-width: 0;
                 box-sizing: border-box;
+                flex-shrink: 0;
             }
 
             .chat-input-container {
@@ -1364,7 +1382,7 @@
             }
 
             .chat-input {
-                padding: 14px 16px 6px;
+                padding: 12px 14px 6px;
                 font-size: 16px; /* Prevents zoom on iOS */
                 min-height: 44px;
                 border-radius: 20px 20px 0 0;
