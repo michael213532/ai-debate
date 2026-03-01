@@ -315,6 +315,63 @@
             border-bottom: 1px solid var(--border-color);
         }
 
+        .models-dropdown-trigger {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-left: 8px;
+            padding: 4px 10px;
+            background: var(--surface-light);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .models-dropdown-trigger:hover {
+            border-color: var(--primary-color);
+            background: var(--surface);
+        }
+
+        .models-dropdown-trigger .models-count {
+            font-size: 0.8rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+        }
+
+        .models-dropdown-trigger .dropdown-arrow {
+            width: 16px;
+            height: 16px;
+            color: var(--text-secondary);
+            transition: transform 0.2s;
+        }
+
+        .models-dropdown-trigger.expanded .dropdown-arrow {
+            transform: rotate(180deg);
+        }
+
+        /* Mobile models trigger - hidden on desktop */
+        .mobile-models-trigger {
+            display: none;
+            align-items: center;
+            gap: 4px;
+            padding: 6px 10px;
+            background: var(--surface-light);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        .mobile-models-trigger:hover {
+            border-color: var(--primary-color);
+        }
+
+        .mobile-models-trigger.expanded .dropdown-arrow {
+            transform: rotate(180deg);
+        }
+
         .chat-layout {
             display: flex;
             height: calc(100vh - 60px);
@@ -918,18 +975,9 @@
             color: var(--primary-color);
         }
 
-        /* Collapsed bar to reopen models */
+        /* Collapsed bar - hidden, using header dropdown now */
         .models-collapsed-bar {
-            display: none;
-            padding: 12px 24px;
-            border-bottom: 1px solid var(--border-color);
-            background: var(--surface);
-        }
-
-        .models-collapsed-bar.show {
-            display: flex;
-            align-items: center;
-            gap: 4px;
+            display: none !important;
         }
 
         .models-expand-btn {
@@ -1127,6 +1175,10 @@
 
             .main-logo-header {
                 display: none;
+            }
+
+            .mobile-models-trigger {
+                display: flex;
             }
 
             .header-content {
@@ -1638,6 +1690,12 @@
                         <line x1="3" y1="18" x2="21" y2="18"></line>
                     </svg>
                 </button>
+                <button id="mobile-models-trigger" class="mobile-models-trigger" title="Select Models">
+                    <span id="mobile-models-count" class="models-count">0</span>
+                    <svg class="dropdown-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <path d="M6 9l6 6 6-6"/>
+                    </svg>
+                </button>
                 <div class="header-actions">
                     <span id="subscription-status" class="subscription-badge"></span>
                     <!-- Mobile profile button -->
@@ -1719,6 +1777,12 @@
         <div class="main-logo-header">
             <img src="/logo.svg" alt="Ensemble AI" style="width: 28px; height: 28px;">
             <span>Ensemble AI</span>
+            <button id="models-dropdown-trigger" class="models-dropdown-trigger" title="Select Models">
+                <span id="header-models-count" class="models-count">0 models</span>
+                <svg class="dropdown-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <path d="M6 9l6 6 6-6"/>
+                </svg>
+            </button>
         </div>
 
         <!-- Main Chat Layout -->
@@ -2493,38 +2557,67 @@
     <script src="/js/settings.js"></script>
     <script src="/js/chat.js"></script>
     <script>
-        // Models bar collapse/expand
+        // Models bar collapse/expand via header dropdown
         const setupSection = document.getElementById('setup-section');
-        const collapsedBar = document.getElementById('models-collapsed-bar');
+        const dropdownTrigger = document.getElementById('models-dropdown-trigger');
+        const mobileModelsTrigger = document.getElementById('mobile-models-trigger');
+        const headerModelsCount = document.getElementById('header-models-count');
+        const mobileModelsCount = document.getElementById('mobile-models-count');
         const collapseBtn = document.getElementById('models-collapse-btn');
-        const expandBtn = document.getElementById('models-expand-btn');
-        const selectedCount = document.getElementById('models-selected-count');
 
-        function updateSelectedCount() {
+        function updateHeaderModelsCount() {
             const count = selectedModels ? selectedModels.length : 0;
-            selectedCount.textContent = count > 0 ? `${count} selected` : '';
+            headerModelsCount.textContent = count === 1 ? '1 model' : `${count} models`;
+            mobileModelsCount.textContent = count;
+        }
+
+        function toggleModels() {
+            const isCollapsed = setupSection.classList.contains('collapsed');
+            if (isCollapsed) {
+                expandModels();
+            } else {
+                collapseModels();
+            }
         }
 
         function collapseModels() {
             setupSection.classList.add('collapsed');
-            collapsedBar.classList.add('show');
-            updateSelectedCount();
+            dropdownTrigger.classList.remove('expanded');
+            mobileModelsTrigger.classList.remove('expanded');
+            updateHeaderModelsCount();
             localStorage.setItem('modelsCollapsed', 'true');
         }
 
         function expandModels() {
             setupSection.classList.remove('collapsed');
-            collapsedBar.classList.remove('show');
+            dropdownTrigger.classList.add('expanded');
+            mobileModelsTrigger.classList.add('expanded');
             localStorage.setItem('modelsCollapsed', 'false');
         }
 
+        dropdownTrigger.addEventListener('click', toggleModels);
+        mobileModelsTrigger.addEventListener('click', toggleModels);
         collapseBtn.addEventListener('click', collapseModels);
-        expandBtn.addEventListener('click', expandModels);
 
         // Restore state on load
         if (localStorage.getItem('modelsCollapsed') === 'true') {
             collapseModels();
+        } else {
+            dropdownTrigger.classList.add('expanded');
+            mobileModelsTrigger.classList.add('expanded');
         }
+
+        // Update count when models change by wrapping toggleModel
+        const originalToggleModel = window.toggleModel;
+        if (originalToggleModel) {
+            window.toggleModel = function() {
+                originalToggleModel.apply(this, arguments);
+                updateHeaderModelsCount();
+            };
+        }
+
+        // Initial count update (after models are loaded)
+        setTimeout(updateHeaderModelsCount, 500);
     </script>
 </body>
 </html>
