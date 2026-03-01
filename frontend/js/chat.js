@@ -11,6 +11,25 @@ let conversationHistory = [];
 let selectedImages = []; // Array of { base64: string, media_type: string, dataUrl: string }
 const MAX_IMAGES = 10;
 
+// Vision-capable models (all others cannot see images)
+const VISION_MODELS = new Set([
+    'gpt-5.2', 'gpt-5', 'gpt-5-mini', 'gpt-4o', 'gpt-4o-mini',  // OpenAI
+    'grok-4-1-fast-non-reasoning', 'grok-4-fast-non-reasoning'   // xAI (Grok 4+)
+]);
+const VISION_PROVIDERS = new Set(['anthropic', 'google']);  // All models from these providers support vision
+
+// Check if a model supports vision
+function supportsVision(model) {
+    if (VISION_PROVIDERS.has(model.provider)) return true;
+    return VISION_MODELS.has(model.model_id);
+}
+
+// Get selected models that cannot see images
+function getNonVisionSelectedModels() {
+    if (typeof selectedModels === 'undefined') return [];
+    return selectedModels.filter(m => !supportsVision(m));
+}
+
 // Get summarizer index based on user preference
 function getSummarizerIndex(models) {
     const pref = localStorage.getItem('summarizerPreference') || 'first';
@@ -696,10 +715,14 @@ function handleImageSelect(event) {
     const file = event.target.files[0];
     if (!file) return;
 
-    // Show one-time notice about vision models
+    // Show one-time notice about vision models only if a non-vision model is selected
     if (!imageNoticeShown && selectedImages.length === 0) {
-        showToast('⚠️ Some AI models (GPT-4, GPT-4 Turbo, Deepseek, Grok 3 Mini) cannot view images. They will respond to the text conversation only.', 8000, 'warning');
-        imageNoticeShown = true;
+        const nonVisionModels = getNonVisionSelectedModels();
+        if (nonVisionModels.length > 0) {
+            const names = nonVisionModels.map(m => m.model_name).join(', ');
+            showToast(`⚠️ ${names} cannot view images and will respond to text only.`, 8000, 'warning');
+            imageNoticeShown = true;
+        }
     }
 
     // Check max images limit
