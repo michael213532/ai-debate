@@ -1231,7 +1231,7 @@
                 width: 100%;
                 max-width: 100%;
                 min-width: 0;
-                overflow: hidden;
+                overflow: visible;
             }
 
             .setup-row {
@@ -1247,20 +1247,23 @@
             }
 
             .model-tags {
-                overflow-x: auto;
-                flex-wrap: nowrap;
-                padding: 4px 0;
+                flex-wrap: wrap;
+                padding: 8px 0;
+                max-height: 200px;
+                overflow-y: auto;
                 -webkit-overflow-scrolling: touch;
-                scrollbar-width: none;
-                -ms-overflow-style: none;
-                scroll-behavior: smooth;
                 min-width: 0;
-                width: 0;
+                width: 100%;
                 flex: 1;
             }
 
             .model-tags::-webkit-scrollbar {
-                display: none;
+                width: 4px;
+            }
+
+            .model-tags::-webkit-scrollbar-thumb {
+                background: var(--border-color);
+                border-radius: 4px;
             }
 
             .model-tag {
@@ -2561,7 +2564,7 @@
         function updateHeaderModelsCount() {
             const count = selectedModels ? selectedModels.length : 0;
             headerModelsCount.textContent = count === 1 ? '1 model selected' : `${count} models selected`;
-            mobileModelsCount.textContent = count;
+            mobileModelsCount.textContent = count === 1 ? '1 model' : `${count} models`;
         }
 
         function toggleModels() {
