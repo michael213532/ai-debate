@@ -519,83 +519,21 @@ function addAiDiscussionError(modelName, error) {
         msg.classList.remove('streaming');
         const content = msg.querySelector('.message-content');
         const provider = msg.dataset.provider;
-        const providerName = provider ? provider.charAt(0).toUpperCase() + provider.slice(1) : 'Provider';
 
         // Get labeled error info with provider context
         const errorInfo = labelError(error, provider);
 
-        // Build action buttons based on error type
-        let actionButtons = '<div style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px;">';
-
-        // API Key errors - button to update key in app
+        // Determine fix link based on error type
+        let fixLink = '';
         if (errorInfo.actionType === 'key') {
-            actionButtons += `
-                <button onclick="showTutorial()"
-                   style="display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px;
-                          background: var(--primary-color); color: white; border-radius: 6px; border: none;
-                          font-size: 0.85rem; font-weight: 500; cursor: pointer;">
-                    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                        <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"></path>
-                    </svg>
-                    Update API Key
-                </button>
-            `;
-            if (errorInfo.keyUrl) {
-                actionButtons += `
-                    <a href="${errorInfo.keyUrl}" target="_blank" rel="noopener"
-                       style="display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px;
-                              background: var(--surface-light); color: var(--text-primary); border-radius: 6px;
-                              text-decoration: none; font-size: 0.85rem; font-weight: 500; border: 1px solid var(--border-color);">
-                        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
-                            <polyline points="15 3 21 3 21 9"></polyline>
-                            <line x1="10" y1="14" x2="21" y2="3"></line>
-                        </svg>
-                        Get Key from ${providerName}
-                    </a>
-                `;
-            }
-        }
-        // Billing/credits errors - link to provider billing + note
-        else if (errorInfo.actionType === 'billing') {
-            if (errorInfo.billingUrl) {
-                actionButtons += `
-                    <a href="${errorInfo.billingUrl}" target="_blank" rel="noopener"
-                       style="display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px;
-                              background: ${errorInfo.color}; color: white; border-radius: 6px; text-decoration: none;
-                              font-size: 0.85rem; font-weight: 500;">
-                        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                            <rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect>
-                            <line x1="1" y1="10" x2="23" y2="10"></line>
-                        </svg>
-                        Add Credits on ${providerName}
-                    </a>
-                `;
-            }
-        }
-        // Model not found - button to change models
-        else if (errorInfo.label === 'Model Not Found') {
-            actionButtons += `
-                <button onclick="showTutorial()"
-                   style="display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px;
-                          background: var(--primary-color); color: white; border-radius: 6px; border: none;
-                          font-size: 0.85rem; font-weight: 500; cursor: pointer;">
-                    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                        <circle cx="12" cy="12" r="3"></circle>
-                        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
-                    </svg>
-                    Change Models
-                </button>
-            `;
-        }
-        // Connection/network errors - just show retry hint (no button needed)
-        // Rate limit - show wait message (no immediate action)
-
-        actionButtons += '</div>';
-
-        // Don't show empty button container
-        if (actionButtons === '<div style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px;"></div>') {
-            actionButtons = '';
+            // API key issues - open setup wizard
+            fixLink = `<a href="#" onclick="showTutorial(); return false;" style="color: var(--primary-color); margin-left: 4px;">Fix this</a>`;
+        } else if (errorInfo.actionType === 'billing' && errorInfo.billingUrl) {
+            // Billing issues - link to provider
+            fixLink = `<a href="${errorInfo.billingUrl}" target="_blank" rel="noopener" style="color: var(--primary-color); margin-left: 4px;">Fix this</a>`;
+        } else if (errorInfo.label === 'Model Not Found') {
+            // Model issues - open setup wizard
+            fixLink = `<a href="#" onclick="showTutorial(); return false;" style="color: var(--primary-color); margin-left: 4px;">Fix this</a>`;
         }
 
         content.innerHTML = `
@@ -608,8 +546,7 @@ function addAiDiscussionError(modelName, error) {
                     </svg>
                     ${errorInfo.label}
                 </div>
-                <div style="font-size: 0.9rem; color: var(--text-secondary); line-height: 1.5;">${errorInfo.help}</div>
-                ${actionButtons}
+                <div style="font-size: 0.9rem; color: var(--text-secondary); line-height: 1.5;">${errorInfo.help}${fixLink}</div>
             </div>
         `;
     }
