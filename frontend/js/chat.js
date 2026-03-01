@@ -237,6 +237,11 @@ function connectWebSocket(sessionId) {
     chatWebSocket.onclose = () => {
         console.log('WebSocket closed');
         chatWebSocket = null;
+        // Always unlock input when connection closes to prevent softlock
+        if (isProcessing) {
+            updateChatStatus('Connection closed');
+            setInputLocked(false);
+        }
     };
 }
 
@@ -280,6 +285,11 @@ function handleWebSocketMessage(message) {
             if (!isNearBottom) {
                 showJumpToSummary();
             }
+            break;
+
+        case 'summary_error':
+            // Summary failed but debate can still end
+            updateChatStatus('Summary generation failed');
             break;
 
         case 'debate_end':

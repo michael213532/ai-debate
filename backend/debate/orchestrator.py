@@ -173,6 +173,11 @@ class DebateOrchestrator:
                     ("error", self.debate_id)
                 )
                 await db.commit()
+            # Always send debate_end to unlock client UI
+            await self._broadcast({
+                "type": "debate_end",
+                "status": "error"
+            })
 
     async def _run_round(self, round_num: int):
         """Run a single round of the debate."""
