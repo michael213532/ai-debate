@@ -1803,12 +1803,6 @@
                 <!-- Model Selection Bar -->
                 <div id="setup-section" class="setup-section">
                     <div class="setup-row">
-                        <button id="models-collapse-btn" class="models-toggle-btn" title="Collapse">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M18 15l-6-6-6 6"/>
-                            </svg>
-                        </button>
-                        <span class="setup-label" style="margin-left: 4px;">Models:</span>
                         <div id="model-tags" class="model-tags">
                             <!-- Model tags loaded here -->
                         </div>
@@ -2563,7 +2557,6 @@
         const mobileModelsTrigger = document.getElementById('mobile-models-trigger');
         const headerModelsCount = document.getElementById('header-models-count');
         const mobileModelsCount = document.getElementById('mobile-models-count');
-        const collapseBtn = document.getElementById('models-collapse-btn');
 
         function updateHeaderModelsCount() {
             const count = selectedModels ? selectedModels.length : 0;
@@ -2597,7 +2590,6 @@
 
         dropdownTrigger.addEventListener('click', toggleModels);
         mobileModelsTrigger.addEventListener('click', toggleModels);
-        collapseBtn.addEventListener('click', collapseModels);
 
         // Restore state on load
         if (localStorage.getItem('modelsCollapsed') === 'true') {
