@@ -802,19 +802,6 @@
             color: #e5e7eb;
         }
 
-        /* Chat Status Indicator */
-        .chat-status {
-            font-size: 0.85rem;
-            color: var(--text-secondary);
-            padding: 4px 0;
-            display: none;
-        }
-
-        .chat-status.active {
-            display: block;
-            color: var(--success-color);
-        }
-
         /* Summary Cards - Compact */
         .summary-cards {
             display: flex;
@@ -1559,12 +1546,6 @@
                 font-size: 0.8rem;
             }
 
-            /* Status compact */
-            .chat-status {
-                font-size: 0.8rem;
-                padding: 2px 0;
-            }
-
             /* Jump button compact */
             .jump-to-summary-btn {
                 padding: 8px;
@@ -1866,8 +1847,6 @@
 
                 <!-- Input Area -->
                 <div class="chat-input-area">
-                    <!-- Status indicator -->
-                    <div id="chat-status" class="chat-status"></div>
                     <!-- Images Preview -->
                     <div id="images-preview-container" class="images-preview-container"></div>
                     <!-- Unified input container -->

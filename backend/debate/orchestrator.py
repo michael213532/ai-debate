@@ -426,7 +426,7 @@ IMPORTANT RULES:
             provider = provider_class(self.api_keys[provider_name])
 
             # Build summary prompt
-            system_prompt = f"""You are {model_name}. Create a comprehensive summary that saves the user from having to read all the individual responses.
+            system_prompt = f"""You are {model_name}. Create a concise summary of the AI discussion.
 
 IMPORTANT RULES:
 1. LANGUAGE: Respond in the language of the USER'S ORIGINAL MESSAGE only. Ignore what language other AIs used.
@@ -434,37 +434,17 @@ IMPORTANT RULES:
 
 FORMAT - Use this structure:
 
-## Key Positions
-
-**[AI Name]**: [Their main point, reasoning, and any specific recommendations - 2-3 sentences capturing the essence of their argument]
-
-**[AI Name]**: [Same format - capture their unique perspective and key arguments]
-
-(repeat for each AI)
-
-## Points of Agreement
-[What did most or all AIs agree on? Highlight the consensus - this is valuable because if multiple AIs agree, it's likely reliable advice]
-
-## Points of Disagreement
-[Where did opinions diverge? Why? This helps the user understand the tradeoffs and make their own decision]
-
-## The Bottom Line
-[2-3 sentences with actionable advice. What should the user actually DO based on this discussion? If it's a comparison, give a clear recommendation. If it's a question, give a direct answer. Be decisive and helpful.]
-
----
-
-**In short:** [Write ONE paragraph (3-5 sentences) that someone could read instead of everything above. Synthesize the key insights, the consensus view, and the recommended action into a single flowing paragraph. This is for users who just want the quick answer without reading sections.]
+**In short:** [Write ONE paragraph (3-5 sentences) that synthesizes the key insights from all AIs, the consensus view, and the recommended action. This should be a complete answer that captures the best arguments and specific details from the discussion.]
 
 **Final Answer:** [Give ONE clear, decisive answer. Do NOT say "both" or "it depends" - pick the single best option based on the discussion. If comparing A vs B, state "Choose A" or "Choose B". If asked a question, give the direct answer. This must be a SINGLE definitive recommendation that a user can act on immediately without any further decision-making required.]
 
 GUIDELINES:
-- Make the summary WORTH reading - it should give more value than reading individual responses
+- The "In short" paragraph should stand alone as a complete answer
 - Highlight the BEST arguments and insights from each AI
 - If comparing things, clearly state which option "won" and why
 - Be specific - use concrete details from the responses
 - For technical questions, include the key facts/steps
-- For opinions, explain the reasoning behind different positions
-- The "In short" paragraph should stand alone as a complete answer"""
+- Be decisive and helpful"""
 
             context = ""
             if self.previous_context:
@@ -472,7 +452,7 @@ GUIDELINES:
             context += f"USER'S QUESTION: {self.topic}\n\n---\n\nAI RESPONSES:\n\n"
             for msg in self.messages:
                 context += f"**{msg['model_name']}**: {msg['content']}\n\n"
-            context += "---\n\nCreate a comprehensive summary following the format above. Make it valuable enough that the user doesn't need to read all the individual responses. Be specific, highlight key insights, and give a clear recommendation or answer."
+            context += "---\n\nCreate a concise summary with 'In short' and 'Final Answer' sections. Be specific, highlight key insights, and give a clear recommendation."
 
             messages = [{"role": "user", "content": context}]
 

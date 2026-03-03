@@ -571,12 +571,11 @@ function addAiDiscussionError(modelName, error) {
     }
 }
 
-// Update chat status indicator
+// Update chat status indicator (uses placeholder)
 function updateChatStatus(text) {
-    const statusEl = document.getElementById('chat-status');
-    if (statusEl) {
-        statusEl.textContent = text;
-        statusEl.classList.toggle('active', !!text);
+    const input = document.getElementById('chat-input');
+    if (input && text) {
+        input.placeholder = text;
     }
 }
 
