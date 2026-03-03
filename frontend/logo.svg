@@ -1,33 +1,58 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+<svg width="200" height="200" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+  <!-- Hexagon background -->
   <defs>
-    <!-- Gradients for each circle -->
-    <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#6366f1"/>
-      <stop offset="100%" style="stop-color:#4f46e5"/>
+    <linearGradient id="hexGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#6366f1;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#8b5cf6;stop-opacity:1" />
     </linearGradient>
-    <linearGradient id="grad2" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#8b5cf6"/>
-      <stop offset="100%" style="stop-color:#7c3aed"/>
-    </linearGradient>
-    <linearGradient id="grad3" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#a78bfa"/>
-      <stop offset="100%" style="stop-color:#8b5cf6"/>
-    </linearGradient>
-    <!-- Center highlight gradient -->
-    <radialGradient id="centerGlow" cx="50%" cy="50%" r="50%">
-      <stop offset="0%" style="stop-color:#ffffff;stop-opacity:0.3"/>
-      <stop offset="100%" style="stop-color:#ffffff;stop-opacity:0"/>
-    </radialGradient>
+    <filter id="shadow">
+      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-opacity="0.2"/>
+    </filter>
   </defs>
 
-  <!-- Three overlapping circles forming Venn diagram -->
-  <!-- Top left circle -->
-  <circle cx="35" cy="38" r="28" fill="url(#grad1)" opacity="0.85"/>
-  <!-- Top right circle -->
-  <circle cx="65" cy="38" r="28" fill="url(#grad2)" opacity="0.85"/>
-  <!-- Bottom center circle -->
-  <circle cx="50" cy="62" r="28" fill="url(#grad3)" opacity="0.85"/>
+  <!-- Main hexagon -->
+  <polygon points="100,20 160,55 160,125 100,160 40,125 40,55"
+           fill="url(#hexGradient)"
+           filter="url(#shadow)"/>
 
-  <!-- Center highlight where all three overlap -->
-  <circle cx="50" cy="46" r="12" fill="url(#centerGlow)"/>
+  <!-- Smaller hexagons (honeycomb pattern) -->
+  <polygon points="100,45 125,60 125,90 100,105 75,90 75,60"
+           fill="rgba(255,255,255,0.15)"
+           stroke="rgba(255,255,255,0.3)"
+           stroke-width="1.5"/>
+
+  <polygon points="135,72.5 150,82.5 150,102.5 135,112.5 120,102.5 120,82.5"
+           fill="rgba(255,255,255,0.1)"
+           stroke="rgba(255,255,255,0.25)"
+           stroke-width="1.5"/>
+
+  <polygon points="65,72.5 80,82.5 80,102.5 65,112.5 50,102.5 50,82.5"
+           fill="rgba(255,255,255,0.1)"
+           stroke="rgba(255,255,255,0.25)"
+           stroke-width="1.5"/>
+
+  <!-- Bee body -->
+  <ellipse cx="100" cy="90" rx="12" ry="16" fill="#FFA500" opacity="0.9"/>
+
+  <!-- Bee stripes -->
+  <rect x="88" y="82" width="24" height="3" fill="#000" opacity="0.6" rx="1.5"/>
+  <rect x="88" y="90" width="24" height="3" fill="#000" opacity="0.6" rx="1.5"/>
+  <rect x="88" y="98" width="24" height="3" fill="#000" opacity="0.6" rx="1.5"/>
+
+  <!-- Bee wings -->
+  <ellipse cx="92" cy="85" rx="8" ry="12" fill="rgba(255,255,255,0.7)"
+           transform="rotate(-25 92 85)"/>
+  <ellipse cx="108" cy="85" rx="8" ry="12" fill="rgba(255,255,255,0.7)"
+           transform="rotate(25 108 85)"/>
+
+  <!-- Bee head -->
+  <circle cx="100" cy="75" r="6" fill="#FFA500" opacity="0.9"/>
+
+  <!-- Bee antennae -->
+  <line x1="97" y1="72" x2="94" y2="68" stroke="#000" stroke-width="1.5"
+        stroke-linecap="round" opacity="0.6"/>
+  <line x1="103" y1="72" x2="106" y2="68" stroke="#000" stroke-width="1.5"
+        stroke-linecap="round" opacity="0.6"/>
+  <circle cx="94" cy="68" r="1.5" fill="#000" opacity="0.6"/>
+  <circle cx="106" cy="68" r="1.5" fill="#000" opacity="0.6"/>
 </svg>
