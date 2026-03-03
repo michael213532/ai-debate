@@ -9,6 +9,7 @@ let currentSessionId = null;
 let isProcessing = false;
 let conversationHistory = [];
 let selectedImages = []; // Array of { base64: string, media_type: string, dataUrl: string }
+let lastSentMessage = null; // Track last message for retry functionality
 const MAX_IMAGES = 10;
 
 // Vision-capable models (all others cannot see images)
@@ -103,6 +104,26 @@ document.getElementById('image-input').addEventListener('change', handleImageSel
 function toggleAttachmentMenu() {}
 function closeAttachmentMenu() {}
 
+// Retry the last sent message (for overloaded/server errors)
+function retryLastMessage() {
+    if (!lastSentMessage || isProcessing) {
+        return;
+    }
+
+    // Remove error messages from failed models
+    const container = document.getElementById('chat-messages');
+    const errorMessages = container.querySelectorAll('.message.ai-individual .error-labeled');
+    errorMessages.forEach(err => {
+        const msg = err.closest('.message.ai-individual');
+        if (msg) msg.remove();
+    });
+
+    // Put message back in input and send
+    const input = document.getElementById('chat-input');
+    input.value = lastSentMessage;
+    sendMessage();
+}
+
 // Send a message
 async function sendMessage() {
     const input = document.getElementById('chat-input');
@@ -111,6 +132,9 @@ async function sendMessage() {
     if (!message || selectedModels.length < 2 || isProcessing) {
         return;
     }
+
+    // Store for retry functionality
+    lastSentMessage = message;
 
     // Lock input
     setInputLocked(true);
@@ -550,6 +574,9 @@ function addAiDiscussionError(modelName, error) {
         } else if (errorInfo.actionType === 'billing' && errorInfo.billingUrl) {
             // Billing issues - link to provider
             fixLink = `<a href="${errorInfo.billingUrl}" target="_blank" rel="noopener" style="color: var(--primary-color); margin-left: 4px;">Fix this</a>`;
+        } else if (errorInfo.actionType === 'retry') {
+            // Temporary errors - offer retry button
+            fixLink = `<button onclick="retryLastMessage()" style="color: var(--primary-color); background: none; border: 1px solid var(--primary-color); padding: 4px 12px; border-radius: 4px; cursor: pointer; margin-left: 8px; font-size: 0.85rem;">Try Again</button>`;
         } else if (errorInfo.label === 'Model Not Found') {
             // Model issues - open setup wizard
             fixLink = `<a href="#" onclick="showTutorial(); return false;" style="color: var(--primary-color); margin-left: 4px;">Fix this</a>`;

@@ -55,14 +55,14 @@ const ERROR_LABELS = {
     '500': {
         label: 'Provider Error',
         color: '#6b7280',
-        help: 'The AI provider is having technical issues. Try again in a moment.',
-        actionType: null
+        help: 'The AI provider is having technical issues.',
+        actionType: 'retry'
     },
     '503': {
         label: 'Overloaded',
         color: '#6b7280',
-        help: 'The AI service is temporarily overloaded. Try again in a few seconds.',
-        actionType: null
+        help: 'The AI service is temporarily overloaded.',
+        actionType: 'retry'
     },
     'insufficient_quota': {
         label: 'No Credits',
