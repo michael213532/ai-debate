@@ -267,7 +267,7 @@ async function loadModels() {
         if (!response.ok) throw new Error('Failed to load models');
 
         availableModels = await response.json();
-        renderModelTags();
+        // Don't render yet - wait until selectedModels are loaded
     } catch (error) {
         console.error('Error loading models:', error);
     }
@@ -286,7 +286,7 @@ async function loadConfiguredProviders() {
         configuredProviders = new Set(
             providers.filter(p => p.configured).map(p => p.provider)
         );
-        renderModelTags();
+        // Don't render yet - wait until selectedModels are loaded
     } catch (error) {
         console.error('Error loading providers:', error);
     }

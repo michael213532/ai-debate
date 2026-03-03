@@ -1,4 +1,4 @@
-# Ensemble AI
+# Beecision
 
 A web application where multiple AI models discuss topics together, giving you diverse perspectives and a synthesized summary. Ask a question, watch AIs discuss, get a combined answer.
 
@@ -106,7 +106,7 @@ The application will be available at http://localhost:8000
 ## Project Structure
 
 ```
-ai-debate/
+beecision/
 ├── backend/
 │   ├── main.py              # FastAPI app entry
 │   ├── config.py            # Settings & environment

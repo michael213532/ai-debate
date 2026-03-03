@@ -1,4 +1,4 @@
-# Ensemble AI - Project Notes
+# Beecision - Project Notes
 
 ## What This Is
 A chat-based SaaS app where users can have multiple AI models discuss a topic together and get a combined response.
@@ -13,7 +13,7 @@ A chat-based SaaS app where users can have multiple AI models discuss a topic to
 - **Deployment**: Railway (Docker)
 
 ## Live URL
-https://ai-debate-production-8032.up.railway.app
+https://beecision.com
 
 ## Key Features
 - Chat interface with inline AI responses
@@ -25,7 +25,7 @@ https://ai-debate-production-8032.up.railway.app
 
 ## Project Structure
 ```
-ai-debate/
+beecision/
 ├── backend/
 │   ├── main.py              # FastAPI app entry
 │   ├── config.py            # Settings, AI models list
@@ -51,7 +51,7 @@ ai-debate/
 - STRIPE_SECRET_KEY
 - STRIPE_WEBHOOK_SECRET
 - STRIPE_PRICE_ID
-- DATABASE_PATH (defaults to /app/data/ai_debate.db)
+- DATABASE_PATH (defaults to /app/data/beecision.db)
 - APP_URL
 
 ## Data Persistence (Railway)

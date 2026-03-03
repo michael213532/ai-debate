@@ -140,9 +140,9 @@ class DebateOrchestrator:
 
                 round_num += 1
 
-            # Generate summary if not stopped
-            if not self._stopped and self.models:
-                await self._generate_summary()
+            # Generate summary if not stopped (disabled - user wants to see individual AI discussions only)
+            # if not self._stopped and self.models:
+            #     await self._generate_summary()
 
             # Extract and save memory asynchronously (don't block completion)
             if self.user_id and not self._stopped:

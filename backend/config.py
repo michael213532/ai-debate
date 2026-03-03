@@ -14,11 +14,11 @@ JWT_EXPIRATION_MINUTES = int(os.getenv("JWT_EXPIRATION_MINUTES", "1440"))
 
 # Encryption key for API keys
 # In development, we use a fixed key. In production, set ENCRYPTION_KEY env var.
-_DEFAULT_DEV_KEY = "ZGV2LWtleS1mb3ItYWktZGViYXRlLWFwcC0xMjM0NTY3OA=="  # Base64 padding needed
+_DEFAULT_DEV_KEY = "ZGV2LWtleS1mb3ItYmVlY2lzaW9uLWFwcC0xMjM0NTY3OA=="  # Base64 padding needed
 ENCRYPTION_KEY = os.getenv("ENCRYPTION_KEY", "")
 
 # Database
-DATABASE_PATH = Path(os.getenv("DATABASE_PATH", Path(__file__).parent / "ai_debate.db"))
+DATABASE_PATH = Path(os.getenv("DATABASE_PATH", Path(__file__).parent / "beecision.db"))
 DATABASE_URL = os.getenv("DATABASE_URL", "")  # PostgreSQL connection string from Railway
 
 # Server

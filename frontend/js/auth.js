@@ -23,14 +23,14 @@ function updateAuthUI() {
 
     if (isLoginMode) {
         title.textContent = 'Welcome back';
-        subtitle.textContent = 'Sign in to continue to Ensemble AI';
+        subtitle.textContent = 'Sign in to continue to Beecision';
         loginForm.style.display = 'block';
         registerForm.style.display = 'none';
         toggleText.textContent = "Don't have an account?";
         toggleLink.textContent = 'Sign up';
     } else {
         title.textContent = 'Create an account';
-        subtitle.textContent = 'Get started with Ensemble AI';
+        subtitle.textContent = 'Get started with Beecision';
         loginForm.style.display = 'none';
         registerForm.style.display = 'block';
         toggleText.textContent = 'Already have an account?';

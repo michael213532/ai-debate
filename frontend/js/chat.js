@@ -290,12 +290,14 @@ function connectWebSocket(sessionId) {
 
 // Handle WebSocket messages
 function handleWebSocketMessage(message) {
+    console.log('[WebSocket]', message.type, message); // Debug logging
     switch (message.type) {
         case 'round_start':
             updateChatStatus('Getting opinions...');
             break;
 
         case 'model_start':
+            console.log('[AI Response] Starting:', message.model_name);
             addAiDiscussionMessage(message.model_name, message.provider, '');
             updateChatStatus(`${message.model_name} is responding...`);
             break;
@@ -305,10 +307,12 @@ function handleWebSocketMessage(message) {
             break;
 
         case 'model_end':
+            console.log('[AI Response] Finished:', message.model_name);
             finishAiDiscussion(message.model_name);
             break;
 
         case 'model_error':
+            console.log('[AI Error]', message.model_name, message.error);
             addAiDiscussionError(message.model_name, message.error);
             break;
 
