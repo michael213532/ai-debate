@@ -10,56 +10,94 @@
   <circle cx="100" cy="100" r="90" fill="url(#bgGradient)"/>
 
   <!-- Hexagon outline (honeycomb reference) -->
-  <polygon points="100,35 145,62.5 145,117.5 100,145 55,117.5 55,62.5"
-           fill="none"
-           stroke="rgba(255,255,255,0.2)"
-           stroke-width="3"/>
-
-  <!-- Bee Body (larger and simpler) -->
-  <ellipse cx="100" cy="95" rx="22" ry="32" fill="#FFB800"/>
-
-  <!-- Bee Stripes (bold and clear) -->
-  <rect x="78" y="75" width="44" height="6" fill="#1a1a1a" rx="3"/>
-  <rect x="78" y="90" width="44" height="6" fill="#1a1a1a" rx="3"/>
-  <rect x="78" y="105" width="44" height="6" fill="#1a1a1a" rx="3"/>
-
-  <!-- Bee Wings (larger and clearer) -->
-  <ellipse cx="82" cy="80" rx="16" ry="22" fill="rgba(255,255,255,0.85)"
-           stroke="rgba(255,255,255,0.4)" stroke-width="2"
-           transform="rotate(-30 82 80)"/>
-  <ellipse cx="118" cy="80" rx="16" ry="22" fill="rgba(255,255,255,0.85)"
-           stroke="rgba(255,255,255,0.4)" stroke-width="2"
-           transform="rotate(30 118 80)"/>
-
-  <!-- Bee Head (larger) -->
-  <circle cx="100" cy="60" r="11" fill="#FFB800"/>
-
-  <!-- Bee Eyes -->
-  <circle cx="95" cy="58" r="2.5" fill="#1a1a1a"/>
-  <circle cx="105" cy="58" r="2.5" fill="#1a1a1a"/>
-
-  <!-- Bee Antennae (thicker) -->
-  <line x1="95" y1="52" x2="88" y2="43" stroke="#1a1a1a" stroke-width="2.5"
-        stroke-linecap="round"/>
-  <line x1="105" y1="52" x2="112" y2="43" stroke="#1a1a1a" stroke-width="2.5"
-        stroke-linecap="round"/>
-  <circle cx="88" cy="43" r="3" fill="#1a1a1a"/>
-  <circle cx="112" cy="43" r="3" fill="#1a1a1a"/>
-
-  <!-- Bee Stinger -->
-  <polygon points="100,127 95,137 100,140 105,137" fill="#1a1a1a"/>
-
-  <!-- Subtle hexagon pattern in background -->
-  <polygon points="100,125 115,133.75 115,151.25 100,160 85,151.25 85,133.75"
+  <polygon points="100,30 145,57.5 145,112.5 100,140 55,112.5 55,57.5"
            fill="none"
            stroke="rgba(255,255,255,0.15)"
            stroke-width="2"/>
-  <polygon points="130,90 140,96.25 140,108.75 130,115 120,108.75 120,96.25"
-           fill="none"
-           stroke="rgba(255,255,255,0.15)"
-           stroke-width="2"/>
-  <polygon points="70,90 80,96.25 80,108.75 70,115 60,108.75 60,96.25"
-           fill="none"
-           stroke="rgba(255,255,255,0.15)"
-           stroke-width="2"/>
+
+  <!-- BEE #1 - Top -->
+  <g transform="translate(100, 50)">
+    <!-- Body -->
+    <ellipse cx="0" cy="0" rx="10" ry="14" fill="#FFB800"/>
+    <!-- Stripes -->
+    <rect x="-10" y="-7" width="20" height="3" fill="#1a1a1a" rx="1.5"/>
+    <rect x="-10" y="0" width="20" height="3" fill="#1a1a1a" rx="1.5"/>
+    <rect x="-10" y="7" width="20" height="3" fill="#1a1a1a" rx="1.5"/>
+    <!-- Wings -->
+    <ellipse cx="-7" cy="-3" rx="8" ry="11" fill="rgba(255,255,255,0.8)" transform="rotate(-25 -7 -3)"/>
+    <ellipse cx="7" cy="-3" rx="8" ry="11" fill="rgba(255,255,255,0.8)" transform="rotate(25 7 -3)"/>
+    <!-- Head -->
+    <circle cx="0" cy="-16" r="6" fill="#FFB800"/>
+    <!-- Eyes -->
+    <circle cx="-2" cy="-17" r="1.5" fill="#1a1a1a"/>
+    <circle cx="2" cy="-17" r="1.5" fill="#1a1a1a"/>
+    <!-- Antennae -->
+    <line x1="-2" y1="-21" x2="-4" y2="-25" stroke="#1a1a1a" stroke-width="1.5" stroke-linecap="round"/>
+    <line x1="2" y1="-21" x2="4" y2="-25" stroke="#1a1a1a" stroke-width="1.5" stroke-linecap="round"/>
+    <circle cx="-4" cy="-25" r="1.5" fill="#1a1a1a"/>
+    <circle cx="4" cy="-25" r="1.5" fill="#1a1a1a"/>
+    <!-- Speech bubble -->
+    <circle cx="15" cy="-20" r="8" fill="rgba(255,255,255,0.9)"/>
+    <polygon points="12,-15 10,-12 14,-14" fill="rgba(255,255,255,0.9)"/>
+    <circle cx="15" cy="-20" r="1.5" fill="#6366f1"/>
+  </g>
+
+  <!-- BEE #2 - Bottom Left -->
+  <g transform="translate(65, 125)">
+    <!-- Body -->
+    <ellipse cx="0" cy="0" rx="10" ry="14" fill="#FFB800"/>
+    <!-- Stripes -->
+    <rect x="-10" y="-7" width="20" height="3" fill="#1a1a1a" rx="1.5"/>
+    <rect x="-10" y="0" width="20" height="3" fill="#1a1a1a" rx="1.5"/>
+    <rect x="-10" y="7" width="20" height="3" fill="#1a1a1a" rx="1.5"/>
+    <!-- Wings -->
+    <ellipse cx="-7" cy="-3" rx="8" ry="11" fill="rgba(255,255,255,0.8)" transform="rotate(-25 -7 -3)"/>
+    <ellipse cx="7" cy="-3" rx="8" ry="11" fill="rgba(255,255,255,0.8)" transform="rotate(25 7 -3)"/>
+    <!-- Head -->
+    <circle cx="0" cy="-16" r="6" fill="#FFB800"/>
+    <!-- Eyes -->
+    <circle cx="-2" cy="-17" r="1.5" fill="#1a1a1a"/>
+    <circle cx="2" cy="-17" r="1.5" fill="#1a1a1a"/>
+    <!-- Antennae -->
+    <line x1="-2" y1="-21" x2="-4" y2="-25" stroke="#1a1a1a" stroke-width="1.5" stroke-linecap="round"/>
+    <line x1="2" y1="-21" x2="4" y2="-25" stroke="#1a1a1a" stroke-width="1.5" stroke-linecap="round"/>
+    <circle cx="-4" cy="-25" r="1.5" fill="#1a1a1a"/>
+    <circle cx="4" cy="-25" r="1.5" fill="#1a1a1a"/>
+    <!-- Speech bubble -->
+    <circle cx="-15" cy="-20" r="8" fill="rgba(255,255,255,0.9)"/>
+    <polygon points="-12,-15 -10,-12 -14,-14" fill="rgba(255,255,255,0.9)"/>
+    <circle cx="-15" cy="-20" r="1.5" fill="#8b5cf6"/>
+  </g>
+
+  <!-- BEE #3 - Bottom Right -->
+  <g transform="translate(135, 125)">
+    <!-- Body -->
+    <ellipse cx="0" cy="0" rx="10" ry="14" fill="#FFB800"/>
+    <!-- Stripes -->
+    <rect x="-10" y="-7" width="20" height="3" fill="#1a1a1a" rx="1.5"/>
+    <rect x="-10" y="0" width="20" height="3" fill="#1a1a1a" rx="1.5"/>
+    <rect x="-10" y="7" width="20" height="3" fill="#1a1a1a" rx="1.5"/>
+    <!-- Wings -->
+    <ellipse cx="-7" cy="-3" rx="8" ry="11" fill="rgba(255,255,255,0.8)" transform="rotate(-25 -7 -3)"/>
+    <ellipse cx="7" cy="-3" rx="8" ry="11" fill="rgba(255,255,255,0.8)" transform="rotate(25 7 -3)"/>
+    <!-- Head -->
+    <circle cx="0" cy="-16" r="6" fill="#FFB800"/>
+    <!-- Eyes -->
+    <circle cx="-2" cy="-17" r="1.5" fill="#1a1a1a"/>
+    <circle cx="2" cy="-17" r="1.5" fill="#1a1a1a"/>
+    <!-- Antennae -->
+    <line x1="-2" y1="-21" x2="-4" y2="-25" stroke="#1a1a1a" stroke-width="1.5" stroke-linecap="round"/>
+    <line x1="2" y1="-21" x2="4" y2="-25" stroke="#1a1a1a" stroke-width="1.5" stroke-linecap="round"/>
+    <circle cx="-4" cy="-25" r="1.5" fill="#1a1a1a"/>
+    <circle cx="4" cy="-25" r="1.5" fill="#1a1a1a"/>
+    <!-- Speech bubble -->
+    <circle cx="15" cy="-20" r="8" fill="rgba(255,255,255,0.9)"/>
+    <polygon points="12,-15 10,-12 14,-14" fill="rgba(255,255,255,0.9)"/>
+    <circle cx="15" cy="-20" r="1.5" fill="#a78bfa"/>
+  </g>
+
+  <!-- Connecting lines (showing discussion) -->
+  <line x1="100" y1="64" x2="75" y2="105" stroke="rgba(255,255,255,0.2)" stroke-width="2" stroke-dasharray="3,3"/>
+  <line x1="100" y1="64" x2="125" y2="105" stroke="rgba(255,255,255,0.2)" stroke-width="2" stroke-dasharray="3,3"/>
+  <line x1="75" y1="109" x2="125" y2="109" stroke="rgba(255,255,255,0.2)" stroke-width="2" stroke-dasharray="3,3"/>
 </svg>
