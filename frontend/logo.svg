@@ -1,58 +1,65 @@
 <svg width="200" height="200" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
-  <!-- Hexagon background -->
   <defs>
-    <linearGradient id="hexGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
       <stop offset="0%" style="stop-color:#6366f1;stop-opacity:1" />
       <stop offset="100%" style="stop-color:#8b5cf6;stop-opacity:1" />
     </linearGradient>
-    <filter id="shadow">
-      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-opacity="0.2"/>
-    </filter>
   </defs>
 
-  <!-- Main hexagon -->
-  <polygon points="100,20 160,55 160,125 100,160 40,125 40,55"
-           fill="url(#hexGradient)"
-           filter="url(#shadow)"/>
+  <!-- Background Circle -->
+  <circle cx="100" cy="100" r="90" fill="url(#bgGradient)"/>
 
-  <!-- Smaller hexagons (honeycomb pattern) -->
-  <polygon points="100,45 125,60 125,90 100,105 75,90 75,60"
-           fill="rgba(255,255,255,0.15)"
-           stroke="rgba(255,255,255,0.3)"
-           stroke-width="1.5"/>
+  <!-- Hexagon outline (honeycomb reference) -->
+  <polygon points="100,35 145,62.5 145,117.5 100,145 55,117.5 55,62.5"
+           fill="none"
+           stroke="rgba(255,255,255,0.2)"
+           stroke-width="3"/>
 
-  <polygon points="135,72.5 150,82.5 150,102.5 135,112.5 120,102.5 120,82.5"
-           fill="rgba(255,255,255,0.1)"
-           stroke="rgba(255,255,255,0.25)"
-           stroke-width="1.5"/>
+  <!-- Bee Body (larger and simpler) -->
+  <ellipse cx="100" cy="95" rx="22" ry="32" fill="#FFB800"/>
 
-  <polygon points="65,72.5 80,82.5 80,102.5 65,112.5 50,102.5 50,82.5"
-           fill="rgba(255,255,255,0.1)"
-           stroke="rgba(255,255,255,0.25)"
-           stroke-width="1.5"/>
+  <!-- Bee Stripes (bold and clear) -->
+  <rect x="78" y="75" width="44" height="6" fill="#1a1a1a" rx="3"/>
+  <rect x="78" y="90" width="44" height="6" fill="#1a1a1a" rx="3"/>
+  <rect x="78" y="105" width="44" height="6" fill="#1a1a1a" rx="3"/>
 
-  <!-- Bee body -->
-  <ellipse cx="100" cy="90" rx="12" ry="16" fill="#FFA500" opacity="0.9"/>
+  <!-- Bee Wings (larger and clearer) -->
+  <ellipse cx="82" cy="80" rx="16" ry="22" fill="rgba(255,255,255,0.85)"
+           stroke="rgba(255,255,255,0.4)" stroke-width="2"
+           transform="rotate(-30 82 80)"/>
+  <ellipse cx="118" cy="80" rx="16" ry="22" fill="rgba(255,255,255,0.85)"
+           stroke="rgba(255,255,255,0.4)" stroke-width="2"
+           transform="rotate(30 118 80)"/>
 
-  <!-- Bee stripes -->
-  <rect x="88" y="82" width="24" height="3" fill="#000" opacity="0.6" rx="1.5"/>
-  <rect x="88" y="90" width="24" height="3" fill="#000" opacity="0.6" rx="1.5"/>
-  <rect x="88" y="98" width="24" height="3" fill="#000" opacity="0.6" rx="1.5"/>
+  <!-- Bee Head (larger) -->
+  <circle cx="100" cy="60" r="11" fill="#FFB800"/>
 
-  <!-- Bee wings -->
-  <ellipse cx="92" cy="85" rx="8" ry="12" fill="rgba(255,255,255,0.7)"
-           transform="rotate(-25 92 85)"/>
-  <ellipse cx="108" cy="85" rx="8" ry="12" fill="rgba(255,255,255,0.7)"
-           transform="rotate(25 108 85)"/>
+  <!-- Bee Eyes -->
+  <circle cx="95" cy="58" r="2.5" fill="#1a1a1a"/>
+  <circle cx="105" cy="58" r="2.5" fill="#1a1a1a"/>
 
-  <!-- Bee head -->
-  <circle cx="100" cy="75" r="6" fill="#FFA500" opacity="0.9"/>
+  <!-- Bee Antennae (thicker) -->
+  <line x1="95" y1="52" x2="88" y2="43" stroke="#1a1a1a" stroke-width="2.5"
+        stroke-linecap="round"/>
+  <line x1="105" y1="52" x2="112" y2="43" stroke="#1a1a1a" stroke-width="2.5"
+        stroke-linecap="round"/>
+  <circle cx="88" cy="43" r="3" fill="#1a1a1a"/>
+  <circle cx="112" cy="43" r="3" fill="#1a1a1a"/>
 
-  <!-- Bee antennae -->
-  <line x1="97" y1="72" x2="94" y2="68" stroke="#000" stroke-width="1.5"
-        stroke-linecap="round" opacity="0.6"/>
-  <line x1="103" y1="72" x2="106" y2="68" stroke="#000" stroke-width="1.5"
-        stroke-linecap="round" opacity="0.6"/>
-  <circle cx="94" cy="68" r="1.5" fill="#000" opacity="0.6"/>
-  <circle cx="106" cy="68" r="1.5" fill="#000" opacity="0.6"/>
+  <!-- Bee Stinger -->
+  <polygon points="100,127 95,137 100,140 105,137" fill="#1a1a1a"/>
+
+  <!-- Subtle hexagon pattern in background -->
+  <polygon points="100,125 115,133.75 115,151.25 100,160 85,151.25 85,133.75"
+           fill="none"
+           stroke="rgba(255,255,255,0.15)"
+           stroke-width="2"/>
+  <polygon points="130,90 140,96.25 140,108.75 130,115 120,108.75 120,96.25"
+           fill="none"
+           stroke="rgba(255,255,255,0.15)"
+           stroke-width="2"/>
+  <polygon points="70,90 80,96.25 80,108.75 70,115 60,108.75 60,96.25"
+           fill="none"
+           stroke="rgba(255,255,255,0.15)"
+           stroke-width="2"/>
 </svg>
