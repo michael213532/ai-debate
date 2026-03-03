@@ -445,24 +445,24 @@ function formatSummaryAsCards(text) {
         return null;
     }
 
-    // Build HTML with chat-style formatting
-    let html = '<div class="summary-formatted" style="font-size: 0.85rem; line-height: 1.4;">';
+    // Build HTML with chat-style formatting (matches AI response styling)
+    let html = '<div class="summary-formatted" style="font-size: 0.95rem; line-height: 1.7;">';
 
     for (const entry of entries) {
         const borderColor = getProviderColor(entry.name);
-        html += `<div style="border-left: 2px solid ${borderColor}; padding-left: 8px; margin-bottom: 12px;"><span style="font-weight: 600; color: ${borderColor};">${escapeHtml(entry.name)}</span> <span style="color: var(--text-primary);">${escapeHtml(entry.content)}</span></div>`;
+        html += `<div style="border-left: 2px solid ${borderColor}; padding-left: 12px; margin-bottom: 16px;"><span style="font-weight: 600; color: ${borderColor};">${escapeHtml(entry.name)}</span> <span style="color: var(--text-primary);">${escapeHtml(entry.content)}</span></div>`;
     }
 
     if (bottomLine) {
-        html += `<div style="margin-top: 6px; padding: 4px 8px; background: var(--surface-light); border-radius: 4px;"><strong>Bottom line:</strong> ${escapeHtml(bottomLine)}</div>`;
+        html += `<div style="margin-top: 12px; padding: 12px 16px; background: var(--surface-light); border-radius: 8px;"><strong>Bottom line:</strong> ${escapeHtml(bottomLine)}</div>`;
     }
 
     if (inShort) {
-        html += `<div style="margin-top: 2px; padding: 4px 8px; background: var(--surface-light); border-radius: 4px;"><strong>In short:</strong> ${escapeHtml(inShort)}</div>`;
+        html += `<div style="margin-top: 12px; padding: 12px 16px; background: var(--surface-light); border-radius: 8px;"><strong>In short:</strong> ${escapeHtml(inShort)}</div>`;
     }
 
     if (finalAnswer) {
-        html += `<div style="margin-top: 2px; padding: 4px 8px; background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(139, 92, 246, 0.1)); border: 1px solid var(--primary-color); border-radius: 4px;"><strong style="color: var(--primary-color);">Final Answer:</strong> ${escapeHtml(finalAnswer)}</div>`;
+        html += `<div style="margin-top: 12px; padding: 12px 16px; background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(139, 92, 246, 0.1)); border: 1px solid var(--primary-color); border-radius: 8px;"><strong style="color: var(--primary-color);">Final Answer:</strong> ${escapeHtml(finalAnswer)}</div>`;
     }
 
     html += '</div>';
