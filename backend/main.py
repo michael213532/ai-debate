@@ -60,15 +60,15 @@ if (frontend_path / "js").exists():
 
 
 @app.get("/")
-async def serve_index():
-    """Serve the landing page."""
-    return FileResponse(frontend_path / "index.html")
-
-
-@app.get("/app")
 async def serve_app():
     """Serve the main app page."""
     return FileResponse(frontend_path / "app.html")
+
+
+@app.get("/welcome")
+async def serve_welcome():
+    """Serve the landing/login page."""
+    return FileResponse(frontend_path / "index.html")
 
 
 @app.get("/pricing")

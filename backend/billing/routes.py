@@ -73,8 +73,8 @@ async def create_checkout_session(current_user: User = Depends(get_current_user)
                 "quantity": 1
             }],
             mode="subscription",
-            success_url=f"{APP_URL}/app?subscription=success",
-            cancel_url=f"{APP_URL}/app?subscription=cancelled",
+            success_url=f"{APP_URL}/?subscription=success",
+            cancel_url=f"{APP_URL}/?subscription=cancelled",
             metadata={"user_id": current_user.id}
         )
 
@@ -99,7 +99,7 @@ async def create_portal_session(current_user: User = Depends(get_current_user)):
     try:
         session = stripe.billing_portal.Session.create(
             customer=current_user.stripe_customer_id,
-            return_url=f"{APP_URL}/app"
+            return_url=f"{APP_URL}/"
         )
         return {"portal_url": session.url}
 

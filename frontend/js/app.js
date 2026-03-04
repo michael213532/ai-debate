@@ -168,7 +168,7 @@ function getAuthHeaders() {
 async function checkAuth() {
     const token = localStorage.getItem('token');
     if (!token) {
-        window.location.href = '/';
+        window.location.href = '/welcome';
         return false;
     }
 
@@ -652,13 +652,13 @@ if (chatInput) {
         const urlParams = new URLSearchParams(window.location.search);
         if (urlParams.get('subscription') === 'success') {
             alert('Subscription activated! You now have unlimited sessions.');
-            window.history.replaceState({}, '', '/app');
+            window.history.replaceState({}, '', '/');
             loadSubscriptionStatus();
         }
 
         // Check if we should open setup wizard (from settings page)
         if (urlParams.get('openSetup') === 'true') {
-            window.history.replaceState({}, '', '/app');
+            window.history.replaceState({}, '', '/');
             // Small delay to ensure DOM is fully ready
             setTimeout(() => showTutorial(), 100);
             return;

@@ -86,7 +86,7 @@ document.getElementById('login-form').addEventListener('submit', async (e) => {
         }
 
         localStorage.setItem('token', data.access_token);
-        window.location.href = '/app';
+        window.location.href = '/';
     } catch (error) {
         showAlert(error.message);
     } finally {
@@ -136,7 +136,7 @@ document.getElementById('register-form').addEventListener('submit', async (e) =>
         }
 
         localStorage.setItem('token', data.access_token);
-        window.location.href = '/app';
+        window.location.href = '/';
     } catch (error) {
         showAlert(error.message);
     } finally {
