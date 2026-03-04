@@ -315,6 +315,25 @@
             border-bottom: 1px solid var(--border-color);
         }
 
+        .logo-with-tagline {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .logo-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .logo-tagline {
+            font-size: 0.7rem;
+            font-weight: 400;
+            color: var(--text-secondary);
+            font-style: italic;
+        }
+
         .models-dropdown-trigger {
             display: flex;
             align-items: center;
@@ -1730,7 +1749,7 @@
                 </button>
                 <span class="mobile-logo">Beecision</span>
                 <button id="mobile-models-trigger" class="mobile-models-trigger" title="Select Models">
-                    <span id="mobile-models-count" class="models-count">0 models</span>
+                    <span id="mobile-models-count" class="models-count">0 bees</span>
                     <svg class="dropdown-arrow" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                         <path d="M6 9l6 6 6-6"/>
                     </svg>
@@ -1807,17 +1826,22 @@
         <div id="app-setup-overlay" class="app-setup-overlay" style="display: none;">
             <div class="setup-overlay-content">
                 <h2>Complete Setup to Continue</h2>
-                <p>Select at least 2 AI models to start using Beecision</p>
+                <p>Select at least 2 bees to start using Beecision</p>
                 <button class="btn btn-primary" onclick="showTutorial()">Open Setup</button>
             </div>
         </div>
 
         <!-- Logo Header - top of main area -->
         <div class="main-logo-header">
-            <img src="/logo.svg" alt="Beecision" style="width: 28px; height: 28px;">
-            <span>Beecision</span>
-            <button id="models-dropdown-trigger" class="models-dropdown-trigger" title="Select Models">
-                <span id="header-models-count" class="models-count">0 models</span>
+            <div class="logo-with-tagline">
+                <div class="logo-row">
+                    <img src="/logo.svg" alt="Beecision" style="width: 28px; height: 28px;">
+                    <span>Beecision</span>
+                </div>
+                <span class="logo-tagline">A million bees can't be wrong</span>
+            </div>
+            <button id="models-dropdown-trigger" class="models-dropdown-trigger" title="Select Bees">
+                <span id="header-models-count" class="models-count">0 bees</span>
                 <svg class="dropdown-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                     <path d="M6 9l6 6 6-6"/>
                 </svg>
@@ -1835,7 +1859,7 @@
                             <path d="M6 9l6 6 6-6"/>
                         </svg>
                     </button>
-                    <span class="models-expand-label" onclick="expandModels()">Models:</span>
+                    <span class="models-expand-label" onclick="expandModels()">Bees:</span>
                     <span id="models-selected-count" class="models-selected-count"></span>
                 </div>
 
@@ -1853,7 +1877,7 @@
                     <div class="empty-chat">
                         <div class="empty-chat-icon">💬</div>
                         <h2>Start a conversation</h2>
-                        <p>Select 2-6 AI models above, then type your message.<br>Each AI will respond, then you'll get a combined summary.</p>
+                        <p>Select 2-6 bees above, then type your message.<br>Each bee will respond, then you'll get a combined summary.</p>
                     </div>
                 </div>
 
@@ -2101,7 +2125,7 @@
                         <!-- Model Selection -->
                         <div style="margin-top: 16px;">
                             <div style="text-align: center; font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 10px;">
-                                Choose models:
+                                Choose bees:
                             </div>
                             <div id="setup-model-selection" class="setup-model-selection" style="padding: 12px;">
                                 <div id="setup-model-scroll" class="setup-model-scroll">
@@ -2597,8 +2621,8 @@
 
         function updateHeaderModelsCount() {
             const count = selectedModels ? selectedModels.length : 0;
-            headerModelsCount.textContent = count === 1 ? '1 model selected' : `${count} models selected`;
-            mobileModelsCount.textContent = count === 1 ? '1 model' : `${count} models`;
+            headerModelsCount.textContent = count === 1 ? '1 bee selected' : `${count} bees selected`;
+            mobileModelsCount.textContent = count === 1 ? '1 bee' : `${count} bees`;
         }
 
         function toggleModels() {

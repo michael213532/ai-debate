@@ -1206,10 +1206,10 @@ function updateSetupModelCount() {
 
     if (count < 2) {
         countEl.style.color = 'var(--text-secondary)';
-        countEl.textContent = `Select at least 2 models to continue`;
+        countEl.textContent = `Select at least 2 bees to continue`;
     } else {
         countEl.style.color = '#22c55e';
-        countEl.textContent = `${count} models selected ✓`;
+        countEl.textContent = `${count} bees selected ✓`;
     }
 }
 
