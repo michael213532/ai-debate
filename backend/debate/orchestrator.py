@@ -687,7 +687,7 @@ CRITICAL RULES:
 - Each vote's choice must also be ONE thing, not multiple options
 - votes: One entry per AI, extract their single main position
 - emoji: Use the personality emoji if known, otherwise use a relevant one
-- confidence: 0-100, based on how much AIs agreed (100 = unanimous, 50 = split)
+- confidence: Calculate as (number of AIs who chose hive_decision / total AIs) * 100. Example: 3 out of 4 AIs chose it = 75
 - key_reasons: 2-4 main reasons supporting the hive decision
 
 Respond ONLY with the JSON object, no markdown code blocks."""
