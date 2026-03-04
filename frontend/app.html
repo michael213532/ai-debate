@@ -2139,40 +2139,18 @@
     <div id="settings-modal" class="modal-overlay">
         <div class="modal" style="max-width: 520px;">
             <div class="modal-header">
-                <h2 class="modal-title">Settings</h2>
+                <h2 class="modal-title">🐝 Bee Roles</h2>
                 <button class="btn btn-primary btn-small" id="settings-done-btn">Done</button>
             </div>
-            <!-- Settings Tabs -->
-            <div class="settings-tabs">
-                <button class="settings-tab active" data-tab="roles">🐝 Bee Roles</button>
-                <button class="settings-tab" data-tab="memory">🧠 Memory</button>
-            </div>
             <div class="modal-body" style="padding: 16px;">
-                <!-- Roles Tab -->
-                <div id="settings-tab-roles" class="settings-tab-content">
-                    <p style="color: var(--text-secondary); margin-bottom: 16px; font-size: 0.9rem;">
-                        Assign which AI model powers each personality bee. Models bring their unique style to each role.
-                    </p>
-                    <div id="role-assignments" class="role-assignments">
-                        <!-- Populated by JS -->
-                    </div>
-                    <div style="margin-top: 16px; display: flex; justify-content: flex-end;">
-                        <button id="reset-roles-btn" class="btn btn-secondary btn-small">Reset to Default</button>
-                    </div>
+                <p style="color: var(--text-secondary); margin-bottom: 16px; font-size: 0.9rem;">
+                    Assign which AI model powers each personality bee. Models bring their unique style to each role.
+                </p>
+                <div id="role-assignments" class="role-assignments">
+                    <!-- Populated by JS -->
                 </div>
-                <!-- Memory Tab -->
-                <div id="settings-tab-memory" class="settings-tab-content" style="display: none;">
-                    <p style="color: var(--text-secondary); margin-bottom: 16px;">
-                        The AI remembers facts you share across conversations. Manage what it knows about you here.
-                    </p>
-                    <div id="memory-list" class="memory-list">
-                        <div class="memory-loading">Loading...</div>
-                    </div>
-                    <div style="margin-top: 16px; display: flex; justify-content: flex-end;">
-                        <button id="clear-all-memory-btn" class="btn btn-danger btn-small" style="display: none;">
-                            Clear All Memory
-                        </button>
-                    </div>
+                <div style="margin-top: 16px; display: flex; justify-content: flex-end;">
+                    <button id="reset-roles-btn" class="btn btn-secondary btn-small">Reset to Default</button>
                 </div>
             </div>
         </div>
