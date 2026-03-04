@@ -968,7 +968,7 @@ document.getElementById('sidebar-close')?.addEventListener('click', closeSidebar
 // Close on overlay click
 document.getElementById('sidebar-overlay')?.addEventListener('click', closeSidebar);
 
-// New chat button
+// New chat button - reset to question-first flow
 document.getElementById('new-chat-btn')?.addEventListener('click', () => {
     // Clear current chat and continuation state
     document.getElementById('chat-messages').innerHTML = '';
@@ -978,15 +978,54 @@ document.getElementById('new-chat-btn')?.addEventListener('click', () => {
     conversationHistory = [];
     closeSidebar();
 
-    // Show empty state
+    // Hide chat input area
+    const inputArea = document.getElementById('chat-input-area');
+    if (inputArea) inputArea.style.display = 'none';
+
+    // Show question-first empty state
     const container = document.getElementById('chat-messages');
     container.innerHTML = `
-        <div class="empty-chat">
-            <div class="empty-chat-icon">💬</div>
-            <h2>Start a conversation</h2>
-            <p>Select 2-6 AI models above, then type your message.<br>Each AI will respond, then you'll get a combined summary.</p>
+        <div class="empty-chat" id="empty-state">
+            <img src="/logo.png" alt="Beecision" style="width: 80px; height: 80px; margin-bottom: 16px;">
+            <h2 style="margin-bottom: 4px;">Ask the Hive. Decide better.</h2>
+            <p style="margin-bottom: 24px;">Get multiple AI perspectives on any decision</p>
+
+            <!-- Question input -->
+            <div class="question-input-container" style="width: 100%; max-width: 500px; margin-bottom: 20px;">
+                <div style="display: flex; gap: 8px;">
+                    <input type="text" id="question-input" class="form-input" placeholder="What decision can the bees help with?" style="flex: 1; padding: 14px 18px; font-size: 1rem; border-radius: 24px;">
+                    <button id="get-suggestions-btn" class="btn btn-primary" style="padding: 14px 24px; border-radius: 24px; white-space: nowrap;">Get Suggestions</button>
+                </div>
+            </div>
+
+            <!-- Question templates -->
+            <div style="margin-bottom: 24px;">
+                <span style="color: var(--text-secondary); font-size: 0.85rem;">Or try one of these:</span>
+                <div class="question-templates" style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; justify-content: center;">
+                    <button class="question-template" data-question="Should I buy or rent a home?">Should I buy or rent?</button>
+                    <button class="question-template" data-question="Best country to move to in 2026?">Best country to move to?</button>
+                    <button class="question-template" data-question="Which laptop should I buy?">Which laptop to buy?</button>
+                    <button class="question-template" data-question="Should I quit my job and start a business?">Should I quit my job?</button>
+                </div>
+            </div>
+
+            <!-- Personality Selector (hidden by default, shown after question) -->
+            <div id="personality-selector" class="personality-selector" style="display: none; width: 100%; max-width: 600px;">
+                <div style="text-align: center; margin-bottom: 16px;">
+                    <h3 style="margin-bottom: 4px; font-size: 1rem;">Your Hive Council</h3>
+                    <p style="color: var(--text-secondary); font-size: 0.85rem;">Tap to add or remove voices</p>
+                </div>
+                <div id="personality-cards" class="personality-cards" style="display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-bottom: 16px;">
+                </div>
+                <button id="start-hive-btn" class="btn btn-primary" style="width: 100%; padding: 14px 24px; font-size: 1rem;">
+                    Ask the Hive (<span id="selected-voices-count">0</span> voices)
+                </button>
+            </div>
         </div>
     `;
+
+    // Re-attach event listeners for the new elements
+    attachQuestionFlowListeners();
 });
 
 // Store loaded debates for search filtering
@@ -1263,6 +1302,10 @@ async function loadConversation(debateId) {
         // Store for continuing conversation
         window.loadedConversationTopic = debate.topic;
         window.continuingDebateId = debateId;  // Track which debate we're continuing
+
+        // Show chat input area
+        const inputArea = document.getElementById('chat-input-area');
+        if (inputArea) inputArea.style.display = 'block';
 
         // Enable continuing the conversation
         setInputLocked(false);

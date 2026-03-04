@@ -1362,12 +1362,16 @@ async function handleQuestionSubmit(question) {
 
 // Start debate with selected personalities
 async function startDebateWithPersonalities() {
-    if (selectedPersonalities.length < 2 || !currentQuestion) return;
+    if (selectedPersonalities.length < 2 || !currentQuestion) {
+        alert('Please select at least 2 personalities');
+        return;
+    }
 
     // Map personalities to models
     const configuredModels = availableModels.filter(m => configuredProviders.has(m.provider));
     if (configuredModels.length < selectedPersonalities.length) {
-        alert('Please configure more API keys to use this many personalities.');
+        alert(`You need ${selectedPersonalities.length} API keys configured. Please add more in Settings.`);
+        showTutorial();
         return;
     }
 
@@ -1387,49 +1391,102 @@ async function startDebateWithPersonalities() {
     selectedModels = modelsConfig;
     saveSelectedModels();
 
-    // Clear empty state and set message
+    // Clear empty state
     const emptyState = document.getElementById('empty-state');
     if (emptyState) emptyState.remove();
 
-    // Put question in chat input and send
-    const chatInput = document.getElementById('chat-input');
-    if (chatInput) {
-        chatInput.value = currentQuestion;
-        sendMessage();
-    }
+    // Show chat input area
+    const inputArea = document.getElementById('chat-input-area');
+    if (inputArea) inputArea.style.display = 'block';
+
+    // Add user message directly to chat
+    const container = document.getElementById('chat-messages');
+    const userMsg = document.createElement('div');
+    userMsg.className = 'message user';
+    userMsg.innerHTML = `<div class="message-content">${escapeHtml(currentQuestion)}</div>`;
+    container.appendChild(userMsg);
+
+    // Store question and start debate
+    const questionToSend = currentQuestion;
 
     // Reset state
     currentQuestion = '';
     selectedPersonalities = [];
+
+    // Start the debate directly via API
+    try {
+        const summarizerIndex = 0;
+        const requestBody = {
+            topic: questionToSend,
+            config: {
+                models: modelsConfig,
+                rounds: 1,
+                summarizer_index: summarizerIndex
+            }
+        };
+
+        const response = await fetch(`${API_BASE}/api/debates`, {
+            method: 'POST',
+            headers: getAuthHeaders(),
+            body: JSON.stringify(requestBody)
+        });
+
+        if (response.status === 402) {
+            showUpgradeModal();
+            return;
+        }
+
+        if (!response.ok) throw new Error('Failed to start session');
+
+        const session = await response.json();
+        currentSessionId = session.id;
+
+        // Connect WebSocket
+        connectWebSocket(session.id);
+
+        // Update subscription status
+        loadSubscriptionStatus();
+    } catch (error) {
+        console.error('Error starting debate:', error);
+        alert('Failed to start debate. Please try again.');
+    }
 }
 
-// Event listeners for question-first flow
-document.getElementById('get-suggestions-btn')?.addEventListener('click', () => {
-    const input = document.getElementById('question-input');
-    if (input) handleQuestionSubmit(input.value);
-});
-
-document.getElementById('question-input')?.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') {
-        e.preventDefault();
+// Attach event listeners for question-first flow
+function attachQuestionFlowListeners() {
+    document.getElementById('get-suggestions-btn')?.addEventListener('click', () => {
         const input = document.getElementById('question-input');
         if (input) handleQuestionSubmit(input.value);
-    }
-});
+    });
 
-document.getElementById('start-hive-btn')?.addEventListener('click', startDebateWithPersonalities);
-
-// Question template clicks
-document.querySelectorAll('.question-template').forEach(btn => {
-    btn.addEventListener('click', () => {
-        const question = btn.dataset.question;
-        const input = document.getElementById('question-input');
-        if (input) {
-            input.value = question;
-            handleQuestionSubmit(question);
+    document.getElementById('question-input')?.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            const input = document.getElementById('question-input');
+            if (input) handleQuestionSubmit(input.value);
         }
     });
-});
+
+    document.getElementById('start-hive-btn')?.addEventListener('click', startDebateWithPersonalities);
+
+    // Question template clicks
+    document.querySelectorAll('.question-template').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const question = btn.dataset.question;
+            const input = document.getElementById('question-input');
+            if (input) {
+                input.value = question;
+                handleQuestionSubmit(question);
+            }
+        });
+    });
+}
+
+// Make it globally available for chat.js
+window.attachQuestionFlowListeners = attachQuestionFlowListeners;
+
+// Initial attachment
+attachQuestionFlowListeners();
 
 // Load personalities on init
 fetchPersonalities();
