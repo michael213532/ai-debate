@@ -1017,9 +1017,7 @@ document.getElementById('new-chat-btn')?.addEventListener('click', () => {
                 </div>
                 <div id="personality-cards" class="personality-cards" style="display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-bottom: 16px;">
                 </div>
-                <button id="start-hive-btn" class="btn btn-primary" style="width: 100%; padding: 14px 24px; font-size: 1rem;">
-                    Confirm (<span id="selected-voices-count">0</span> voices)
-                </button>
+                <button id="start-hive-btn" class="btn btn-primary" style="width: 100%; padding: 14px 24px; font-size: 1rem;">Confirm (<span id="selected-voices-count">0</span> voices)</button>
             </div>
         </div>
     `;
