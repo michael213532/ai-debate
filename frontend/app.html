@@ -1164,13 +1164,6 @@
                 opacity: 1;
                 visibility: visible;
             }
-            .chat-layout {
-                margin-left: 0;
-                width: 100%;
-                max-width: 100vw;
-                overflow-x: hidden;
-            }
-
             /* Compact header - show on mobile */
             .header {
                 display: flex;
@@ -1260,6 +1253,10 @@
                 min-height: 0;
                 display: flex;
                 flex-direction: column;
+                margin-left: 0;
+                width: 100%;
+                max-width: 100vw;
+                overflow: hidden;
             }
 
             /* Chat main container - fills remaining space */
@@ -1271,6 +1268,7 @@
                 min-height: 0;
                 display: flex;
                 flex-direction: column;
+                overflow: hidden;
             }
 
             /* Compact setup section - minimal height */
@@ -1279,7 +1277,7 @@
                 width: 100%;
                 max-width: 100%;
                 min-width: 0;
-                overflow: visible;
+                overflow: hidden;
                 flex-shrink: 0;
             }
 
