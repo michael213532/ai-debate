@@ -1312,11 +1312,23 @@ function togglePersonality(personalityId) {
 
 // Get assigned model name for a personality
 function getAssignedModelForPersonality(personalityId) {
-    // Auto-assign models from configured providers
+    // First check if user has a saved role assignment
+    const savedRoles = window.getRoleAssignments ? window.getRoleAssignments() : {};
+    const savedModelKey = savedRoles[personalityId];
+
+    if (savedModelKey) {
+        const [provider, ...idParts] = savedModelKey.split(':');
+        const modelId = idParts.join(':');
+        const model = availableModels.find(m => m.provider === provider && m.id === modelId);
+        if (model && configuredProviders.has(model.provider)) {
+            return model.name;
+        }
+    }
+
+    // Fall back to auto-assign based on selection order
     const index = selectedPersonalities.indexOf(personalityId);
     if (index < 0) return null;
 
-    // Get list of configured models
     const configuredModels = availableModels.filter(m => configuredProviders.has(m.provider));
     if (index >= configuredModels.length) return null;
 
