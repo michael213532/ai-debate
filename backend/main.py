@@ -90,9 +90,15 @@ async def serve_settings():
 
 
 @app.get("/logo.svg")
-async def serve_logo():
-    """Serve the logo."""
+async def serve_logo_svg():
+    """Serve the SVG logo."""
     return FileResponse(frontend_path / "logo.svg", media_type="image/svg+xml")
+
+
+@app.get("/logo.png")
+async def serve_logo_png():
+    """Serve the PNG logo."""
+    return FileResponse(frontend_path / "logo.png", media_type="image/png")
 
 
 @app.get("/health")
