@@ -1965,14 +1965,17 @@
         <!-- Profile Section (bottom of sidebar) -->
         <div class="sidebar-profile">
             <div class="profile-menu">
-                <button id="profile-btn" class="profile-btn" title="Account">
-                    <div class="profile-avatar" id="profile-avatar">U</div>
-                    <div class="profile-name-inline" id="profile-name-inline">Account</div>
+                <button id="profile-btn" class="profile-btn" title="Menu">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                        <circle cx="5" cy="12" r="2"></circle>
+                        <circle cx="12" cy="12" r="2"></circle>
+                        <circle cx="19" cy="12" r="2"></circle>
+                    </svg>
+                    <div class="profile-name-inline" id="profile-name-inline">Menu</div>
                 </button>
                 <div id="profile-dropdown" class="profile-dropdown">
                     <div class="profile-dropdown-header">
-                        <div class="profile-avatar-large" id="profile-avatar-large">U</div>
-                        <div class="profile-info">
+                        <div class="profile-info" style="width: 100%;">
                             <div class="profile-email" id="profile-email">user@example.com</div>
                             <div class="profile-plan" id="profile-plan">Free Plan</div>
                         </div>
@@ -2425,16 +2428,20 @@
             background: none;
             border: none;
             cursor: pointer;
-            padding: 8px;
+            padding: 10px 12px;
             border-radius: 8px;
             transition: all 0.2s;
             display: flex;
             align-items: center;
             gap: 10px;
             width: 100%;
+            color: var(--text-primary);
         }
         .profile-btn:hover {
             background: var(--surface-light);
+        }
+        .profile-btn svg {
+            flex-shrink: 0;
         }
         .profile-name-inline {
             font-size: 0.9rem;
