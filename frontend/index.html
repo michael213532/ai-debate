@@ -178,7 +178,8 @@
             font-weight: 500;
         }
 
-        .signup-link {
+        .signup-link,
+        .login-link {
             display: inline-block;
             background: linear-gradient(135deg, var(--primary-color), #8b5cf6);
             color: white !important;
@@ -190,7 +191,8 @@
             transition: transform 0.2s, box-shadow 0.2s;
         }
 
-        .signup-link:hover {
+        .signup-link:hover,
+        .login-link:hover {
             transform: translateY(-2px);
             box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
         }
@@ -307,14 +309,14 @@
         <!-- Auth Section -->
         <div class="auth-section">
             <div class="auth-header">
-                <h2 class="auth-title" id="auth-title">Welcome back</h2>
-                <p class="auth-subtitle" id="auth-subtitle">Sign in to continue to Beecision</p>
+                <h2 class="auth-title" id="auth-title">Get Started</h2>
+                <p class="auth-subtitle" id="auth-subtitle">Create your free account</p>
             </div>
 
             <div id="alert" class="alert" style="display: none;"></div>
 
             <!-- Login Form -->
-            <form id="login-form" class="auth-form">
+            <form id="login-form" class="auth-form" style="display: none;">
                 <div class="form-group">
                     <label class="form-label" for="login-email">Email</label>
                     <input type="email" id="login-email" class="form-input" placeholder="you@example.com" required>
@@ -330,7 +332,7 @@
             </form>
 
             <!-- Register Form -->
-            <form id="register-form" class="auth-form" style="display: none;">
+            <form id="register-form" class="auth-form">
                 <div class="form-group">
                     <label class="form-label" for="register-email">Email</label>
                     <input type="email" id="register-email" class="form-input" placeholder="you@example.com" required>
@@ -358,8 +360,8 @@
             </form>
 
             <div class="auth-footer">
-                <span id="auth-toggle-text">Don't have an account?</span>
-                <a href="#" id="auth-toggle-link" class="signup-link">Sign up</a>
+                <span id="auth-toggle-text">Already have an account?</span>
+                <a href="#" id="auth-toggle-link" class="login-link">Log in</a>
             </div>
 
             <div style="margin-top: 24px; text-align: center;">

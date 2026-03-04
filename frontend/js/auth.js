@@ -3,7 +3,7 @@
  */
 
 const API_BASE = '';
-let isLoginMode = true;
+let isLoginMode = false;
 
 // Toggle between login and register
 document.getElementById('auth-toggle-link').addEventListener('click', (e) => {
