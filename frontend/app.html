@@ -1093,22 +1093,16 @@
                 background: transparent;
                 border: none;
                 cursor: pointer;
-                padding: 4px;
-                display: flex;
-                align-items: center;
-            }
-
-            .mobile-profile-avatar {
-                width: 32px;
-                height: 32px;
-                border-radius: 50%;
-                background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
-                color: white;
+                padding: 8px;
                 display: flex;
                 align-items: center;
                 justify-content: center;
-                font-weight: 600;
-                font-size: 0.9rem;
+                color: var(--text-primary);
+                border-radius: 6px;
+            }
+
+            .mobile-profile-btn:hover {
+                background: var(--surface-light);
             }
 
             .mobile-profile-dropdown {
@@ -1758,13 +1752,16 @@
                     <span id="subscription-status" class="subscription-badge"></span>
                     <!-- Mobile profile button -->
                     <div class="mobile-profile-wrapper">
-                        <button id="mobile-profile-btn" class="mobile-profile-btn" title="Account">
-                            <div class="mobile-profile-avatar" id="mobile-profile-avatar">U</div>
+                        <button id="mobile-profile-btn" class="mobile-profile-btn" title="Menu">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                                <circle cx="12" cy="5" r="2"></circle>
+                                <circle cx="12" cy="12" r="2"></circle>
+                                <circle cx="12" cy="19" r="2"></circle>
+                            </svg>
                         </button>
                         <div id="mobile-profile-dropdown" class="mobile-profile-dropdown">
                             <div class="profile-dropdown-header">
-                                <div class="profile-avatar-large" id="mobile-profile-avatar-large">U</div>
-                                <div class="profile-info">
+                                <div class="profile-info" style="width: 100%;">
                                     <div class="profile-email" id="mobile-profile-email">user@example.com</div>
                                     <div class="profile-plan" id="mobile-profile-plan">Free Plan</div>
                                 </div>
