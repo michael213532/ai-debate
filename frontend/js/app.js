@@ -388,6 +388,11 @@ function renderModelTags() {
             saveSelectedModels();
         }
     }
+
+    // Update header count display
+    if (typeof window.updateHeaderModelsCount === 'function') {
+        window.updateHeaderModelsCount();
+    }
 }
 
 // Handle model tag clicks

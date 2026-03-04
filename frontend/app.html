@@ -2662,6 +2662,9 @@
             mobileModelsTrigger.classList.add('expanded');
         }
 
+        // Make updateHeaderModelsCount globally accessible
+        window.updateHeaderModelsCount = updateHeaderModelsCount;
+
         // Update count when models change by wrapping toggleModel
         const originalToggleModel = window.toggleModel;
         if (originalToggleModel) {
@@ -2671,8 +2674,11 @@
             };
         }
 
-        // Initial count update (after models are loaded)
+        // Initial count update - call multiple times to ensure it catches loaded models
+        updateHeaderModelsCount();
         setTimeout(updateHeaderModelsCount, 500);
+        setTimeout(updateHeaderModelsCount, 1000);
+        setTimeout(updateHeaderModelsCount, 2000);
     </script>
 </body>
 </html>
