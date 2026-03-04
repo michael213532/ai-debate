@@ -673,17 +673,20 @@ You MUST respond with ONLY valid JSON, no other text. Use this exact format:
 
 {
   "votes": [
-    {"name": "AI Name", "emoji": "📊", "choice": "Their main choice/position", "reason": "Brief reason (10 words max)"}
+    {"name": "AI Name", "emoji": "📊", "choice": "Their single choice", "reason": "Brief reason (10 words max)"}
   ],
-  "hive_decision": "The majority choice or consensus decision",
+  "hive_decision": "ONE clear answer only",
   "confidence": 75,
   "key_reasons": ["Reason 1", "Reason 2", "Reason 3"]
 }
 
-Rules:
-- votes: One entry per AI that responded, extract their main position
+CRITICAL RULES:
+- hive_decision MUST be exactly ONE clear answer. NEVER use "or", "and", "both", or list multiple options.
+- If AIs are split, pick the option with more votes. If tied, pick the one with stronger reasoning.
+- hive_decision should be short and direct: "Buy the MacBook", "Move to Dubai", "Yes", "Option A"
+- Each vote's choice must also be ONE thing, not multiple options
+- votes: One entry per AI, extract their single main position
 - emoji: Use the personality emoji if known, otherwise use a relevant one
-- hive_decision: The choice most AIs agree on, or a synthesized consensus
 - confidence: 0-100, based on how much AIs agreed (100 = unanimous, 50 = split)
 - key_reasons: 2-4 main reasons supporting the hive decision
 
