@@ -101,6 +101,12 @@ async def serve_logo_png():
     return FileResponse(frontend_path / "logo.png", media_type="image/png")
 
 
+@app.get("/bee-avatar.svg")
+async def serve_bee_avatar():
+    """Serve the bee avatar."""
+    return FileResponse(frontend_path / "bee-avatar.svg", media_type="image/svg+xml")
+
+
 @app.get("/health")
 async def health_check():
     """Health check endpoint."""
