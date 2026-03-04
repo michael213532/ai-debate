@@ -359,7 +359,7 @@
             display: none;
             align-items: center;
             gap: 4px;
-            padding: 6px 12px;
+            padding: 8px 14px;
             background: var(--surface-light);
             border: 1px solid var(--border-color);
             border-radius: 20px;
@@ -367,6 +367,8 @@
             font-size: 0.85rem;
             color: var(--text-primary);
             font-weight: 500;
+            flex-shrink: 1;
+            min-width: 0;
         }
 
         .mobile-models-trigger:hover {
@@ -1151,6 +1153,7 @@
             }
             .chat-layout {
                 margin-left: 0;
+                margin-top: 56px;
                 width: 100%;
                 max-width: 100vw;
                 overflow-x: hidden;
@@ -1159,12 +1162,14 @@
             /* Compact header - show on mobile */
             .header {
                 display: block;
-                height: 44px;
+                height: 56px;
                 margin-left: 0;
                 width: 100%;
                 max-width: 100vw;
-                position: sticky;
+                position: fixed;
                 top: 0;
+                left: 0;
+                right: 0;
                 z-index: 100;
                 background: var(--surface);
                 border-bottom: 1px solid var(--border-color);
@@ -1175,7 +1180,11 @@
             }
 
             .mobile-logo {
-                display: none;
+                display: block;
+                font-weight: 700;
+                font-size: 1.1rem;
+                color: var(--text-primary);
+                white-space: nowrap;
             }
 
             .mobile-models-trigger {
@@ -1188,11 +1197,11 @@
             }
 
             .header-content {
-                padding: 0 10px;
+                padding: 0 16px;
                 height: 100%;
                 display: flex;
                 align-items: center;
-                gap: 8px;
+                gap: 12px;
             }
 
             .header-actions {
@@ -1209,7 +1218,8 @@
             }
 
             .header-actions {
-                gap: 6px;
+                gap: 10px;
+                flex-shrink: 0;
             }
 
             .header-actions .user-email {
