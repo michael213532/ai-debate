@@ -1166,7 +1166,6 @@
             }
             .chat-layout {
                 margin-left: 0;
-                margin-top: 56px;
                 width: 100%;
                 max-width: 100vw;
                 overflow-x: hidden;
@@ -1174,15 +1173,13 @@
 
             /* Compact header - show on mobile */
             .header {
-                display: block;
+                display: flex;
                 height: 56px;
+                flex-shrink: 0;
                 margin-left: 0;
                 width: 100%;
                 max-width: 100vw;
-                position: fixed;
-                top: 0;
-                left: 0;
-                right: 0;
+                position: relative;
                 z-index: 100;
                 background: var(--surface);
                 border-bottom: 1px solid var(--border-color);
@@ -1249,9 +1246,10 @@
                 display: none !important;
             }
 
-            /* Lock viewport - no page scroll on mobile */
+            /* Mobile layout - uses flexbox for proper scrolling */
             .app-layout {
                 height: 100vh;
+                height: 100dvh; /* Dynamic viewport height for mobile browsers */
                 overflow: hidden;
                 display: flex;
                 flex-direction: column;
@@ -1259,7 +1257,6 @@
 
             .chat-layout {
                 flex: 1;
-                height: auto;
                 min-height: 0;
                 display: flex;
                 flex-direction: column;
@@ -1272,7 +1269,6 @@
                 max-width: 100%;
                 min-width: 0;
                 min-height: 0;
-                overflow: hidden;
                 display: flex;
                 flex-direction: column;
             }
@@ -1335,8 +1331,10 @@
                 min-width: 0;
                 overflow-x: hidden;
                 overflow-y: auto;
+                -webkit-overflow-scrolling: touch;
                 flex: 1;
                 min-height: 0;
+                overscroll-behavior: contain;
             }
 
             .message {
@@ -1378,7 +1376,7 @@
                 margin-bottom: 6px;
             }
 
-            /* Input area - fixed at bottom */
+            /* Input area - stays at bottom */
             .chat-input-area {
                 padding: 8px 10px;
                 padding-bottom: max(8px, env(safe-area-inset-bottom));
@@ -1387,6 +1385,8 @@
                 min-width: 0;
                 box-sizing: border-box;
                 flex-shrink: 0;
+                background: var(--surface);
+                border-top: 1px solid var(--border-color);
             }
 
             .chat-input-container {
