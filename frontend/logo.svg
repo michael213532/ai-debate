@@ -9,8 +9,8 @@
   <!-- Rounded Square Background -->
   <rect x="10" y="10" width="180" height="180" rx="40" fill="url(#bgGradient)"/>
 
-  <!-- Bee 1 - Top Center -->
-  <g transform="translate(100, 45) scale(0.7)">
+  <!-- Bee 1 - Top Left, facing right -->
+  <g transform="translate(55, 65) scale(0.7) rotate(15)">
     <ellipse cx="0" cy="0" rx="12" ry="16" fill="#FFC107"/>
     <rect x="-12" y="-8" width="24" height="5" rx="2" fill="#2D2D2D"/>
     <rect x="-12" y="2" width="24" height="5" rx="2" fill="#2D2D2D"/>
@@ -23,8 +23,8 @@
     <line x1="3" y1="-25" x2="5" y2="-30" stroke="#2D2D2D" stroke-width="2" stroke-linecap="round"/>
   </g>
 
-  <!-- Bee 2 - Left -->
-  <g transform="translate(45, 95) scale(0.65)">
+  <!-- Bee 2 - Top Right, facing left -->
+  <g transform="translate(145, 70) scale(0.7) rotate(-10)">
     <ellipse cx="0" cy="0" rx="12" ry="16" fill="#FFC107"/>
     <rect x="-12" y="-8" width="24" height="5" rx="2" fill="#2D2D2D"/>
     <rect x="-12" y="2" width="24" height="5" rx="2" fill="#2D2D2D"/>
@@ -37,8 +37,8 @@
     <line x1="3" y1="-25" x2="5" y2="-30" stroke="#2D2D2D" stroke-width="2" stroke-linecap="round"/>
   </g>
 
-  <!-- Bee 3 - Right -->
-  <g transform="translate(155, 95) scale(0.65)">
+  <!-- Bee 3 - Bottom Left -->
+  <g transform="translate(60, 140) scale(0.65) rotate(5)">
     <ellipse cx="0" cy="0" rx="12" ry="16" fill="#FFC107"/>
     <rect x="-12" y="-8" width="24" height="5" rx="2" fill="#2D2D2D"/>
     <rect x="-12" y="2" width="24" height="5" rx="2" fill="#2D2D2D"/>
@@ -51,8 +51,8 @@
     <line x1="3" y1="-25" x2="5" y2="-30" stroke="#2D2D2D" stroke-width="2" stroke-linecap="round"/>
   </g>
 
-  <!-- Bee 4 - Bottom Left -->
-  <g transform="translate(65, 155) scale(0.65)">
+  <!-- Bee 4 - Bottom Right -->
+  <g transform="translate(140, 135) scale(0.65) rotate(-8)">
     <ellipse cx="0" cy="0" rx="12" ry="16" fill="#FFC107"/>
     <rect x="-12" y="-8" width="24" height="5" rx="2" fill="#2D2D2D"/>
     <rect x="-12" y="2" width="24" height="5" rx="2" fill="#2D2D2D"/>
@@ -65,30 +65,17 @@
     <line x1="3" y1="-25" x2="5" y2="-30" stroke="#2D2D2D" stroke-width="2" stroke-linecap="round"/>
   </g>
 
-  <!-- Bee 5 - Bottom Right -->
-  <g transform="translate(135, 155) scale(0.65)">
-    <ellipse cx="0" cy="0" rx="12" ry="16" fill="#FFC107"/>
-    <rect x="-12" y="-8" width="24" height="5" rx="2" fill="#2D2D2D"/>
-    <rect x="-12" y="2" width="24" height="5" rx="2" fill="#2D2D2D"/>
-    <ellipse cx="-10" cy="-5" rx="8" ry="12" fill="rgba(255,255,255,0.8)" transform="rotate(-20)"/>
-    <ellipse cx="10" cy="-5" rx="8" ry="12" fill="rgba(255,255,255,0.8)" transform="rotate(20)"/>
-    <circle cx="0" cy="-18" r="8" fill="#FFC107"/>
-    <circle cx="-3" cy="-19" r="2" fill="#2D2D2D"/>
-    <circle cx="3" cy="-19" r="2" fill="#2D2D2D"/>
-    <line x1="-3" y1="-25" x2="-5" y2="-30" stroke="#2D2D2D" stroke-width="2" stroke-linecap="round"/>
-    <line x1="3" y1="-25" x2="5" y2="-30" stroke="#2D2D2D" stroke-width="2" stroke-linecap="round"/>
-  </g>
+  <!-- Chat bubbles - casual placement -->
+  <ellipse cx="95" cy="55" rx="12" ry="10" fill="rgba(255,255,255,0.9)"/>
+  <ellipse cx="105" cy="100" rx="14" ry="11" fill="rgba(255,255,255,0.9)"/>
+  <ellipse cx="95" cy="145" rx="10" ry="8" fill="rgba(255,255,255,0.9)"/>
 
-  <!-- Chat bubbles connecting bees -->
-  <circle cx="75" cy="65" r="6" fill="rgba(255,255,255,0.9)"/>
-  <circle cx="125" cy="65" r="6" fill="rgba(255,255,255,0.9)"/>
-  <circle cx="55" cy="125" r="5" fill="rgba(255,255,255,0.9)"/>
-  <circle cx="145" cy="125" r="5" fill="rgba(255,255,255,0.9)"/>
-  <circle cx="100" cy="115" r="7" fill="rgba(255,255,255,0.9)"/>
+  <!-- Little dots in bubbles to show typing/talking -->
+  <circle cx="90" cy="55" r="2" fill="#6366f1"/>
+  <circle cx="95" cy="55" r="2" fill="#6366f1"/>
+  <circle cx="100" cy="55" r="2" fill="#6366f1"/>
 
-  <!-- Connection lines (conversation flow) -->
-  <line x1="80" y1="68" x2="95" y2="108" stroke="rgba(255,255,255,0.4)" stroke-width="2" stroke-dasharray="4,3"/>
-  <line x1="120" y1="68" x2="105" y2="108" stroke="rgba(255,255,255,0.4)" stroke-width="2" stroke-dasharray="4,3"/>
-  <line x1="58" y1="120" x2="93" y2="115" stroke="rgba(255,255,255,0.4)" stroke-width="2" stroke-dasharray="4,3"/>
-  <line x1="142" y1="120" x2="107" y2="115" stroke="rgba(255,255,255,0.4)" stroke-width="2" stroke-dasharray="4,3"/>
+  <circle cx="100" cy="100" r="2" fill="#8b5cf6"/>
+  <circle cx="105" cy="100" r="2" fill="#8b5cf6"/>
+  <circle cx="110" cy="100" r="2" fill="#8b5cf6"/>
 </svg>
