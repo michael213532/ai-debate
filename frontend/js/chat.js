@@ -994,7 +994,7 @@ document.getElementById('new-chat-btn')?.addEventListener('click', () => {
             <div class="question-input-container" style="width: 100%; max-width: 500px; margin-bottom: 20px;">
                 <div style="display: flex; gap: 8px;">
                     <input type="text" id="question-input" class="form-input" placeholder="What decision can the bees help with?" style="flex: 1; padding: 14px 18px; font-size: 1rem; border-radius: 24px;">
-                    <button id="get-suggestions-btn" class="btn btn-primary" style="padding: 14px 24px; border-radius: 24px; white-space: nowrap;">Get Suggestions</button>
+                    <button id="get-suggestions-btn" class="btn btn-primary" style="padding: 14px 24px; border-radius: 24px; white-space: nowrap;">Ask the Hive</button>
                 </div>
             </div>
 
@@ -1018,7 +1018,7 @@ document.getElementById('new-chat-btn')?.addEventListener('click', () => {
                 <div id="personality-cards" class="personality-cards" style="display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-bottom: 16px;">
                 </div>
                 <button id="start-hive-btn" class="btn btn-primary" style="width: 100%; padding: 14px 24px; font-size: 1rem;">
-                    Ask the Hive (<span id="selected-voices-count">0</span> voices)
+                    Confirm (<span id="selected-voices-count">0</span> voices)
                 </button>
             </div>
         </div>

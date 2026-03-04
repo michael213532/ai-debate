@@ -1359,7 +1359,7 @@ async function handleQuestionSubmit(question) {
 
     // Reset button
     if (suggestionsBtn) {
-        suggestionsBtn.textContent = 'Get Suggestions';
+        suggestionsBtn.textContent = 'Ask the Hive';
         suggestionsBtn.disabled = false;
     }
 }
