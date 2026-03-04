@@ -33,9 +33,13 @@ from .schemas import (
     MessageResponse,
     ApiKeyRequest,
     ProviderStatus,
-    ModelInfo
+    ModelInfo,
+    PersonalityInfo,
+    PersonalitySuggestionRequest,
+    PersonalitySuggestionResponse,
 )
 from .orchestrator import DebateOrchestrator
+from backend.personalities import get_all_personalities, suggest_personalities, PERSONALITIES
 from backend.providers import ProviderRegistry
 
 router = APIRouter(tags=["debates"])
@@ -108,6 +112,43 @@ async def get_user_api_keys(user_id: str) -> dict[str, str]:
                 # User will need to re-enter this key
                 pass
         return keys
+
+
+# Personalities endpoints
+@router.get("/api/personalities", response_model=list[PersonalityInfo])
+async def list_personalities(current_user: User = Depends(get_current_user)):
+    """List all available personality bees."""
+    return [
+        PersonalityInfo(
+            id=p["id"],
+            name=p["name"],
+            emoji=p["emoji"],
+            description=p["description"]
+        )
+        for p in get_all_personalities()
+    ]
+
+
+@router.post("/api/suggest-personalities", response_model=PersonalitySuggestionResponse)
+async def get_personality_suggestions(
+    request: PersonalitySuggestionRequest,
+    current_user: User = Depends(get_current_user)
+):
+    """Suggest personalities based on a question."""
+    suggested = suggest_personalities(request.question)
+    all_personalities = [
+        PersonalityInfo(
+            id=p["id"],
+            name=p["name"],
+            emoji=p["emoji"],
+            description=p["description"]
+        )
+        for p in get_all_personalities()
+    ]
+    return PersonalitySuggestionResponse(
+        suggested=suggested,
+        all_personalities=all_personalities
+    )
 
 
 # Models endpoints

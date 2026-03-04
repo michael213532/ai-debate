@@ -4,6 +4,7 @@ import json
 from typing import AsyncGenerator, Callable, Optional
 from backend.providers import ProviderRegistry
 from backend.database import get_db
+from backend.personalities import get_personality, PERSONALITIES
 
 
 class DebateOrchestrator:
@@ -144,6 +145,15 @@ class DebateOrchestrator:
             # if not self._stopped and self.models:
             #     await self._generate_summary()
 
+            # Generate Hive Verdict if not stopped
+            if not self._stopped and self.models and len(self.messages) >= 2:
+                verdict = await self._generate_hive_verdict()
+                if verdict:
+                    await self._broadcast({
+                        "type": "verdict",
+                        "verdict": verdict
+                    })
+
             # Extract and save memory asynchronously (don't block completion)
             if self.user_id and not self._stopped:
                 asyncio.create_task(self._extract_and_save_memory())
@@ -214,6 +224,7 @@ class DebateOrchestrator:
             model_id = model_config["model_id"]
             model_name = model_config["model_name"]
             role = model_config.get("role", "")
+            personality_id = model_config.get("personality_id", None)
 
             # Check if we have API key for this provider
             if provider_name not in self.api_keys:
@@ -225,11 +236,19 @@ class DebateOrchestrator:
                 })
                 continue
 
+            # Get display name with personality if set
+            display_name = model_name
+            if personality_id:
+                personality = get_personality(personality_id)
+                if personality:
+                    display_name = f"{personality.emoji} {personality.name}"
+
             await self._broadcast({
                 "type": "model_start",
-                "model_name": model_name,
+                "model_name": display_name,
                 "provider": provider_name,
-                "round": round_num
+                "round": round_num,
+                "personality_id": personality_id
             })
 
             try:
@@ -242,7 +261,8 @@ class DebateOrchestrator:
                     model_name=model_name,
                     role=role,
                     context=context,
-                    round_num=round_num
+                    round_num=round_num,
+                    personality_id=personality_id
                 )
 
                 # Save message to database
@@ -253,17 +273,18 @@ class DebateOrchestrator:
                     content=content
                 )
 
-                # Store for context
+                # Store for context (use display_name for personality)
                 self.messages.append({
                     "round": round_num,
-                    "model_name": model_name,
+                    "model_name": display_name,
                     "provider": provider_name,
-                    "content": content
+                    "content": content,
+                    "personality_id": personality_id
                 })
 
                 await self._broadcast({
                     "type": "model_end",
-                    "model_name": model_name,
+                    "model_name": display_name,
                     "provider": provider_name,
                     "round": round_num
                 })
@@ -271,7 +292,7 @@ class DebateOrchestrator:
             except Exception as e:
                 await self._broadcast({
                     "type": "model_error",
-                    "model_name": model_name,
+                    "model_name": display_name,
                     "provider": provider_name,
                     "error": str(e)
                 })
@@ -283,17 +304,25 @@ class DebateOrchestrator:
         model_name: str,
         role: str,
         context: str,
-        round_num: int
+        round_num: int,
+        personality_id: str = None
     ) -> str:
         """Get response from a model with streaming."""
         provider_class = ProviderRegistry.get(provider_name)
         provider = provider_class(self.api_keys[provider_name])
 
         # Build system prompt
-        system_prompt = self._build_system_prompt(model_name, role, round_num)
+        system_prompt = self._build_system_prompt(model_name, role, round_num, personality_id)
 
         # Build messages
         messages = [{"role": "user", "content": context}]
+
+        # Get display name with personality if set
+        display_name = model_name
+        if personality_id:
+            personality = get_personality(personality_id)
+            if personality:
+                display_name = f"{personality.emoji} {personality.name}"
 
         # Only include images for vision-capable models in round 1
         # Non-vision models will just respond to the text conversation
@@ -311,7 +340,7 @@ class DebateOrchestrator:
             full_response += chunk
             await self._broadcast({
                 "type": "chunk",
-                "model_name": model_name,
+                "model_name": display_name,
                 "provider": provider_name,
                 "content": chunk,
                 "round": round_num
@@ -319,17 +348,26 @@ class DebateOrchestrator:
 
         return full_response
 
-    def _build_system_prompt(self, model_name: str, role: str, round_num: int) -> str:
-        """Build system prompt for a model."""
+    def _build_system_prompt(self, model_name: str, role: str, round_num: int, personality_id: str = None) -> str:
+        """Build system prompt for a model, optionally with personality."""
+
+        # Get personality role if specified
+        personality_role = ""
+        display_name = model_name
+        if personality_id:
+            personality = get_personality(personality_id)
+            if personality:
+                personality_role = personality.role
+                display_name = f"{personality.emoji} {personality.name}"
 
         # Round 1: Be opinionated and form your own view
         if round_num == 1:
-            base_prompt = f"""You are {model_name}. When asked who you are or what model you are, always say "{model_name}" - never use any other name.
+            base_prompt = f"""You are {display_name}. When asked who you are or what model you are, always say "{display_name}" - never use any other name.
 
 You are participating in a discussion with other AI models. This is ROUND 1 - the goal is to share YOUR OWN genuine opinion.
 
 IMPORTANT RULES:
-1. IDENTITY: You are {model_name}. If asked your name or what model you are, say "{model_name}".
+1. IDENTITY: You are {display_name}. If asked your name or what model you are, say "{display_name}".
 
 2. LANGUAGE: Respond in the language of the USER'S CURRENT MESSAGE only.
 
@@ -345,12 +383,12 @@ IMPORTANT RULES:
 
         # Round 2+: Now work towards middle ground
         else:
-            base_prompt = f"""You are {model_name}. When asked who you are or what model you are, always say "{model_name}" - never use any other name.
+            base_prompt = f"""You are {display_name}. When asked who you are or what model you are, always say "{display_name}" - never use any other name.
 
 You are participating in a discussion with other AI models. This is ROUND {round_num} - the goal is to find MIDDLE GROUND.
 
 IMPORTANT RULES:
-1. IDENTITY: You are {model_name}. If asked your name or what model you are, say "{model_name}".
+1. IDENTITY: You are {display_name}. If asked your name or what model you are, say "{display_name}".
 
 2. LANGUAGE: Respond in the language of the USER'S CURRENT MESSAGE only.
 
@@ -364,7 +402,10 @@ IMPORTANT RULES:
 
 7. SIGNAL PROGRESS: Explicitly state what you agree on and what (if anything) you still disagree about."""
 
-        if role:
+        # Add personality role if specified
+        if personality_role:
+            base_prompt += f"\n\n{personality_role}"
+        elif role:
             base_prompt += f"\n\nYour perspective/role: {role}"
 
         return base_prompt
@@ -582,6 +623,103 @@ Do all AIs agree? Reply ONLY with AGREE or DISAGREE."""
         except Exception as e:
             print(f"Agreement check failed: {e}")
             return False
+
+    async def _generate_hive_verdict(self) -> dict:
+        """
+        Generate a structured Hive Verdict after debate completes.
+        Returns a dict with votes, hive_decision, confidence, and key_reasons.
+        """
+        if not self.messages or len(self.messages) < 2:
+            return None
+
+        # Find a fast model to generate verdict
+        verdict_models = [
+            ("google", "gemini-2.0-flash"),
+            ("openai", "gpt-5-mini"),
+            ("anthropic", "claude-haiku-4-5-20251001"),
+            ("deepseek", "deepseek-chat"),
+        ]
+
+        provider_name = None
+        model_id = None
+        for prov, model in verdict_models:
+            if prov in self.api_keys:
+                provider_name = prov
+                model_id = model
+                break
+
+        if not provider_name:
+            return None
+
+        try:
+            provider_class = ProviderRegistry.get(provider_name)
+            provider = provider_class(self.api_keys[provider_name])
+
+            # Build prompt with all responses
+            responses_text = ""
+            for msg in self.messages:
+                if msg["provider"] != "user":
+                    # Check if this model has a personality
+                    personality_info = ""
+                    for m in self.models:
+                        if m["model_name"] == msg["model_name"] and m.get("personality_id"):
+                            p = get_personality(m["personality_id"])
+                            if p:
+                                personality_info = f" ({p.emoji} {p.name})"
+                    responses_text += f"**{msg['model_name']}{personality_info}**: {msg['content']}\n\n"
+
+            system_prompt = """You analyze AI discussions and generate a structured verdict.
+You MUST respond with ONLY valid JSON, no other text. Use this exact format:
+
+{
+  "votes": [
+    {"name": "AI Name", "emoji": "📊", "choice": "Their main choice/position", "reason": "Brief reason (10 words max)"}
+  ],
+  "hive_decision": "The majority choice or consensus decision",
+  "confidence": 75,
+  "key_reasons": ["Reason 1", "Reason 2", "Reason 3"]
+}
+
+Rules:
+- votes: One entry per AI that responded, extract their main position
+- emoji: Use the personality emoji if known, otherwise use a relevant one
+- hive_decision: The choice most AIs agree on, or a synthesized consensus
+- confidence: 0-100, based on how much AIs agreed (100 = unanimous, 50 = split)
+- key_reasons: 2-4 main reasons supporting the hive decision
+
+Respond ONLY with the JSON object, no markdown code blocks."""
+
+            user_message = f"""Topic: {self.topic}
+
+AI Responses:
+{responses_text}
+
+Generate the Hive Verdict JSON:"""
+
+            full_response = ""
+            async for chunk in provider.generate_stream(
+                model=model_id,
+                messages=[{"role": "user", "content": user_message}],
+                system_prompt=system_prompt
+            ):
+                full_response += chunk
+
+            # Parse JSON from response
+            # Try to extract JSON from the response
+            full_response = full_response.strip()
+            # Remove markdown code blocks if present
+            if full_response.startswith("```"):
+                full_response = full_response.split("```")[1]
+                if full_response.startswith("json"):
+                    full_response = full_response[4:]
+                full_response = full_response.strip()
+
+            verdict = json.loads(full_response)
+            return verdict
+
+        except Exception as e:
+            print(f"Verdict generation failed: {e}")
+            return None
 
     async def _extract_and_save_memory(self):
         """Extract facts from the conversation and save to user memory."""

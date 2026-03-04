@@ -1220,3 +1220,216 @@ function updateSetupModelCount() {
 
 // Allow manually showing tutorial (for testing or help)
 window.showTutorial = showTutorial;
+
+// ============ PERSONALITY BEES SYSTEM ============
+
+let allPersonalities = [];
+let selectedPersonalities = [];
+let currentQuestion = '';
+
+// Fetch all personalities from API
+async function fetchPersonalities() {
+    try {
+        const response = await fetch(`${API_BASE}/api/personalities`, {
+            headers: getAuthHeaders()
+        });
+        if (response.ok) {
+            allPersonalities = await response.json();
+        }
+    } catch (error) {
+        console.error('Error fetching personalities:', error);
+    }
+}
+
+// Get personality suggestions for a question
+async function fetchPersonalitySuggestions(question) {
+    try {
+        const response = await fetch(`${API_BASE}/api/suggest-personalities`, {
+            method: 'POST',
+            headers: getAuthHeaders(),
+            body: JSON.stringify({ question })
+        });
+        if (response.ok) {
+            const data = await response.json();
+            allPersonalities = data.all_personalities;
+            return data.suggested;
+        }
+    } catch (error) {
+        console.error('Error fetching personality suggestions:', error);
+    }
+    return ['analyst', 'optimist', 'skeptic']; // Default
+}
+
+// Render personality selector cards
+function renderPersonalitySelector(suggestedIds = []) {
+    const container = document.getElementById('personality-cards');
+    if (!container) return;
+
+    container.innerHTML = '';
+
+    // Pre-select suggested personalities
+    if (suggestedIds.length > 0 && selectedPersonalities.length === 0) {
+        selectedPersonalities = suggestedIds.slice(0, 3);
+    }
+
+    allPersonalities.forEach(personality => {
+        const isSelected = selectedPersonalities.includes(personality.id);
+        const assignedModel = getAssignedModelForPersonality(personality.id);
+
+        const card = document.createElement('div');
+        card.className = `personality-card ${isSelected ? 'selected' : ''}`;
+        card.dataset.personalityId = personality.id;
+        card.style.position = 'relative';
+
+        card.innerHTML = `
+            <span class="checkmark">✓</span>
+            <span class="emoji">${personality.emoji}</span>
+            <span class="name">${personality.name.replace('The ', '')}</span>
+            ${assignedModel ? `<span class="model">powered by ${assignedModel}</span>` : ''}
+        `;
+
+        card.addEventListener('click', () => togglePersonality(personality.id));
+        container.appendChild(card);
+    });
+
+    updateStartButton();
+}
+
+// Toggle personality selection
+function togglePersonality(personalityId) {
+    const index = selectedPersonalities.indexOf(personalityId);
+    if (index >= 0) {
+        selectedPersonalities.splice(index, 1);
+    } else if (selectedPersonalities.length < 5) {
+        selectedPersonalities.push(personalityId);
+    }
+    renderPersonalitySelector();
+}
+
+// Get assigned model name for a personality
+function getAssignedModelForPersonality(personalityId) {
+    // Auto-assign models from configured providers
+    const index = selectedPersonalities.indexOf(personalityId);
+    if (index < 0) return null;
+
+    // Get list of configured models
+    const configuredModels = availableModels.filter(m => configuredProviders.has(m.provider));
+    if (index >= configuredModels.length) return null;
+
+    return configuredModels[index]?.name || null;
+}
+
+// Update the start button text
+function updateStartButton() {
+    const btn = document.getElementById('start-hive-btn');
+    const countSpan = document.getElementById('selected-voices-count');
+    if (btn && countSpan) {
+        countSpan.textContent = selectedPersonalities.length;
+        btn.disabled = selectedPersonalities.length < 2;
+    }
+}
+
+// Handle question submit
+async function handleQuestionSubmit(question) {
+    if (!question || question.trim().length === 0) return;
+
+    currentQuestion = question.trim();
+
+    // Show loading state
+    const suggestionsBtn = document.getElementById('get-suggestions-btn');
+    if (suggestionsBtn) {
+        suggestionsBtn.textContent = 'Loading...';
+        suggestionsBtn.disabled = true;
+    }
+
+    // Fetch personality suggestions
+    const suggested = await fetchPersonalitySuggestions(currentQuestion);
+    selectedPersonalities = suggested.slice(0, 3);
+
+    // Show personality selector
+    const selector = document.getElementById('personality-selector');
+    if (selector) {
+        selector.style.display = 'block';
+        renderPersonalitySelector(suggested);
+    }
+
+    // Reset button
+    if (suggestionsBtn) {
+        suggestionsBtn.textContent = 'Get Suggestions';
+        suggestionsBtn.disabled = false;
+    }
+}
+
+// Start debate with selected personalities
+async function startDebateWithPersonalities() {
+    if (selectedPersonalities.length < 2 || !currentQuestion) return;
+
+    // Map personalities to models
+    const configuredModels = availableModels.filter(m => configuredProviders.has(m.provider));
+    if (configuredModels.length < selectedPersonalities.length) {
+        alert('Please configure more API keys to use this many personalities.');
+        return;
+    }
+
+    // Build models config with personality IDs
+    const modelsConfig = selectedPersonalities.map((personalityId, index) => {
+        const model = configuredModels[index];
+        return {
+            provider: model.provider,
+            model_id: model.id,
+            model_name: model.name,
+            personality_id: personalityId,
+            role: ''
+        };
+    });
+
+    // Update selectedModels global (used by chat.js)
+    selectedModels = modelsConfig;
+    saveSelectedModels();
+
+    // Clear empty state and set message
+    const emptyState = document.getElementById('empty-state');
+    if (emptyState) emptyState.remove();
+
+    // Put question in chat input and send
+    const chatInput = document.getElementById('chat-input');
+    if (chatInput) {
+        chatInput.value = currentQuestion;
+        sendMessage();
+    }
+
+    // Reset state
+    currentQuestion = '';
+    selectedPersonalities = [];
+}
+
+// Event listeners for question-first flow
+document.getElementById('get-suggestions-btn')?.addEventListener('click', () => {
+    const input = document.getElementById('question-input');
+    if (input) handleQuestionSubmit(input.value);
+});
+
+document.getElementById('question-input')?.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+        e.preventDefault();
+        const input = document.getElementById('question-input');
+        if (input) handleQuestionSubmit(input.value);
+    }
+});
+
+document.getElementById('start-hive-btn')?.addEventListener('click', startDebateWithPersonalities);
+
+// Question template clicks
+document.querySelectorAll('.question-template').forEach(btn => {
+    btn.addEventListener('click', () => {
+        const question = btn.dataset.question;
+        const input = document.getElementById('question-input');
+        if (input) {
+            input.value = question;
+            handleQuestionSubmit(question);
+        }
+    });
+});
+
+// Load personalities on init
+fetchPersonalities();

@@ -10,6 +10,33 @@ class ModelConfig(BaseModel):
     model_id: str
     model_name: str
     role: Optional[str] = None  # Optional role/perspective
+    personality_id: Optional[str] = None  # Personality bee ID (e.g., "analyst")
+
+
+class PersonalityConfig(BaseModel):
+    """Configuration for a personality bee in a decision."""
+    personality_id: str  # e.g., "analyst", "skeptic", "optimist"
+    model_provider: Optional[str] = None  # Provider to use, or auto-assign
+    model_id: Optional[str] = None  # Specific model to use, or auto-assign
+
+
+class PersonalityInfo(BaseModel):
+    """Information about a personality bee."""
+    id: str
+    name: str
+    emoji: str
+    description: str
+
+
+class PersonalitySuggestionRequest(BaseModel):
+    """Request to suggest personalities for a question."""
+    question: str
+
+
+class PersonalitySuggestionResponse(BaseModel):
+    """Response with suggested personalities for a question."""
+    suggested: list[str]  # List of personality IDs
+    all_personalities: list[PersonalityInfo]  # All available personalities
 
 
 class DebateConfig(BaseModel):

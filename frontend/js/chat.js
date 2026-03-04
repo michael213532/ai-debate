@@ -361,6 +361,11 @@ function handleWebSocketMessage(message) {
         case 'intervention_received':
             updateChatStatus('Your message was received. AIs will respond...');
             break;
+
+        case 'verdict':
+            console.log('[Hive Verdict] Received:', message.verdict);
+            renderHiveVerdict(message.verdict);
+            break;
     }
 }
 
@@ -1286,4 +1291,74 @@ function addHistoryAiMessage(modelName, provider, content) {
         <div class="message-content">${escapeHtml(content)}</div>
     `;
     container.appendChild(msg);
+}
+
+// ============ HIVE VERDICT RENDERING ============
+
+/**
+ * Render the Hive Verdict card after debate completes
+ * @param {Object} verdict - The verdict object from backend
+ * @param {Array} verdict.votes - Array of { name, emoji, choice, reason }
+ * @param {string} verdict.hive_decision - The consensus decision
+ * @param {number} verdict.confidence - 0-100 confidence percentage
+ * @param {Array} verdict.key_reasons - Array of reason strings
+ */
+function renderHiveVerdict(verdict) {
+    if (!verdict) return;
+
+    const container = document.getElementById('chat-messages');
+    const verdictEl = document.createElement('div');
+    verdictEl.className = 'hive-verdict';
+
+    // Build votes HTML
+    let votesHtml = '';
+    if (verdict.votes && verdict.votes.length > 0) {
+        votesHtml = '<div class="verdict-votes">';
+        for (const vote of verdict.votes) {
+            votesHtml += `
+                <div class="verdict-vote">
+                    <span class="emoji">${escapeHtml(vote.emoji || '🐝')}</span>
+                    <span class="name">${escapeHtml(vote.name || 'Unknown')}</span>
+                    <span class="arrow">→</span>
+                    <span class="choice">${escapeHtml(vote.choice || '-')}</span>
+                    ${vote.reason ? `<span class="reason">${escapeHtml(vote.reason)}</span>` : ''}
+                </div>
+            `;
+        }
+        votesHtml += '</div>';
+    }
+
+    // Build reasons HTML
+    let reasonsHtml = '';
+    if (verdict.key_reasons && verdict.key_reasons.length > 0) {
+        reasonsHtml = `
+            <div class="verdict-reasons">
+                <div class="verdict-reasons-title">Key Reasons:</div>
+                <ul>
+                    ${verdict.key_reasons.map(r => `<li>${escapeHtml(r)}</li>`).join('')}
+                </ul>
+            </div>
+        `;
+    }
+
+    verdictEl.innerHTML = `
+        <div class="hive-verdict-header">
+            <span>🐝</span>
+            <span>Hive Verdict</span>
+        </div>
+        ${votesHtml}
+        <div class="verdict-decision">
+            <div class="verdict-decision-label">Hive Decision</div>
+            <div class="verdict-decision-value">${escapeHtml(verdict.hive_decision || 'No consensus')}</div>
+        </div>
+        ${verdict.confidence !== undefined ? `
+            <div class="verdict-confidence">
+                Confidence: <strong>${verdict.confidence}%</strong>
+            </div>
+        ` : ''}
+        ${reasonsHtml}
+    `;
+
+    container.appendChild(verdictEl);
+    scrollToBottom(container);
 }
