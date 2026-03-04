@@ -40,12 +40,29 @@ const PROVIDER_NAMES = Object.fromEntries(
     Object.entries(PROVIDER_INFO).map(([k, v]) => [k, v.name])
 );
 
-// Open settings modal (Memory only)
+// Open settings modal
 function openSettingsModal() {
     const modal = document.getElementById('settings-modal');
     modal.classList.add('active');
+    loadRoleAssignments();
     loadMemoryFacts();
 }
+
+// Settings tab switching
+document.querySelectorAll('.settings-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+        // Update active tab
+        document.querySelectorAll('.settings-tab').forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+
+        // Show corresponding content
+        const tabName = tab.dataset.tab;
+        document.querySelectorAll('.settings-tab-content').forEach(content => {
+            content.style.display = 'none';
+        });
+        document.getElementById(`settings-tab-${tabName}`).style.display = 'block';
+    });
+});
 
 // Close settings modal
 function closeSettingsModal() {
@@ -251,6 +268,111 @@ async function deleteApiKey(provider) {
     }
 }
 
+
+// ============== ROLE ASSIGNMENTS ==============
+
+// Load and render role assignments
+function loadRoleAssignments() {
+    const container = document.getElementById('role-assignments');
+    if (!container) return;
+
+    // Get all personalities (from global loaded in app.js)
+    const personalities = window.allPersonalities || [];
+    if (personalities.length === 0) {
+        container.innerHTML = '<p style="color: var(--text-secondary);">Loading personalities...</p>';
+        return;
+    }
+
+    // Get configured models (from global in app.js)
+    const models = (window.availableModels || []).filter(m =>
+        window.configuredProviders && window.configuredProviders.has(m.provider)
+    );
+
+    // Get saved role assignments
+    const savedRoles = getRoleAssignments();
+
+    container.innerHTML = personalities.map(p => {
+        const savedModelId = savedRoles[p.id];
+        return `
+            <div class="role-assignment-card" data-role="${p.id}">
+                <div class="role-emoji">${p.emoji}</div>
+                <div class="role-info">
+                    <div class="role-name">${p.name}</div>
+                    <div class="role-description">${p.description}</div>
+                </div>
+                <select class="role-model-select" data-role="${p.id}">
+                    <option value="">Auto-assign</option>
+                    ${models.map(m => `
+                        <option value="${m.provider}:${m.id}" ${savedModelId === `${m.provider}:${m.id}` ? 'selected' : ''}>
+                            ${m.name}
+                        </option>
+                    `).join('')}
+                </select>
+            </div>
+        `;
+    }).join('');
+
+    // Add change listeners to save immediately
+    container.querySelectorAll('.role-model-select').forEach(select => {
+        select.addEventListener('change', () => {
+            saveRoleAssignment(select.dataset.role, select.value);
+        });
+    });
+}
+
+// Get role assignments from localStorage
+function getRoleAssignments() {
+    try {
+        const saved = localStorage.getItem('roleAssignments');
+        return saved ? JSON.parse(saved) : {};
+    } catch {
+        return {};
+    }
+}
+
+// Save a single role assignment
+function saveRoleAssignment(roleId, modelKey) {
+    const assignments = getRoleAssignments();
+    if (modelKey) {
+        assignments[roleId] = modelKey;
+    } else {
+        delete assignments[roleId];
+    }
+    localStorage.setItem('roleAssignments', JSON.stringify(assignments));
+}
+
+// Reset all role assignments
+document.getElementById('reset-roles-btn')?.addEventListener('click', () => {
+    if (confirm('Reset all role assignments to auto-assign?')) {
+        localStorage.removeItem('roleAssignments');
+        loadRoleAssignments();
+    }
+});
+
+// Get the model for a specific personality (used by startDebateWithPersonalities)
+function getModelForPersonality(personalityId, fallbackModels) {
+    const assignments = getRoleAssignments();
+    const savedModelKey = assignments[personalityId];
+
+    if (savedModelKey) {
+        const [provider, ...idParts] = savedModelKey.split(':');
+        const modelId = idParts.join(':');
+        const model = (window.availableModels || []).find(m =>
+            m.provider === provider && m.id === modelId
+        );
+        if (model && window.configuredProviders && window.configuredProviders.has(model.provider)) {
+            return model;
+        }
+    }
+
+    // Fallback: return first available model not already used
+    return fallbackModels.length > 0 ? fallbackModels[0] : null;
+}
+
+// Make functions globally available
+window.getRoleAssignments = getRoleAssignments;
+window.getModelForPersonality = getModelForPersonality;
+window.loadRoleAssignments = loadRoleAssignments;
 
 // ============== MEMORY ==============
 

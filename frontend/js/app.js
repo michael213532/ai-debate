@@ -267,6 +267,7 @@ async function loadModels() {
         if (!response.ok) throw new Error('Failed to load models');
 
         availableModels = await response.json();
+        window.availableModels = availableModels;
         // Don't render yet - wait until selectedModels are loaded
     } catch (error) {
         console.error('Error loading models:', error);
@@ -286,6 +287,7 @@ async function loadConfiguredProviders() {
         configuredProviders = new Set(
             providers.filter(p => p.configured).map(p => p.provider)
         );
+        window.configuredProviders = configuredProviders;
         // Don't render yet - wait until selectedModels are loaded
     } catch (error) {
         console.error('Error loading providers:', error);
@@ -1235,6 +1237,7 @@ async function fetchPersonalities() {
         });
         if (response.ok) {
             allPersonalities = await response.json();
+            window.allPersonalities = allPersonalities;
         }
     } catch (error) {
         console.error('Error fetching personalities:', error);
@@ -1252,6 +1255,7 @@ async function fetchPersonalitySuggestions(question) {
         if (response.ok) {
             const data = await response.json();
             allPersonalities = data.all_personalities;
+            window.allPersonalities = allPersonalities;
             return data.suggested;
         }
     } catch (error) {
@@ -1367,7 +1371,7 @@ async function startDebateWithPersonalities() {
         return;
     }
 
-    // Map personalities to models
+    // Get configured models
     const configuredModels = availableModels.filter(m => configuredProviders.has(m.provider));
     if (configuredModels.length < selectedPersonalities.length) {
         alert(`You need ${selectedPersonalities.length} API keys configured. Please add more in Settings.`);
@@ -1375,13 +1379,23 @@ async function startDebateWithPersonalities() {
         return;
     }
 
-    // Build models config with personality IDs
-    const modelsConfig = selectedPersonalities.map((personalityId, index) => {
-        const model = configuredModels[index];
+    // Build models config with personality IDs, using saved role assignments
+    const usedModels = new Set();
+    const modelsConfig = selectedPersonalities.map((personalityId) => {
+        // Get model from settings, or fall back to next available
+        const remainingModels = configuredModels.filter(m => !usedModels.has(`${m.provider}:${m.id}`));
+        const model = window.getModelForPersonality ?
+            window.getModelForPersonality(personalityId, remainingModels) :
+            remainingModels[0];
+
+        if (model) {
+            usedModels.add(`${model.provider}:${model.id}`);
+        }
+
         return {
-            provider: model.provider,
-            model_id: model.id,
-            model_name: model.name,
+            provider: model?.provider || remainingModels[0]?.provider,
+            model_id: model?.id || remainingModels[0]?.id,
+            model_name: model?.name || remainingModels[0]?.name,
             personality_id: personalityId,
             role: ''
         };
