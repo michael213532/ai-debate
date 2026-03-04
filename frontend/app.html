@@ -315,16 +315,17 @@
             border-bottom: 1px solid var(--border-color);
         }
 
-        .logo-with-tagline {
+        .logo-text-container {
             display: flex;
             flex-direction: column;
-            gap: 2px;
+            gap: 0;
         }
 
-        .logo-row {
-            display: flex;
-            align-items: center;
-            gap: 10px;
+        .logo-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            line-height: 1.2;
         }
 
         .logo-tagline {
@@ -332,6 +333,7 @@
             font-weight: 400;
             color: var(--text-secondary);
             font-style: italic;
+            line-height: 1.2;
         }
 
         .models-dropdown-trigger {
@@ -1829,11 +1831,9 @@
 
         <!-- Logo Header - top of main area -->
         <div class="main-logo-header">
-            <div class="logo-with-tagline">
-                <div class="logo-row">
-                    <img src="/logo.png" alt="Beecision" style="width: 48px; height: 48px;">
-                    <span>Beecision</span>
-                </div>
+            <img src="/logo.png" alt="Beecision" style="width: 48px; height: 48px;">
+            <div class="logo-text-container">
+                <span class="logo-title">Beecision</span>
                 <span class="logo-tagline">A million bees can't be wrong</span>
             </div>
             <button id="models-dropdown-trigger" class="models-dropdown-trigger" title="Select Bees">
