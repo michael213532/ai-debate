@@ -1022,7 +1022,7 @@ document.getElementById('new-chat-btn')?.addEventListener('click', () => {
     const chatInput = document.getElementById('chat-input');
     if (chatInput) {
         chatInput.value = '';
-        chatInput.placeholder = 'What decision can we help with?';
+        chatInput.placeholder = 'Ask your question';
     }
 
     // Re-attach event listeners for the new elements
