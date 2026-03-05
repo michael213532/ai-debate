@@ -252,11 +252,11 @@ function updateGuestDropdown(dropdownId) {
     const header = dropdown.querySelector('.profile-dropdown-header');
     if (header) {
         header.innerHTML = `
-            <a href="/login" style="display: flex; align-items: center; justify-content: center; width: 100%; padding: 10px 16px; background: var(--primary-color); color: white; border-radius: 8px; font-weight: 600; text-decoration: none;">
+            <a href="/login" style="display: flex; align-items: center; justify-content: center; width: 100%; padding: 6px 12px; background: var(--primary-color); color: white; border-radius: 6px; font-weight: 500; font-size: 0.85rem; text-decoration: none;">
                 Sign Up
             </a>
         `;
-        header.style.padding = '8px';
+        header.style.padding = '6px 8px';
     }
 
     // Hide logout button for guests
