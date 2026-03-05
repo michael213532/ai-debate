@@ -1513,3 +1513,117 @@ attachQuestionFlowListeners();
 
 // Load personalities on init
 fetchPersonalities();
+
+// ============================================
+// Bees Dropdown (Header Personality Selector)
+// ============================================
+
+function renderBeesDropdown() {
+    // Render both desktop and mobile dropdowns
+    ['bees-dropdown-list', 'bees-dropdown-list-mobile'].forEach(listId => {
+        const list = document.getElementById(listId);
+        if (!list || !allPersonalities.length) return;
+
+        list.innerHTML = '';
+
+        allPersonalities.forEach(personality => {
+            const isSelected = selectedPersonalities.includes(personality.id);
+            const item = document.createElement('div');
+            item.className = `bees-dropdown-item ${isSelected ? 'selected' : ''}`;
+            item.dataset.personalityId = personality.id;
+            item.innerHTML = `
+                <span class="bee-emoji">${personality.emoji}</span>
+                <span class="bee-name">${personality.name.replace('The ', '')}</span>
+                <span class="bee-check">✓</span>
+            `;
+            item.addEventListener('click', (e) => {
+                e.stopPropagation();
+                togglePersonalityFromDropdown(personality.id);
+            });
+            list.appendChild(item);
+        });
+    });
+
+    updateBeesDropdownCount();
+}
+
+function togglePersonalityFromDropdown(personalityId) {
+    const index = selectedPersonalities.indexOf(personalityId);
+    if (index >= 0) {
+        selectedPersonalities.splice(index, 1);
+    } else if (selectedPersonalities.length < 5) {
+        selectedPersonalities.push(personalityId);
+    }
+    renderBeesDropdown();
+    // Also update the personality selector in the empty state if visible
+    renderPersonalitySelector();
+}
+
+function updateBeesDropdownCount() {
+    const count = selectedPersonalities.length;
+    const text = `${count} selected${count < 2 ? ' (need 2+)' : ''}`;
+
+    // Update both desktop and mobile
+    ['bees-selected-count', 'bees-selected-count-mobile'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = text;
+    });
+
+    // Update mobile button text
+    const mobileBtnCount = document.getElementById('mobile-bees-count');
+    if (mobileBtnCount) {
+        mobileBtnCount.textContent = count > 0 ? `${count} Bees` : 'Bees';
+    }
+}
+
+function toggleBeesDropdown(menuId = 'bees-dropdown-menu') {
+    // Close any other open dropdown first
+    document.querySelectorAll('.bees-dropdown-menu.open').forEach(m => {
+        if (m.id !== menuId) m.classList.remove('open');
+    });
+
+    const menu = document.getElementById(menuId);
+    if (menu) {
+        menu.classList.toggle('open');
+        if (menu.classList.contains('open')) {
+            renderBeesDropdown();
+        }
+    }
+}
+
+function closeBeesDropdown() {
+    document.querySelectorAll('.bees-dropdown-menu').forEach(menu => {
+        menu.classList.remove('open');
+    });
+}
+
+// Event listeners for bees dropdown (desktop)
+document.getElementById('bees-dropdown-btn')?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    toggleBeesDropdown('bees-dropdown-menu');
+});
+
+// Event listeners for bees dropdown (mobile)
+document.getElementById('bees-dropdown-btn-mobile')?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    toggleBeesDropdown('bees-dropdown-menu-mobile');
+});
+
+// Close dropdown when clicking outside
+document.addEventListener('click', (e) => {
+    const containers = document.querySelectorAll('.bees-dropdown-container');
+    let clickedInside = false;
+    containers.forEach(container => {
+        if (container.contains(e.target)) clickedInside = true;
+    });
+    if (!clickedInside) {
+        closeBeesDropdown();
+    }
+});
+
+// Re-render bees dropdown when personalities load
+const originalFetchPersonalities = fetchPersonalities;
+fetchPersonalities = async function() {
+    await originalFetchPersonalities();
+    renderBeesDropdown();
+};

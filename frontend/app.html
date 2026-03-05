@@ -336,6 +336,118 @@
             line-height: 1.2;
         }
 
+        /* Bees Dropdown */
+        .bees-dropdown-container {
+            position: relative;
+        }
+
+        .bees-dropdown-btn {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 14px;
+            background: var(--surface-light);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: var(--text-primary);
+            transition: all 0.15s;
+        }
+
+        .bees-dropdown-btn:hover {
+            background: var(--border-color);
+            border-color: var(--text-secondary);
+        }
+
+        .bees-dropdown-menu {
+            position: absolute;
+            top: calc(100% + 8px);
+            right: 0;
+            background: var(--surface);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+            min-width: 240px;
+            max-height: 400px;
+            overflow: hidden;
+            display: none;
+            z-index: 1000;
+        }
+
+        .bees-dropdown-menu.open {
+            display: block;
+        }
+
+        .bees-dropdown-header {
+            padding: 12px 16px;
+            font-weight: 600;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .bees-dropdown-list {
+            max-height: 300px;
+            overflow-y: auto;
+            padding: 8px 0;
+        }
+
+        .bees-dropdown-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 16px;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+
+        .bees-dropdown-item:hover {
+            background: var(--surface-light);
+        }
+
+        .bees-dropdown-item.selected {
+            background: rgba(99, 102, 241, 0.1);
+        }
+
+        .bees-dropdown-item .bee-emoji {
+            font-size: 1.2rem;
+        }
+
+        .bees-dropdown-item .bee-name {
+            flex: 1;
+            font-size: 0.9rem;
+            color: var(--text-primary);
+        }
+
+        .bees-dropdown-item .bee-check {
+            width: 20px;
+            height: 20px;
+            border: 2px solid var(--border-color);
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            color: transparent;
+            transition: all 0.15s;
+        }
+
+        .bees-dropdown-item.selected .bee-check {
+            background: var(--primary-color);
+            border-color: var(--primary-color);
+            color: white;
+        }
+
+        .bees-dropdown-footer {
+            padding: 10px 16px;
+            border-top: 1px solid var(--border-color);
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            text-align: center;
+        }
+
         .models-dropdown-trigger {
             display: flex;
             align-items: center;
@@ -1388,7 +1500,22 @@
             }
 
             .mobile-models-trigger {
-                display: flex;
+                display: none;
+            }
+
+            /* Show bees dropdown on mobile too */
+            .bees-dropdown-container {
+                position: relative;
+            }
+
+            .bees-dropdown-btn {
+                padding: 6px 10px;
+                font-size: 0.85rem;
+            }
+
+            .bees-dropdown-menu {
+                right: -50px;
+                min-width: 220px;
             }
 
             /* Hide subscription badge on mobile */
@@ -1937,12 +2064,25 @@
                     </svg>
                 </button>
                 <span class="mobile-logo">Beecision</span>
-                <button id="mobile-models-trigger" class="mobile-models-trigger" title="Select Models">
-                    <span id="mobile-models-count" class="models-count">0 bees</span>
-                    <svg class="dropdown-arrow" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                        <path d="M6 9l6 6 6-6"/>
-                    </svg>
-                </button>
+                <!-- Bees dropdown for mobile -->
+                <div class="bees-dropdown-container">
+                    <button id="bees-dropdown-btn-mobile" class="bees-dropdown-btn">
+                        <span>🐝</span>
+                        <span id="mobile-bees-count">Bees</span>
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                            <path d="M6 9l6 6 6-6"/>
+                        </svg>
+                    </button>
+                    <div id="bees-dropdown-menu-mobile" class="bees-dropdown-menu">
+                        <div class="bees-dropdown-header">Select Your Hive Council</div>
+                        <div id="bees-dropdown-list-mobile" class="bees-dropdown-list">
+                            <!-- Personality options loaded here -->
+                        </div>
+                        <div class="bees-dropdown-footer">
+                            <span id="bees-selected-count-mobile">0 selected</span>
+                        </div>
+                    </div>
+                </div>
                 <div class="header-actions">
                     <span id="subscription-status" class="subscription-badge"></span>
                     <!-- Mobile profile button -->
@@ -2027,6 +2167,26 @@
             <div class="logo-text-container">
                 <span class="logo-title">Beecision</span>
                 <span class="logo-tagline">Ask the Hive. Decide better.</span>
+            </div>
+            <div style="flex: 1;"></div>
+            <!-- Bees dropdown button -->
+            <div class="bees-dropdown-container">
+                <button id="bees-dropdown-btn" class="bees-dropdown-btn">
+                    <span>🐝</span>
+                    <span>Bees</span>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <path d="M6 9l6 6 6-6"/>
+                    </svg>
+                </button>
+                <div id="bees-dropdown-menu" class="bees-dropdown-menu">
+                    <div class="bees-dropdown-header">Select Your Hive Council</div>
+                    <div id="bees-dropdown-list" class="bees-dropdown-list">
+                        <!-- Personality options loaded here -->
+                    </div>
+                    <div class="bees-dropdown-footer">
+                        <span id="bees-selected-count">0 selected</span>
+                    </div>
+                </div>
             </div>
         </div>
 
