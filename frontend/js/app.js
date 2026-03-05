@@ -1361,29 +1361,22 @@ async function handleQuestionSubmit(question) {
 
     currentQuestion = question.trim();
 
-    // Show loading state
-    const suggestionsBtn = document.getElementById('get-suggestions-btn');
-    if (suggestionsBtn) {
-        suggestionsBtn.textContent = 'Loading...';
-        suggestionsBtn.disabled = true;
+    // Clear the input
+    const chatInput = document.getElementById('chat-input');
+    if (chatInput) {
+        chatInput.value = '';
     }
 
-    // Fetch personality suggestions
-    const suggested = await fetchPersonalitySuggestions(currentQuestion);
-    selectedPersonalities = suggested.slice(0, 3);
-
-    // Show personality selector
-    const selector = document.getElementById('personality-selector');
-    if (selector) {
-        selector.style.display = 'block';
-        renderPersonalitySelector(suggested);
+    // If no personalities selected yet, auto-select defaults
+    if (selectedPersonalities.length < 2) {
+        const suggested = await fetchPersonalitySuggestions(currentQuestion);
+        selectedPersonalities = suggested.slice(0, 3);
+        updateBeesDropdownCount();
+        renderBeesDropdown();
     }
 
-    // Reset button
-    if (suggestionsBtn) {
-        suggestionsBtn.textContent = 'Ask the Hive';
-        suggestionsBtn.disabled = false;
-    }
+    // Start debate directly (skip personality selector)
+    startDebateWithPersonalities();
 }
 
 // Start debate with selected personalities
