@@ -497,6 +497,18 @@
             display: none;
         }
 
+        .mobile-logo-img {
+            display: none;
+        }
+
+        .mobile-logo-text {
+            display: none;
+        }
+
+        .mobile-tagline {
+            display: none;
+        }
+
         .mobile-models-trigger {
             display: none;
             align-items: center;
@@ -1506,12 +1518,30 @@
                 display: none;
             }
 
+            .mobile-logo-img {
+                display: block;
+            }
+
+            .mobile-logo-text {
+                display: flex;
+                flex-direction: column;
+                gap: 0;
+            }
+
             .mobile-logo {
                 display: block;
                 font-weight: 700;
-                font-size: 1.1rem;
+                font-size: 1rem;
                 color: var(--text-primary);
                 white-space: nowrap;
+                line-height: 1.2;
+            }
+
+            .mobile-tagline {
+                display: block;
+                font-size: 0.6rem;
+                color: var(--text-secondary);
+                font-style: italic;
             }
 
             .mobile-models-trigger {
@@ -1521,16 +1551,12 @@
             /* Show bees dropdown on mobile too */
             .bees-dropdown-container {
                 position: relative;
+                margin-left: auto;
             }
 
             .bees-dropdown-btn {
                 padding: 6px 10px;
-                font-size: 0.85rem;
-            }
-
-            /* Hide "Bees" text on small screens, just show emoji */
-            .bees-dropdown-btn span:nth-child(2) {
-                display: none;
+                font-size: 0.75rem;
             }
 
             .bees-dropdown-menu {
@@ -2109,7 +2135,11 @@
                         <line x1="3" y1="18" x2="21" y2="18"></line>
                     </svg>
                 </button>
-                <span class="mobile-logo">Beecision</span>
+                <img src="/logo.png" alt="Beecision" class="mobile-logo-img" style="width: 32px; height: 32px;">
+                <div class="mobile-logo-text">
+                    <span class="mobile-logo">Beecision</span>
+                    <span class="mobile-tagline">Let the hive decide</span>
+                </div>
                 <!-- Bees dropdown for mobile -->
                 <div class="bees-dropdown-container">
                     <button id="bees-dropdown-btn-mobile" class="bees-dropdown-btn">
