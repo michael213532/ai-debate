@@ -753,6 +753,9 @@ if (chatInput) {
 
 // Initialize
 (async function init() {
+    // Always load voices (personalities) for everyone
+    await initVoicesBar();
+
     if (await checkAuth()) {
         await Promise.all([
             loadModels(),
@@ -1710,4 +1713,3 @@ async function initVoicesBar() {
     await fetchPersonalities();
     renderVoicesBar();
 }
-initVoicesBar();

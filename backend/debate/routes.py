@@ -116,8 +116,8 @@ async def get_user_api_keys(user_id: str) -> dict[str, str]:
 
 # Personalities endpoints
 @router.get("/api/personalities", response_model=list[PersonalityInfo])
-async def list_personalities(current_user: User = Depends(get_current_user)):
-    """List all available personality bees."""
+async def list_personalities():
+    """List all available personality bees (public endpoint)."""
     return [
         PersonalityInfo(
             id=p["id"],
