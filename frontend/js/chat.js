@@ -988,17 +988,9 @@ document.getElementById('new-chat-btn')?.addEventListener('click', () => {
         <div class="empty-chat" id="empty-state">
             <img src="/logo.png" alt="Beecision" style="width: 80px; height: 80px; margin-bottom: 16px;">
 
-            <!-- Question input -->
-            <div class="question-input-container" style="width: 100%; max-width: 500px; margin-bottom: 8px;">
-                <div style="display: flex; gap: 8px;">
-                    <input type="text" id="question-input" class="form-input" placeholder="What decision can the bees help with?" style="flex: 1; padding: 14px 18px; font-size: 1rem; border-radius: 24px;">
-                    <button id="get-suggestions-btn" class="btn btn-primary" style="padding: 14px 24px; border-radius: 24px; white-space: nowrap;">Ask the Hive</button>
-                </div>
-            </div>
-
             <!-- Question templates -->
             <div style="margin-bottom: 24px;">
-                <span style="color: var(--text-secondary); font-size: 0.85rem;">Or try one of these:</span>
+                <span style="color: var(--text-secondary); font-size: 0.85rem;">Try one of these:</span>
                 <div class="question-templates" style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; justify-content: center;">
                     <button class="question-template" data-question="Should I buy or rent a home?">Should I buy or rent?</button>
                     <button class="question-template" data-question="Best country to move to in 2026?">Best country to move to?</button>
@@ -1016,6 +1008,14 @@ document.getElementById('new-chat-btn')?.addEventListener('click', () => {
                 <div id="personality-cards" class="personality-cards" style="display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-bottom: 16px;">
                 </div>
                 <button id="start-hive-btn" class="btn btn-primary" style="width: 100%; padding: 14px 24px; font-size: 1rem;">Confirm (<span id="selected-voices-count">0</span> voices)</button>
+            </div>
+
+            <!-- Question input (at bottom) -->
+            <div class="question-input-container" style="width: 100%; max-width: 500px;">
+                <div style="display: flex; gap: 8px;">
+                    <input type="text" id="question-input" class="form-input" placeholder="What decision can the bees help with?" style="flex: 1; padding: 14px 18px; font-size: 1rem; border-radius: 24px;">
+                    <button id="get-suggestions-btn" class="btn btn-primary" style="padding: 14px 24px; border-radius: 24px; white-space: nowrap;">Ask the Hive</button>
+                </div>
             </div>
         </div>
     `;
