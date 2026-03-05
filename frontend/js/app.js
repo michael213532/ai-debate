@@ -1236,8 +1236,27 @@ window.showTutorial = showTutorial;
 // ============ PERSONALITY BEES SYSTEM ============
 
 let allPersonalities = [];
-let selectedPersonalities = [];
+let selectedPersonalities = loadSelectedBees();
 let currentQuestion = '';
+
+// Load selected bees from localStorage
+function loadSelectedBees() {
+    try {
+        const saved = localStorage.getItem('selectedBees');
+        return saved ? JSON.parse(saved) : [];
+    } catch (e) {
+        return [];
+    }
+}
+
+// Save selected bees to localStorage
+function saveSelectedBees() {
+    try {
+        localStorage.setItem('selectedBees', JSON.stringify(selectedPersonalities));
+    } catch (e) {
+        console.error('Error saving bees:', e);
+    }
+}
 
 // Fetch all personalities from API
 async function fetchPersonalities() {
@@ -1371,6 +1390,7 @@ async function handleQuestionSubmit(question) {
     if (selectedPersonalities.length < 2) {
         const suggested = await fetchPersonalitySuggestions(currentQuestion);
         selectedPersonalities = suggested.slice(0, 3);
+        saveSelectedBees();
         updateBeesDropdownCount();
         renderBeesDropdown();
     }
@@ -1547,6 +1567,7 @@ function togglePersonalityFromDropdown(personalityId) {
     } else if (selectedPersonalities.length < 5) {
         selectedPersonalities.push(personalityId);
     }
+    saveSelectedBees();
     renderBeesDropdown();
     // Also update the personality selector in the empty state if visible
     renderPersonalitySelector();
