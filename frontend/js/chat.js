@@ -1374,6 +1374,8 @@ function renderHiveVerdict(verdict) {
             votesHtml += `
                 <div class="verdict-vote">
                     <span class="emoji">${escapeHtml(vote.emoji || '🐝')}</span>
+                    <span class="name">${escapeHtml(vote.name || '')}</span>
+                    <span class="arrow">→</span>
                     <span class="choice">${escapeHtml(vote.choice || '-')}</span>
                 </div>
             `;
