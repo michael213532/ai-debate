@@ -471,9 +471,11 @@ function updateSendButton() {
     const hasText = input.value.trim();
 
     // During active discussion, only need text to intervene
+    // On empty state (no session), only need text to start question flow
     // Otherwise, need text and at least 2 models
     const isActive = typeof isProcessing !== 'undefined' && isProcessing;
-    const canSend = hasText && (isActive || selectedModels.length >= 2);
+    const noSession = typeof currentSessionId !== 'undefined' && !currentSessionId;
+    const canSend = hasText && (isActive || noSession || selectedModels.length >= 2);
     sendBtn.disabled = !canSend;
 }
 
@@ -621,6 +623,14 @@ if (chatInput) {
             }
 
             e.preventDefault();
+            const question = chatInput.value.trim();
+
+            // If no session yet, trigger question flow
+            if (typeof currentSessionId !== 'undefined' && !currentSessionId && question) {
+                handleQuestionSubmit(question);
+                return;
+            }
+
             // Check if we're in a discussion (intervention) or starting new
             if (typeof isProcessing !== 'undefined' && isProcessing && chatWebSocket && chatWebSocket.readyState === WebSocket.OPEN) {
                 sendIntervention();
@@ -1480,30 +1490,17 @@ async function startDebateWithPersonalities() {
 
 // Attach event listeners for question-first flow
 function attachQuestionFlowListeners() {
-    document.getElementById('get-suggestions-btn')?.addEventListener('click', () => {
-        const input = document.getElementById('question-input');
-        if (input) handleQuestionSubmit(input.value);
-    });
-
-    document.getElementById('question-input')?.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') {
-            e.preventDefault();
-            const input = document.getElementById('question-input');
-            if (input) handleQuestionSubmit(input.value);
-        }
-    });
-
     document.getElementById('start-hive-btn')?.addEventListener('click', startDebateWithPersonalities);
 
-    // Question template clicks
+    // Question template clicks - put text in chat-input and submit
     document.querySelectorAll('.question-template').forEach(btn => {
         btn.addEventListener('click', () => {
             const question = btn.dataset.question;
-            const input = document.getElementById('question-input');
-            if (input) {
-                input.value = question;
-                handleQuestionSubmit(question);
+            const chatInput = document.getElementById('chat-input');
+            if (chatInput) {
+                chatInput.value = question;
             }
+            handleQuestionSubmit(question);
         });
     });
 }

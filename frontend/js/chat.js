@@ -59,6 +59,13 @@ document.getElementById('send-btn').addEventListener('click', () => {
     if (btn.classList.contains('stop-mode')) {
         // Stop the discussion
         stopDiscussion();
+    } else if (!currentSessionId && typeof handleQuestionSubmit === 'function') {
+        // No session yet - trigger question flow
+        const input = document.getElementById('chat-input');
+        const question = input.value.trim();
+        if (question) {
+            handleQuestionSubmit(question);
+        }
     } else {
         // Normal message send
         sendMessage();
@@ -1009,16 +1016,15 @@ document.getElementById('new-chat-btn')?.addEventListener('click', () => {
                 </div>
                 <button id="start-hive-btn" class="btn btn-primary" style="width: 100%; padding: 14px 24px; font-size: 1rem;">Confirm (<span id="selected-voices-count">0</span> voices)</button>
             </div>
-
-            <!-- Question input (at bottom) -->
-            <div class="question-input-container" style="width: 100%; max-width: 500px;">
-                <div style="display: flex; gap: 8px;">
-                    <input type="text" id="question-input" class="form-input" placeholder="What decision can the bees help with?" style="flex: 1; padding: 14px 18px; font-size: 1rem; border-radius: 24px;">
-                    <button id="get-suggestions-btn" class="btn btn-primary" style="padding: 14px 24px; border-radius: 24px; white-space: nowrap;">Ask the Hive</button>
-                </div>
-            </div>
         </div>
     `;
+
+    // Reset chat input placeholder
+    const chatInput = document.getElementById('chat-input');
+    if (chatInput) {
+        chatInput.value = '';
+        chatInput.placeholder = 'What decision can the bees help with?';
+    }
 
     // Re-attach event listeners for the new elements
     attachQuestionFlowListeners();

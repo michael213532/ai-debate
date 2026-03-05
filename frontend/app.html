@@ -927,17 +927,10 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: flex-start;
+            justify-content: center;
             text-align: center;
-            padding: 48px 48px 24px;
-            padding-top: 15vh;
+            padding: 48px;
             color: var(--text-secondary);
-        }
-
-        .empty-chat .question-input-container {
-            margin-top: auto;
-            position: sticky;
-            bottom: 24px;
         }
 
         .empty-chat-icon {
@@ -1655,12 +1648,7 @@
 
             /* Compact empty state */
             .empty-chat {
-                padding: 20px 20px 16px;
-                padding-top: 10vh;
-            }
-
-            .empty-chat .question-input-container {
-                bottom: 16px;
+                padding: 20px;
             }
 
             .empty-chat-icon {
@@ -2094,23 +2082,16 @@
                             <button id="start-hive-btn" class="btn btn-primary" style="width: 100%; padding: 14px 24px; font-size: 1rem;">Confirm (<span id="selected-voices-count">0</span> voices)</button>
                         </div>
 
-                        <!-- Question input (at bottom) -->
-                        <div class="question-input-container" style="width: 100%; max-width: 500px;">
-                            <div style="display: flex; gap: 8px;">
-                                <input type="text" id="question-input" class="form-input" placeholder="What decision can the bees help with?" style="flex: 1; padding: 14px 18px; font-size: 1rem; border-radius: 24px;">
-                                <button id="get-suggestions-btn" class="btn btn-primary" style="padding: 14px 24px; border-radius: 24px; white-space: nowrap;">Ask the Hive</button>
-                            </div>
-                        </div>
                     </div>
                 </div>
 
-                <!-- Input Area (hidden until debate starts) -->
-                <div class="chat-input-area" id="chat-input-area" style="display: none;">
+                <!-- Input Area (always visible) -->
+                <div class="chat-input-area" id="chat-input-area">
                     <!-- Images Preview -->
                     <div id="images-preview-container" class="images-preview-container"></div>
                     <!-- Unified input container -->
                     <div class="chat-input-container">
-                        <textarea id="chat-input" class="chat-input" placeholder="How can I help you today?" rows="1"></textarea>
+                        <textarea id="chat-input" class="chat-input" placeholder="What decision can the bees help with?" rows="1"></textarea>
                         <!-- Buttons row below -->
                         <div class="chat-buttons-row">
                             <input type="file" id="image-input" accept="image/*,.jpg,.jpeg,.png,.gif,.webp" style="display: none;">
