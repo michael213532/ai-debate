@@ -224,6 +224,10 @@ function showGuestUI() {
     if (mainHeader) mainHeader.style.marginLeft = '0';
     if (voicesBar) voicesBar.style.marginLeft = '0';
 
+    // Remove sidebar offset from input area
+    const inputArea = document.querySelector('.chat-input-area');
+    if (inputArea) inputArea.style.left = '0';
+
     // Show the guest menu in the header
     const guestMenuWrapper = document.getElementById('guest-menu-wrapper');
     if (guestMenuWrapper) guestMenuWrapper.style.display = 'block';
