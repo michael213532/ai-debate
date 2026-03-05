@@ -803,22 +803,33 @@
             border-color: var(--text-secondary);
         }
 
-        .action-btn.send-btn {
+        .start-debate-btn {
             background: var(--surface-light);
             border: 1px solid var(--border-color);
             color: var(--text-secondary);
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
             transition: all 0.15s;
+            white-space: nowrap;
         }
 
-        .action-btn.send-btn:not(:disabled) {
+        .start-debate-btn:not(:disabled) {
             background: var(--primary-color);
             border-color: var(--primary-color);
             color: white;
         }
 
-        .action-btn.send-btn:not(:disabled):hover {
+        .start-debate-btn:not(:disabled):hover {
             background: var(--primary-hover);
             border-color: var(--primary-hover);
+        }
+
+        .start-debate-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
         }
 
         .action-btn:disabled {
@@ -826,38 +837,14 @@
         }
 
         #send-btn.stop-mode {
-            background: #1f2937;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        [data-theme="dark"] #send-btn.stop-mode {
-            background: #e5e7eb;
+            background: #ef4444;
+            border-color: #ef4444;
+            color: white;
         }
 
         #send-btn.stop-mode:hover {
-            background: #374151;
-        }
-
-        [data-theme="dark"] #send-btn.stop-mode:hover {
-            background: #d1d5db;
-        }
-
-        #send-btn.stop-mode svg {
-            display: none;
-        }
-
-        #send-btn.stop-mode::after {
-            content: '■';
-            font-size: 0.85rem;
-            color: white;
-            line-height: 1;
-        }
-
-        [data-theme="dark"] #send-btn.stop-mode::after {
-            color: #1f2937;
+            background: #dc2626;
+            border-color: #dc2626;
         }
 
         /* Individual AI Response in Main Chat */
@@ -2297,10 +2284,8 @@
                                 </svg>
                             </button>
                             <div class="chat-buttons-spacer"></div>
-                            <button id="send-btn" class="action-btn send-btn" disabled>
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M12 19V5M5 12l7-7 7 7"/>
-                                </svg>
+                            <button id="send-btn" class="start-debate-btn" disabled>
+                                Start Debate
                             </button>
                         </div>
                     </div>
