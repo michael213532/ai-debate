@@ -379,6 +379,10 @@ function handleWebSocketMessage(message) {
             updateChatStatus('Your message was received. AIs will respond...');
             break;
 
+        case 'verdict_start':
+            updateChatStatus('Generating Hive Verdict...');
+            break;
+
         case 'verdict':
             console.log('[Hive Verdict] Received:', message.verdict);
             renderHiveVerdict(message.verdict);
