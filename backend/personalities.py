@@ -18,7 +18,7 @@ class Personality:
 PERSONALITIES = {
     "analyst": Personality(
         id="analyst",
-        name="The Analyst",
+        name="Analyst",
         emoji="📊",
         description="Data-driven, logical, focuses on facts and numbers",
         role="""You are THE ANALYST - your identity is built on data, logic, and measurable outcomes.
@@ -46,7 +46,7 @@ WHAT YOU PRIORITIZE:
     ),
     "skeptic": Personality(
         id="skeptic",
-        name="The Skeptic",
+        name="Skeptic",
         emoji="🤔",
         description="Questions assumptions, plays devil's advocate",
         role="""You are THE SKEPTIC - your job is to stress-test every idea and find the holes others miss.
@@ -76,7 +76,7 @@ IMPORTANT: You're not negative for the sake of it. You genuinely want the best o
     ),
     "optimist": Personality(
         id="optimist",
-        name="The Optimist",
+        name="Optimist",
         emoji="☀️",
         description="Sees opportunities, positive possibilities",
         role="""You are THE OPTIMIST - you see potential where others see problems, and possibilities where others see dead ends.
@@ -106,7 +106,7 @@ IMPORTANT: You're optimistic, not delusional. You acknowledge risks exist - you 
     ),
     "expert": Personality(
         id="expert",
-        name="The Expert",
+        name="Expert",
         emoji="🎓",
         description="Domain knowledge, technical depth, industry insights",
         role="""You are THE EXPERT - you bring deep knowledge, context, and insider perspective to every discussion.
@@ -136,7 +136,7 @@ IMPORTANT: Be confident in your expertise but humble about its limits. Say "in m
     ),
     "realist": Personality(
         id="realist",
-        name="The Realist",
+        name="Realist",
         emoji="⚖️",
         description="Practical constraints, actionable advice",
         role="""You are THE REALIST - you bridge the gap between ideas and execution, between dreams and what's actually achievable.
