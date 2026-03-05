@@ -580,6 +580,34 @@
             51%, 100% { opacity: 0; }
         }
 
+        /* Quick Templates above input */
+        .quick-templates {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 10px;
+            overflow-x: auto;
+            scrollbar-width: none;
+            padding-bottom: 2px;
+        }
+
+        .quick-templates::-webkit-scrollbar {
+            display: none;
+        }
+
+        .quick-templates-label {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            white-space: nowrap;
+        }
+
+        .quick-templates .question-template {
+            padding: 6px 12px;
+            font-size: 0.8rem;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+
         /* Chat Input - Claude-style unified container */
         .chat-input-area {
             position: fixed;
@@ -1722,6 +1750,21 @@
                 margin-bottom: 6px;
             }
 
+            /* Quick templates on mobile */
+            .quick-templates {
+                gap: 6px;
+                margin-bottom: 8px;
+            }
+
+            .quick-templates-label {
+                font-size: 0.75rem;
+            }
+
+            .quick-templates .question-template {
+                padding: 5px 10px;
+                font-size: 0.75rem;
+            }
+
             /* Input area - fixed at bottom on mobile */
             .chat-input-area {
                 position: fixed;
@@ -2232,21 +2275,19 @@
                             <div style="font-size: 0.85rem; font-weight: 600; color: var(--text-primary);">Get the Hive Verdict</div>
                         </div>
 
-                        <!-- Question templates -->
-                        <div style="margin-bottom: 24px;">
-                            <span style="color: var(--text-secondary); font-size: 0.85rem;">Try one of these:</span>
-                            <div class="question-templates" style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; justify-content: center;">
-                                <button class="question-template" data-question="Should I buy or rent a home?">Should I buy or rent?</button>
-                                <button class="question-template" data-question="Best country to move to in 2026?">Best country to move to?</button>
-                                <button class="question-template" data-question="Which laptop should I buy?">Which laptop to buy?</button>
-                                <button class="question-template" data-question="Should I quit my job and start a business?">Should I quit my job?</button>
-                            </div>
-                        </div>
                     </div>
                 </div>
 
                 <!-- Input Area (always visible) -->
                 <div class="chat-input-area" id="chat-input-area">
+                    <!-- Quick question templates -->
+                    <div id="quick-templates" class="quick-templates">
+                        <span class="quick-templates-label">Try:</span>
+                        <button class="question-template" data-question="Should I buy or rent a home?">Buy or rent?</button>
+                        <button class="question-template" data-question="Best country to move to in 2026?">Best country?</button>
+                        <button class="question-template" data-question="Which laptop should I buy?">Which laptop?</button>
+                        <button class="question-template" data-question="Should I quit my job and start a business?">Quit my job?</button>
+                    </div>
                     <!-- Images Preview -->
                     <div id="images-preview-container" class="images-preview-container"></div>
                     <!-- Unified input container -->
