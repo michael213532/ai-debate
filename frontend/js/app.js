@@ -1611,13 +1611,13 @@ function updateBeesDropdownCount() {
     // Update button text (mobile and desktop)
     const mobileBtnCount = document.getElementById('mobile-bees-count');
     if (mobileBtnCount) {
-        mobileBtnCount.textContent = count > 0 ? `${count} voice${count > 1 ? 's' : ''} selected` : 'Select a voice';
+        mobileBtnCount.textContent = count > 0 ? `${count} voice${count > 1 ? 's' : ''}` : 'Select a voice';
     }
 
     // Update desktop button text
     const desktopBtn = document.querySelector('#bees-dropdown-btn span');
     if (desktopBtn) {
-        desktopBtn.textContent = count > 0 ? `${count} voice${count > 1 ? 's' : ''} selected` : 'Select a voice';
+        desktopBtn.textContent = count > 0 ? `${count} voice${count > 1 ? 's' : ''}` : 'Select a voice';
     }
 }
 
