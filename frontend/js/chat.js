@@ -1005,17 +1005,6 @@ document.getElementById('new-chat-btn')?.addEventListener('click', () => {
                     <button class="question-template" data-question="Should I quit my job and start a business?">Should I quit my job?</button>
                 </div>
             </div>
-
-            <!-- Personality Selector (hidden by default, shown after question) -->
-            <div id="personality-selector" class="personality-selector" style="display: none; width: 100%; max-width: 600px;">
-                <div style="text-align: center; margin-bottom: 16px;">
-                    <h3 style="margin-bottom: 4px; font-size: 1rem;">Your Hive Council</h3>
-                    <p style="color: var(--text-secondary); font-size: 0.85rem;">Tap to add or remove voices</p>
-                </div>
-                <div id="personality-cards" class="personality-cards" style="display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-bottom: 16px;">
-                </div>
-                <button id="start-hive-btn" class="btn btn-primary" style="width: 100%; padding: 14px 24px; font-size: 1rem;">Confirm (<span id="selected-voices-count">0</span> voices)</button>
-            </div>
         </div>
     `;
 
