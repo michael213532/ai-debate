@@ -243,33 +243,32 @@ function showGuestUI() {
     initGuestMenu();
 }
 
-// Update dropdown menu for guests (mobile)
+// Update dropdown header for guests - replace email/icon with Sign Up button
 function updateGuestDropdown(dropdownId) {
     const dropdown = document.getElementById(dropdownId);
     if (!dropdown) return;
 
-    dropdown.innerHTML = `
-        <a href="/login" class="profile-dropdown-item" style="justify-content: center; background: var(--primary-color); color: white; border-radius: 8px; margin: 8px; font-weight: 600;">
-            Sign Up
-        </a>
-        <a href="/login" class="profile-dropdown-item" style="justify-content: center;">
-            Have an account? <strong style="margin-left: 4px;">Sign In</strong>
-        </a>
-        <div class="profile-dropdown-divider"></div>
-        <div class="profile-dropdown-item" style="justify-content: space-between;">
-            <div style="display: flex; align-items: center; gap: 12px;">
-                <span style="font-size: 1.1rem;">&#9728;</span>
-                <span>Theme</span>
-            </div>
-            <label class="theme-switch">
-                <input type="checkbox" id="theme-toggle-guest-mobile">
-                <span class="theme-slider"></span>
-            </label>
-        </div>
-    `;
+    // Find and replace just the header section
+    const header = dropdown.querySelector('.profile-dropdown-header');
+    if (header) {
+        header.innerHTML = `
+            <a href="/login" style="display: flex; align-items: center; justify-content: center; width: 100%; padding: 10px 16px; background: var(--primary-color); color: white; border-radius: 8px; font-weight: 600; text-decoration: none;">
+                Sign Up
+            </a>
+        `;
+        header.style.padding = '8px';
+    }
 
-    // Initialize theme toggle
-    const themeToggle = document.getElementById('theme-toggle-guest-mobile');
+    // Hide logout button for guests
+    const logoutBtn = dropdown.querySelector('.logout');
+    if (logoutBtn) logoutBtn.style.display = 'none';
+
+    // Hide upgrade button for guests
+    const upgradeBtn = dropdown.querySelector('[id$="upgrade-btn"]');
+    if (upgradeBtn) upgradeBtn.style.display = 'none';
+
+    // Initialize theme toggle if needed
+    const themeToggle = dropdown.querySelector('input[type="checkbox"]');
     if (themeToggle) {
         themeToggle.checked = document.documentElement.getAttribute('data-theme') === 'dark';
         themeToggle.addEventListener('change', () => {
