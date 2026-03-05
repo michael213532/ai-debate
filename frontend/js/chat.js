@@ -653,6 +653,9 @@ function setInputLocked(locked) {
     }
 }
 
+// Expose setInputLocked globally for app.js
+window.setInputLocked = setInputLocked;
+
 // Send an intervention message during discussion
 async function sendIntervention() {
     const input = document.getElementById('chat-input');

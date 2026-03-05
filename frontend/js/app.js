@@ -1514,6 +1514,11 @@ async function startDebateWithPersonalities() {
         const session = await response.json();
         currentSessionId = session.id;
 
+        // Switch to pause button mode
+        if (typeof setInputLocked === 'function') {
+            setInputLocked(true);
+        }
+
         // Connect WebSocket
         connectWebSocket(session.id);
 
