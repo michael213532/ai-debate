@@ -1458,9 +1458,8 @@ async function startDebateWithPersonalities() {
     // Store question and start debate
     const questionToSend = currentQuestion;
 
-    // Reset state
+    // Reset question (but keep selected personalities)
     currentQuestion = '';
-    selectedPersonalities = [];
 
     // Start the debate directly via API
     try {
