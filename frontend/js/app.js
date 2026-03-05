@@ -1391,7 +1391,6 @@ async function handleQuestionSubmit(question) {
         const suggested = await fetchPersonalitySuggestions(currentQuestion);
         selectedPersonalities = suggested.slice(0, 3);
         saveSelectedBees();
-        updateVoicesCount();
         renderVoicesBar();
     }
 
@@ -1575,8 +1574,6 @@ function renderVoicesBar() {
         });
         container.appendChild(chip);
     });
-
-    updateVoicesCount();
 }
 
 function toggleVoiceChip(personalityId) {
@@ -1592,13 +1589,6 @@ function toggleVoiceChip(personalityId) {
     renderPersonalitySelector();
 }
 
-function updateVoicesCount() {
-    const count = selectedPersonalities.length;
-    const countEl = document.getElementById('voices-count');
-    if (countEl) {
-        countEl.textContent = count === 0 ? 'Select 2+' : `${count} selected${count < 2 ? ' (need 2+)' : ''}`;
-    }
-}
 
 // Load personalities on init and render voices bar
 async function initVoicesBar() {
