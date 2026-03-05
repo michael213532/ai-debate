@@ -224,12 +224,18 @@ function showGuestUI() {
     if (mainHeader) mainHeader.style.marginLeft = '0';
     if (voicesBar) voicesBar.style.marginLeft = '0';
 
-    // Update dropdowns to show Sign Up/Sign In
+    // Show the guest menu in the header
+    const guestMenuWrapper = document.getElementById('guest-menu-wrapper');
+    if (guestMenuWrapper) guestMenuWrapper.style.display = 'block';
+
+    // Update mobile dropdown to show Sign Up/Sign In
     updateGuestDropdown('mobile-profile-dropdown');
-    updateGuestDropdown('profile-dropdown');
+
+    // Initialize guest menu toggle
+    initGuestMenu();
 }
 
-// Update dropdown menu for guests
+// Update dropdown menu for guests (mobile)
 function updateGuestDropdown(dropdownId) {
     const dropdown = document.getElementById(dropdownId);
     if (!dropdown) return;
@@ -239,7 +245,7 @@ function updateGuestDropdown(dropdownId) {
             Sign Up
         </a>
         <a href="/login" class="profile-dropdown-item" style="justify-content: center;">
-            Already have an account? <strong style="margin-left: 4px;">Sign In</strong>
+            Have an account? <strong style="margin-left: 4px;">Sign In</strong>
         </a>
         <div class="profile-dropdown-divider"></div>
         <div class="profile-dropdown-item" style="justify-content: space-between;">
@@ -248,14 +254,41 @@ function updateGuestDropdown(dropdownId) {
                 <span>Theme</span>
             </div>
             <label class="theme-switch">
-                <input type="checkbox" id="theme-toggle-guest-${dropdownId}">
+                <input type="checkbox" id="theme-toggle-guest-mobile">
                 <span class="theme-slider"></span>
             </label>
         </div>
     `;
 
     // Initialize theme toggle
-    const themeToggle = document.getElementById(`theme-toggle-guest-${dropdownId}`);
+    const themeToggle = document.getElementById('theme-toggle-guest-mobile');
+    if (themeToggle) {
+        themeToggle.checked = document.documentElement.getAttribute('data-theme') === 'dark';
+        themeToggle.addEventListener('change', () => {
+            const newTheme = themeToggle.checked ? 'dark' : 'light';
+            document.documentElement.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+        });
+    }
+}
+
+// Initialize guest menu dropdown
+function initGuestMenu() {
+    const btn = document.getElementById('guest-menu-btn');
+    const dropdown = document.getElementById('guest-menu-dropdown');
+    const themeToggle = document.getElementById('theme-toggle-guest');
+
+    if (btn && dropdown) {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            dropdown.classList.toggle('open');
+        });
+
+        document.addEventListener('click', () => {
+            dropdown.classList.remove('open');
+        });
+    }
+
     if (themeToggle) {
         themeToggle.checked = document.documentElement.getAttribute('data-theme') === 'dark';
         themeToggle.addEventListener('change', () => {
@@ -268,11 +301,15 @@ function updateGuestDropdown(dropdownId) {
 
 // Show UI for logged-in users
 function showLoggedInUI() {
-    // Show sidebar and toggle (they're visible by default, but ensure they are)
+    // Show sidebar and toggle
     const sidebar = document.getElementById('sidebar');
     const sidebarToggle = document.getElementById('sidebar-toggle');
     if (sidebar) sidebar.style.display = '';
     if (sidebarToggle) sidebarToggle.style.display = '';
+
+    // Hide guest menu
+    const guestMenuWrapper = document.getElementById('guest-menu-wrapper');
+    if (guestMenuWrapper) guestMenuWrapper.style.display = 'none';
 }
 
 // Show privacy policy modal for existing users
