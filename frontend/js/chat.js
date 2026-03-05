@@ -315,7 +315,7 @@ function handleWebSocketMessage(message) {
 
         case 'model_start':
             console.log('[AI Response] Starting:', message.model_name);
-            addAiDiscussionMessage(message.model_name, message.provider, '');
+            addAiDiscussionMessage(message.model_name, message.provider, '', message.personality_id);
             updateChatStatus(`${message.model_name} is responding...`);
             break;
 
@@ -542,13 +542,16 @@ function getProviderClassFromName(name) {
 }
 
 // Add AI discussion message to main chat (inline)
-function addAiDiscussionMessage(modelName, provider, content) {
+function addAiDiscussionMessage(modelName, provider, content, personalityId) {
     const container = document.getElementById('chat-messages');
 
     const msg = document.createElement('div');
     msg.className = 'message ai-individual streaming';
     msg.dataset.model = modelName;
     msg.dataset.provider = provider;
+    if (personalityId) {
+        msg.dataset.personality = personalityId;
+    }
     msg.innerHTML = `
         <div class="ai-model-header">
             <span class="ai-model-name">${escapeHtml(modelName)}</span>
