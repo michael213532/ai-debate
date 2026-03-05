@@ -106,37 +106,93 @@
             margin-bottom: 40px;
         }
 
-        .hero-features {
+        .hero-steps {
             display: flex;
             flex-direction: column;
-            gap: 16px;
+            gap: 8px;
             margin-bottom: 32px;
+            font-size: 1.1rem;
+            color: var(--text-secondary);
+        }
+
+        .hero-step {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .hero-step::before {
+            content: '→';
+            color: var(--primary-color);
+        }
+
+        .example-section {
+            background: var(--surface-light);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 24px;
+        }
+
+        .example-label {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-secondary);
+            margin-bottom: 12px;
+        }
+
+        .example-question {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 16px;
+        }
+
+        .example-votes {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+
+        .example-vote {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.95rem;
+            color: var(--text-secondary);
+        }
+
+        .example-vote .bee {
+            font-size: 1rem;
+        }
+
+        .example-vote .name {
+            color: var(--text-primary);
+            font-weight: 500;
+        }
+
+        .example-vote .position {
+            margin-left: auto;
+            color: var(--primary-color);
+            font-weight: 500;
+        }
+
+        .hive-verdict {
+            background: linear-gradient(135deg, var(--primary-color), #8b5cf6);
+            color: white;
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-weight: 600;
+            text-align: center;
         }
 
         .hero-tagline {
-            font-size: 1.25rem;
+            font-size: 1.1rem;
             font-style: italic;
             color: var(--text-secondary);
-            opacity: 0.9;
-        }
-
-        .hero-feature {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            color: var(--text-secondary);
-        }
-
-        .feature-icon {
-            width: 24px;
-            height: 24px;
-            background: rgba(99, 102, 241, 0.2);
-            border-radius: 6px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: var(--primary-color);
-            font-size: 0.8rem;
+            text-align: center;
+            margin-top: 8px;
         }
 
         /* Right side - Auth */
@@ -271,37 +327,45 @@
         <div class="hero-section">
             <div class="hero-content">
                 <div class="hero-logo">
-                    <img src="/logo.png" alt="Beecision" style="width: 120px; height: 120px;">
+                    <img src="/logo.png" alt="Beecision" style="width: 80px; height: 80px;">
                     <span>Beecision</span>
                 </div>
 
-                <h1 class="hero-title">
-                    Ask the Hive.<br>
-                    <span>Decide better.</span>
-                </h1>
-
-                <p class="hero-description">
-                    Get multiple AI perspectives. Watch them debate. Make your choice.
-                </p>
-
-                <div class="hero-features">
-                    <div class="hero-feature">
-                        <div class="feature-icon">❓</div>
-                        <span>Ask once</span>
-                    </div>
-                    <div class="hero-feature">
-                        <div class="feature-icon">👀</div>
-                        <span>See every side</span>
-                    </div>
-                    <div class="hero-feature">
-                        <div class="feature-icon">✅</div>
-                        <span>Decide better</span>
-                    </div>
+                <div class="hero-steps">
+                    <div class="hero-step">Start an AI debate</div>
+                    <div class="hero-step">Watch the hive argue</div>
+                    <div class="hero-step">See who wins</div>
                 </div>
 
-                <p class="hero-tagline">
-                    Your Hive Council of AI advisors
-                </p>
+                <div class="example-section">
+                    <div class="example-label">Example</div>
+                    <div class="example-question">Pineapple on pizza: genius or crime?</div>
+                    <div class="example-votes">
+                        <div class="example-vote">
+                            <span class="bee">🐝</span>
+                            <span class="name">Analyst</span>
+                            <span class="position">→ Genius</span>
+                        </div>
+                        <div class="example-vote">
+                            <span class="bee">🐝</span>
+                            <span class="name">Skeptic</span>
+                            <span class="position">→ Crime</span>
+                        </div>
+                        <div class="example-vote">
+                            <span class="bee">🐝</span>
+                            <span class="name">Optimist</span>
+                            <span class="position">→ Genius</span>
+                        </div>
+                        <div class="example-vote">
+                            <span class="bee">🐝</span>
+                            <span class="name">Realist</span>
+                            <span class="position">→ Depends on the pizza</span>
+                        </div>
+                    </div>
+                    <div class="hive-verdict">Hive Verdict: Genius (2–1–1)</div>
+                </div>
+
+                <p class="hero-tagline">A million bees can't be wrong</p>
 
             </div>
         </div>
