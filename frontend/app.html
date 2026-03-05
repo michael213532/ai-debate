@@ -2100,7 +2100,7 @@
                 <div class="bees-dropdown-container">
                     <button id="bees-dropdown-btn-mobile" class="bees-dropdown-btn">
                         <span>🐝</span>
-                        <span id="mobile-bees-count">Bees</span>
+                        <span id="mobile-bees-count">Voices</span>
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                             <path d="M6 9l6 6 6-6"/>
                         </svg>
@@ -2188,7 +2188,7 @@
         <div id="app-setup-overlay" class="app-setup-overlay" style="display: none;">
             <div class="setup-overlay-content">
                 <h2>Complete Setup to Continue</h2>
-                <p>Select at least 2 bees to start using Beecision</p>
+                <p>Select at least 2 voices to start using Beecision</p>
                 <button class="btn btn-primary" onclick="showTutorial()">Open Setup</button>
             </div>
         </div>
@@ -2204,7 +2204,7 @@
             <div class="bees-dropdown-container">
                 <button id="bees-dropdown-btn" class="bees-dropdown-btn">
                     <span>🐝</span>
-                    <span>Bees</span>
+                    <span>Voices</span>
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                         <path d="M6 9l6 6 6-6"/>
                     </svg>
@@ -2232,7 +2232,7 @@
                             <path d="M6 9l6 6 6-6"/>
                         </svg>
                     </button>
-                    <span class="models-expand-label" onclick="expandModels()">Bees:</span>
+                    <span class="models-expand-label" onclick="expandModels()">Voices:</span>
                     <span id="models-selected-count" class="models-selected-count"></span>
                 </div>
 
@@ -2269,7 +2269,7 @@
                     <div id="images-preview-container" class="images-preview-container"></div>
                     <!-- Unified input container -->
                     <div class="chat-input-container">
-                        <textarea id="chat-input" class="chat-input" placeholder="What decision can the bees help with?" rows="1"></textarea>
+                        <textarea id="chat-input" class="chat-input" placeholder="What decision can we help with?" rows="1"></textarea>
                         <!-- Buttons row below -->
                         <div class="chat-buttons-row">
                             <input type="file" id="image-input" accept="image/*,.jpg,.jpeg,.png,.gif,.webp" style="display: none;">
@@ -3086,8 +3086,8 @@
 
         function updateHeaderModelsCount() {
             const count = selectedModels ? selectedModels.length : 0;
-            headerModelsCount.textContent = count === 1 ? '1 bee selected' : `${count} bees selected`;
-            mobileModelsCount.textContent = count === 1 ? '1 bee' : `${count} bees`;
+            headerModelsCount.textContent = count === 1 ? '1 voice selected' : `${count} voices selected`;
+            mobileModelsCount.textContent = count === 1 ? '1 voice' : `${count} voices`;
         }
 
         function toggleModels() {

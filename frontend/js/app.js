@@ -1223,10 +1223,10 @@ function updateSetupModelCount() {
 
     if (count < 2) {
         countEl.style.color = 'var(--text-secondary)';
-        countEl.textContent = `Select at least 2 bees to continue`;
+        countEl.textContent = `Select at least 2 voices to continue`;
     } else {
         countEl.style.color = '#22c55e';
-        countEl.textContent = `${count} bees selected ✓`;
+        countEl.textContent = `${count} voices selected ✓`;
     }
 }
 
@@ -1611,7 +1611,7 @@ function updateBeesDropdownCount() {
     // Update mobile button text
     const mobileBtnCount = document.getElementById('mobile-bees-count');
     if (mobileBtnCount) {
-        mobileBtnCount.textContent = count > 0 ? `${count} Bees` : 'Bees';
+        mobileBtnCount.textContent = count > 0 ? `${count} Voices` : 'Voices';
     }
 }
 
