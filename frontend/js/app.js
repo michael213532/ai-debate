@@ -168,7 +168,8 @@ function getAuthHeaders() {
 async function checkAuth() {
     const token = localStorage.getItem('token');
     if (!token) {
-        window.location.href = '/welcome';
+        // Not logged in - show guest UI
+        showGuestUI();
         return false;
     }
 
@@ -189,6 +190,9 @@ async function checkAuth() {
             updateProfileDisplay(currentUser.email, currentUser.subscription_status === 'active');
         }
 
+        // Show logged-in UI elements
+        showLoggedInUI();
+
         // Check if user has accepted privacy policy
         if (!currentUser.privacy_accepted) {
             showPrivacyModal();
@@ -197,9 +201,78 @@ async function checkAuth() {
         return true;
     } catch (error) {
         localStorage.removeItem('token');
-        window.location.href = '/';
+        showGuestUI();
         return false;
     }
+}
+
+// Show UI for guests (not logged in)
+function showGuestUI() {
+    // Hide sidebar and toggle
+    const sidebar = document.getElementById('sidebar');
+    const sidebarToggle = document.getElementById('sidebar-toggle');
+    if (sidebar) sidebar.style.display = 'none';
+    if (sidebarToggle) sidebarToggle.style.display = 'none';
+
+    // Remove sidebar margin from layout
+    const chatLayout = document.querySelector('.chat-layout');
+    if (chatLayout) chatLayout.style.marginLeft = '0';
+
+    // Remove sidebar margin from header and voices
+    const mainHeader = document.querySelector('.main-logo-header');
+    const voicesBar = document.querySelector('.voices-bar');
+    if (mainHeader) mainHeader.style.marginLeft = '0';
+    if (voicesBar) voicesBar.style.marginLeft = '0';
+
+    // Update dropdowns to show Sign Up/Sign In
+    updateGuestDropdown('mobile-profile-dropdown');
+    updateGuestDropdown('profile-dropdown');
+}
+
+// Update dropdown menu for guests
+function updateGuestDropdown(dropdownId) {
+    const dropdown = document.getElementById(dropdownId);
+    if (!dropdown) return;
+
+    dropdown.innerHTML = `
+        <a href="/login" class="profile-dropdown-item" style="justify-content: center; background: var(--primary-color); color: white; border-radius: 8px; margin: 8px; font-weight: 600;">
+            Sign Up
+        </a>
+        <a href="/login" class="profile-dropdown-item" style="justify-content: center;">
+            Already have an account? <strong style="margin-left: 4px;">Sign In</strong>
+        </a>
+        <div class="profile-dropdown-divider"></div>
+        <div class="profile-dropdown-item" style="justify-content: space-between;">
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <span style="font-size: 1.1rem;">&#9728;</span>
+                <span>Theme</span>
+            </div>
+            <label class="theme-switch">
+                <input type="checkbox" id="theme-toggle-guest-${dropdownId}">
+                <span class="theme-slider"></span>
+            </label>
+        </div>
+    `;
+
+    // Initialize theme toggle
+    const themeToggle = document.getElementById(`theme-toggle-guest-${dropdownId}`);
+    if (themeToggle) {
+        themeToggle.checked = document.documentElement.getAttribute('data-theme') === 'dark';
+        themeToggle.addEventListener('change', () => {
+            const newTheme = themeToggle.checked ? 'dark' : 'light';
+            document.documentElement.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+        });
+    }
+}
+
+// Show UI for logged-in users
+function showLoggedInUI() {
+    // Show sidebar and toggle (they're visible by default, but ensure they are)
+    const sidebar = document.getElementById('sidebar');
+    const sidebarToggle = document.getElementById('sidebar-toggle');
+    if (sidebar) sidebar.style.display = '';
+    if (sidebarToggle) sidebarToggle.style.display = '';
 }
 
 // Show privacy policy modal for existing users

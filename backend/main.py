@@ -65,9 +65,9 @@ async def serve_app():
     return FileResponse(frontend_path / "app.html")
 
 
-@app.get("/welcome")
-async def serve_welcome():
-    """Serve the landing/login page."""
+@app.get("/login")
+async def serve_login():
+    """Serve the login/signup page."""
     return FileResponse(frontend_path / "index.html")
 
 
