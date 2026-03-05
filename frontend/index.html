@@ -51,10 +51,8 @@
         .hero-logo {
             font-size: 2.5rem;
             font-weight: 700;
-            margin-bottom: 48px;
-            display: flex;
-            align-items: center;
-            gap: 16px;
+            margin-bottom: 32px;
+            color: var(--text-primary);
         }
 
         .logo-icon {
@@ -92,17 +90,43 @@
         .hero-steps {
             display: flex;
             flex-direction: column;
-            gap: 6px;
+            gap: 4px;
             margin-bottom: 32px;
-            font-size: 1.1rem;
+            font-size: 1rem;
             color: var(--text-secondary);
         }
 
         .example-section {
-            color: var(--text-secondary);
-            font-size: 0.95rem;
             margin-bottom: 24px;
-            line-height: 1.6;
+        }
+
+        .example-label {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin-bottom: 12px;
+        }
+
+        .example-question {
+            font-size: 1rem;
+            font-weight: 500;
+            color: var(--text-primary);
+            margin-bottom: 16px;
+        }
+
+        .example-votes {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            font-size: 0.95rem;
+            color: var(--text-secondary);
+            margin-bottom: 16px;
+        }
+
+        .example-verdict {
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: var(--text-primary);
         }
 
         .hero-tagline {
@@ -249,10 +273,7 @@
         <!-- Hero Section -->
         <div class="hero-section">
             <div class="hero-content">
-                <div class="hero-logo">
-                    <img src="/logo.png" alt="Beecision" style="width: 80px; height: 80px;">
-                    <span>Beecision</span>
-                </div>
+                <div class="hero-logo">Beecision</div>
 
                 <div class="hero-steps">
                     <div>Start an AI debate</div>
@@ -261,7 +282,15 @@
                 </div>
 
                 <div class="example-section">
-                    "Pineapple on pizza?" — Analyst says genius, Skeptic says crime, Optimist agrees, Realist says it depends. Hive Verdict: Genius.
+                    <div class="example-label">Example</div>
+                    <div class="example-question">Pineapple on pizza: genius or crime?</div>
+                    <div class="example-votes">
+                        <div>🐝 Analyst → Genius</div>
+                        <div>🐝 Skeptic → Crime</div>
+                        <div>🐝 Optimist → Genius</div>
+                        <div>🐝 Realist → Depends on the pizza</div>
+                    </div>
+                    <div class="example-verdict">Hive Verdict: Genius (2–1–1)</div>
                 </div>
 
                 <p class="hero-tagline">A million bees can't be wrong</p>
