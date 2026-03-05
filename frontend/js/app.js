@@ -228,6 +228,10 @@ function showGuestUI() {
     const inputArea = document.querySelector('.chat-input-area');
     if (inputArea) inputArea.style.left = '0';
 
+    // Center the empty state (remove sidebar offset)
+    const emptyChat = document.querySelector('.empty-chat');
+    if (emptyChat) emptyChat.style.marginLeft = '0';
+
     // Show the guest menu in the header
     const guestMenuWrapper = document.getElementById('guest-menu-wrapper');
     if (guestMenuWrapper) guestMenuWrapper.style.display = 'block';
