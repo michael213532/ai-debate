@@ -1530,15 +1530,17 @@ async function startDebateWithPersonalities() {
 function attachQuestionFlowListeners() {
     document.getElementById('start-hive-btn')?.addEventListener('click', startDebateWithPersonalities);
 
-    // Question template clicks - put text in chat-input and submit
+    // Question template clicks - put text in chat-input (don't auto-send)
     document.querySelectorAll('.question-template').forEach(btn => {
         btn.addEventListener('click', () => {
             const question = btn.dataset.question;
             const chatInput = document.getElementById('chat-input');
             if (chatInput) {
                 chatInput.value = question;
+                chatInput.focus();
+                // Trigger input event to enable send button
+                chatInput.dispatchEvent(new Event('input'));
             }
-            handleQuestionSubmit(question);
         });
     });
 }
