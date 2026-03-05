@@ -43,13 +43,23 @@ function getSummarizerIndex(models) {
         return models.length - 1;
     }
 
-    // Provider-specific preference - find first model from that provider
+    // Bee-specific preference (e.g., "bee:analyst")
+    if (pref.startsWith('bee:')) {
+        const beeId = pref.replace('bee:', '');
+        // Find the model that has this personality assigned
+        const beeIndex = models.findIndex(m => m.personality_id === beeId);
+        if (beeIndex >= 0) {
+            return beeIndex;
+        }
+    }
+
+    // Legacy: Provider-specific preference - find first model from that provider
     const providerIndex = models.findIndex(m => m.provider === pref);
     if (providerIndex >= 0) {
         return providerIndex;
     }
 
-    // Fallback to first model
+    // Fallback to first bee
     return 0;
 }
 

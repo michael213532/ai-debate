@@ -1399,6 +1399,31 @@ async function handleQuestionSubmit(question) {
     startDebateWithPersonalities();
 }
 
+// Get summarizer index based on bee preference
+function getSummarizerIndexByBee(models) {
+    const pref = localStorage.getItem('summarizerPreference') || 'first';
+
+    if (pref === 'first') {
+        return 0;
+    }
+
+    if (pref === 'last') {
+        return models.length - 1;
+    }
+
+    // Bee-specific preference (e.g., "bee:analyst")
+    if (pref.startsWith('bee:')) {
+        const beeId = pref.replace('bee:', '');
+        const beeIndex = models.findIndex(m => m.personality_id === beeId);
+        if (beeIndex >= 0) {
+            return beeIndex;
+        }
+    }
+
+    // Fallback to first bee
+    return 0;
+}
+
 // Start debate with selected personalities
 async function startDebateWithPersonalities() {
     if (selectedPersonalities.length < 2 || !currentQuestion) {
@@ -1463,7 +1488,8 @@ async function startDebateWithPersonalities() {
 
     // Start the debate directly via API
     try {
-        const summarizerIndex = 0;
+        // Get summarizer index based on bee preference
+        const summarizerIndex = getSummarizerIndexByBee(modelsConfig);
         const requestBody = {
             topic: questionToSend,
             config: {

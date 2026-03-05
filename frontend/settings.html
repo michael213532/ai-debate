@@ -179,19 +179,15 @@
 
             <div class="settings-section">
                 <h2>Summary Settings</h2>
-                <p>Choose which AI model generates the final summary after discussions.</p>
+                <p>Choose which bee generates the final summary after discussions.</p>
 
                 <div class="setting-row">
-                    <label class="setting-label" for="summarizer-select">Summary Model</label>
-                    <div class="setting-description">This model will read all responses and create the final summary.</div>
+                    <label class="setting-label" for="summarizer-select">Summary Bee</label>
+                    <div class="setting-description">This bee will read all responses and create the final summary.</div>
                     <select id="summarizer-select" class="setting-select">
-                        <option value="first">First selected model (default)</option>
-                        <option value="last">Last selected model</option>
-                        <option value="openai">Always use OpenAI</option>
-                        <option value="anthropic">Always use Anthropic (Claude)</option>
-                        <option value="google">Always use Google (Gemini)</option>
-                        <option value="deepseek">Always use Deepseek</option>
-                        <option value="xai">Always use xAI (Grok)</option>
+                        <option value="first">First selected bee (default)</option>
+                        <option value="last">Last selected bee</option>
+                        <!-- Bee personalities loaded dynamically -->
                     </select>
                 </div>
 
@@ -212,12 +208,42 @@
             window.location.href = '/';
         }
 
-        // Load saved preference
-        const summarizerSelect = document.getElementById('summarizer-select');
-        const savedPref = localStorage.getItem('summarizerPreference') || 'first';
-        summarizerSelect.value = savedPref;
+        const API_BASE = window.location.origin;
+
+        // Load bee personalities and populate dropdown
+        async function loadPersonalities() {
+            const summarizerSelect = document.getElementById('summarizer-select');
+
+            try {
+                const response = await fetch(`${API_BASE}/api/personalities`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (response.ok) {
+                    const personalities = await response.json();
+
+                    // Add each personality as an option
+                    personalities.forEach(p => {
+                        const option = document.createElement('option');
+                        option.value = `bee:${p.id}`;
+                        option.textContent = `${p.emoji} ${p.name.replace('The ', '')}`;
+                        summarizerSelect.appendChild(option);
+                    });
+                }
+            } catch (error) {
+                console.error('Error loading personalities:', error);
+            }
+
+            // Load saved preference after options are added
+            const savedPref = localStorage.getItem('summarizerPreference') || 'first';
+            summarizerSelect.value = savedPref;
+        }
+
+        // Initialize
+        loadPersonalities();
 
         // Save on change
+        const summarizerSelect = document.getElementById('summarizer-select');
         summarizerSelect.addEventListener('change', () => {
             localStorage.setItem('summarizerPreference', summarizerSelect.value);
 
