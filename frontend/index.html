@@ -30,33 +30,16 @@
         /* Left side - Hero */
         .hero-section {
             flex: 1;
-            background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
+            background: #ffffff;
             padding: 60px;
             display: flex;
             flex-direction: column;
             justify-content: center;
             position: relative;
-            overflow: hidden;
         }
 
         [data-theme="dark"] .hero-section {
-            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
-        }
-
-        .hero-section::before {
-            content: '';
-            position: absolute;
-            top: -50%;
-            left: -50%;
-            width: 200%;
-            height: 200%;
-            background: radial-gradient(circle, rgba(99, 102, 241, 0.1) 0%, transparent 50%);
-            animation: pulse-bg 15s ease-in-out infinite;
-        }
-
-        @keyframes pulse-bg {
-            0%, 100% { transform: scale(1); opacity: 0.5; }
-            50% { transform: scale(1.1); opacity: 0.8; }
+            background: #1a1a2e;
         }
 
         .hero-content {
@@ -109,92 +92,24 @@
         .hero-steps {
             display: flex;
             flex-direction: column;
-            gap: 8px;
+            gap: 6px;
             margin-bottom: 32px;
             font-size: 1.1rem;
             color: var(--text-secondary);
         }
 
-        .hero-step {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .hero-step::before {
-            content: '→';
-            color: var(--primary-color);
-        }
-
         .example-section {
-            background: var(--surface-light);
-            border-radius: 12px;
-            padding: 20px;
-            margin-bottom: 24px;
-        }
-
-        .example-label {
-            font-size: 0.75rem;
-            text-transform: uppercase;
-            letter-spacing: 1px;
             color: var(--text-secondary);
-            margin-bottom: 12px;
-        }
-
-        .example-question {
-            font-size: 1.1rem;
-            font-weight: 600;
-            color: var(--text-primary);
-            margin-bottom: 16px;
-        }
-
-        .example-votes {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-            margin-bottom: 16px;
-        }
-
-        .example-vote {
-            display: flex;
-            align-items: center;
-            gap: 8px;
             font-size: 0.95rem;
-            color: var(--text-secondary);
-        }
-
-        .example-vote .bee {
-            font-size: 1rem;
-        }
-
-        .example-vote .name {
-            color: var(--text-primary);
-            font-weight: 500;
-        }
-
-        .example-vote .position {
-            margin-left: auto;
-            color: var(--primary-color);
-            font-weight: 500;
-        }
-
-        .hive-verdict {
-            padding-top: 12px;
-            border-top: 1px solid var(--border-color);
-            font-weight: 600;
-            color: var(--text-primary);
-        }
-
-        .hive-verdict span {
-            color: var(--primary-color);
+            margin-bottom: 24px;
+            line-height: 1.6;
         }
 
         .hero-tagline {
-            font-size: 1.1rem;
+            font-size: 1rem;
             font-style: italic;
             color: var(--text-secondary);
-            text-align: center;
-            margin-top: 8px;
+            margin-top: 16px;
         }
 
         /* Right side - Auth */
@@ -204,7 +119,13 @@
             display: flex;
             flex-direction: column;
             justify-content: center;
-            background: var(--surface);
+            background: #ffffff;
+            border-left: 1px solid #eee;
+        }
+
+        [data-theme="dark"] .auth-section {
+            background: #1a1a2e;
+            border-left-color: #333;
         }
 
         .auth-header {
@@ -334,37 +255,13 @@
                 </div>
 
                 <div class="hero-steps">
-                    <div class="hero-step">Start an AI debate</div>
-                    <div class="hero-step">Watch the hive argue</div>
-                    <div class="hero-step">See who wins</div>
+                    <div>Start an AI debate</div>
+                    <div>Watch the hive argue</div>
+                    <div>See who wins</div>
                 </div>
 
                 <div class="example-section">
-                    <div class="example-label">Example</div>
-                    <div class="example-question">Pineapple on pizza: genius or crime?</div>
-                    <div class="example-votes">
-                        <div class="example-vote">
-                            <span class="bee">🐝</span>
-                            <span class="name">Analyst</span>
-                            <span class="position">→ Genius</span>
-                        </div>
-                        <div class="example-vote">
-                            <span class="bee">🐝</span>
-                            <span class="name">Skeptic</span>
-                            <span class="position">→ Crime</span>
-                        </div>
-                        <div class="example-vote">
-                            <span class="bee">🐝</span>
-                            <span class="name">Optimist</span>
-                            <span class="position">→ Genius</span>
-                        </div>
-                        <div class="example-vote">
-                            <span class="bee">🐝</span>
-                            <span class="name">Realist</span>
-                            <span class="position">→ Depends on the pizza</span>
-                        </div>
-                    </div>
-                    <div class="hive-verdict">Hive Verdict: <span>Genius</span> (2–1–1)</div>
+                    "Pineapple on pizza?" — Analyst says genius, Skeptic says crime, Optimist agrees, Realist says it depends. Hive Verdict: Genius.
                 </div>
 
                 <p class="hero-tagline">A million bees can't be wrong</p>
@@ -374,34 +271,28 @@
 
         <!-- Auth Section -->
         <div class="auth-section">
-            <div class="auth-header">
-                <h2 class="auth-title" id="auth-title">Get Started</h2>
-                <p class="auth-subtitle" id="auth-subtitle">Create your free account</p>
-            </div>
-
             <div id="alert" class="alert" style="display: none;"></div>
 
-            <!-- Login Form -->
-            <form id="login-form" class="auth-form" style="display: none;">
+            <!-- Step 1: Email only -->
+            <div id="email-step">
                 <div class="form-group">
-                    <label class="form-label" for="login-email">Email</label>
-                    <input type="email" id="login-email" class="form-input" placeholder="you@example.com" required>
+                    <label class="form-label" for="user-email">Email</label>
+                    <input type="email" id="user-email" class="form-input" placeholder="you@example.com" required>
                 </div>
-                <div class="form-group">
-                    <label class="form-label" for="login-password">Password</label>
-                    <input type="password" id="login-password" class="form-input" placeholder="Your password" required>
-                </div>
-                <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 8px;">
-                    <span class="btn-text">Start Debate</span>
-                    <span class="spinner" style="display: none;"></span>
+                <button type="button" id="continue-btn" class="btn btn-primary" style="width: 100%; margin-top: 8px;">
+                    Continue
                 </button>
-            </form>
+                <div class="auth-footer" style="margin-top: 16px;">
+                    <span>Already have an account?</span>
+                    <a href="#" id="show-login-link">Log in</a>
+                </div>
+            </div>
 
-            <!-- Register Form -->
-            <form id="register-form" class="auth-form">
+            <!-- Step 2: Password fields (hidden initially) -->
+            <div id="password-step" style="display: none;">
                 <div class="form-group">
-                    <label class="form-label" for="register-email">Email</label>
-                    <input type="email" id="register-email" class="form-input" placeholder="you@example.com" required>
+                    <label class="form-label">Email</label>
+                    <input type="email" id="display-email" class="form-input" disabled>
                 </div>
                 <div class="form-group">
                     <label class="form-label" for="register-password">Password</label>
@@ -415,27 +306,124 @@
                     <label class="checkbox-label" style="display: flex; align-items: flex-start; gap: 10px; cursor: pointer;">
                         <input type="checkbox" id="privacy-checkbox" required style="margin-top: 4px; width: 18px; height: 18px; cursor: pointer;">
                         <span style="font-size: 0.9rem; color: var(--text-secondary);">
-                            I have read and accept the <a href="/privacy" target="_blank" style="color: var(--primary-color);">Privacy Policy</a>, including how my API keys are stored and used.
+                            I accept the <a href="/privacy" target="_blank" style="color: var(--primary-color);">Privacy Policy</a>
                         </span>
                     </label>
                 </div>
-                <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 8px;">
+                <button type="button" id="register-btn" class="btn btn-primary" style="width: 100%; margin-top: 8px;">
                     <span class="btn-text">Start Debate</span>
                     <span class="spinner" style="display: none;"></span>
                 </button>
+            </div>
+
+            <!-- Login Form (hidden initially) -->
+            <form id="login-form" class="auth-form" style="display: none;">
+                <div class="form-group">
+                    <label class="form-label" for="login-email">Email</label>
+                    <input type="email" id="login-email" class="form-input" placeholder="you@example.com" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="login-password">Password</label>
+                    <input type="password" id="login-password" class="form-input" placeholder="Your password" required>
+                </div>
+                <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 8px;">
+                    <span class="btn-text">Log in</span>
+                    <span class="spinner" style="display: none;"></span>
+                </button>
+                <div class="auth-footer" style="margin-top: 16px;">
+                    <span>Don't have an account?</span>
+                    <a href="#" id="show-register-link">Sign up</a>
+                </div>
             </form>
-
-            <div class="auth-footer">
-                <span id="auth-toggle-text">Already have an account?</span>
-                <a href="#" id="auth-toggle-link" class="login-link">Log in</a>
-            </div>
-
-            <div style="margin-top: 24px; text-align: center;">
-                <a href="/privacy" style="color: var(--text-secondary); font-size: 0.85rem;">Privacy Policy</a>
-            </div>
         </div>
     </div>
 
     <script src="/js/auth.js"></script>
+    <script>
+        // Multi-step form logic
+        const emailStep = document.getElementById('email-step');
+        const passwordStep = document.getElementById('password-step');
+        const loginForm = document.getElementById('login-form');
+        const userEmail = document.getElementById('user-email');
+        const displayEmail = document.getElementById('display-email');
+        const continueBtn = document.getElementById('continue-btn');
+        const registerBtn = document.getElementById('register-btn');
+        const showLoginLink = document.getElementById('show-login-link');
+        const showRegisterLink = document.getElementById('show-register-link');
+
+        continueBtn.addEventListener('click', () => {
+            if (userEmail.value && userEmail.checkValidity()) {
+                displayEmail.value = userEmail.value;
+                emailStep.style.display = 'none';
+                passwordStep.style.display = 'block';
+            } else {
+                userEmail.reportValidity();
+            }
+        });
+
+        userEmail.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                continueBtn.click();
+            }
+        });
+
+        showLoginLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            emailStep.style.display = 'none';
+            passwordStep.style.display = 'none';
+            loginForm.style.display = 'block';
+        });
+
+        showRegisterLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            loginForm.style.display = 'none';
+            passwordStep.style.display = 'none';
+            emailStep.style.display = 'block';
+        });
+
+        registerBtn.addEventListener('click', async () => {
+            const email = displayEmail.value;
+            const password = document.getElementById('register-password').value;
+            const confirm = document.getElementById('register-confirm').value;
+            const privacy = document.getElementById('privacy-checkbox').checked;
+
+            if (password.length < 6) {
+                showAlert('Password must be at least 6 characters', 'error');
+                return;
+            }
+            if (password !== confirm) {
+                showAlert('Passwords do not match', 'error');
+                return;
+            }
+            if (!privacy) {
+                showAlert('Please accept the privacy policy', 'error');
+                return;
+            }
+
+            registerBtn.querySelector('.btn-text').style.display = 'none';
+            registerBtn.querySelector('.spinner').style.display = 'inline-block';
+
+            try {
+                const response = await fetch('/api/auth/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+                const data = await response.json();
+                if (response.ok) {
+                    localStorage.setItem('token', data.access_token);
+                    window.location.href = '/';
+                } else {
+                    showAlert(data.detail || 'Registration failed', 'error');
+                }
+            } catch (err) {
+                showAlert('Network error', 'error');
+            }
+
+            registerBtn.querySelector('.btn-text').style.display = 'inline';
+            registerBtn.querySelector('.spinner').style.display = 'none';
+        });
+    </script>
 </body>
 </html>
