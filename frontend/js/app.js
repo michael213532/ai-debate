@@ -1608,10 +1608,16 @@ function updateBeesDropdownCount() {
         if (el) el.textContent = text;
     });
 
-    // Update mobile button text
+    // Update button text (mobile and desktop)
     const mobileBtnCount = document.getElementById('mobile-bees-count');
     if (mobileBtnCount) {
-        mobileBtnCount.textContent = count > 0 ? `${count} Voices` : 'Voices';
+        mobileBtnCount.textContent = count > 0 ? 'Hive Council' : 'Select a voice';
+    }
+
+    // Update desktop button text
+    const desktopBtn = document.querySelector('#bees-dropdown-btn span');
+    if (desktopBtn) {
+        desktopBtn.textContent = count > 0 ? 'Hive Council' : 'Select a voice';
     }
 }
 
