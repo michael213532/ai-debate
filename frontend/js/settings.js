@@ -42,8 +42,13 @@ const PROVIDER_NAMES = Object.fromEntries(
 
 // Open settings modal
 function openSettingsModal() {
+    // Close any open dropdowns first
+    document.querySelectorAll('.mobile-profile-dropdown.open').forEach(d => d.classList.remove('open'));
+    document.querySelectorAll('.profile-dropdown.open').forEach(d => d.classList.remove('open'));
+
     const modal = document.getElementById('settings-modal');
     modal.classList.add('active');
+    document.body.style.overflow = 'hidden';
     loadRoleAssignments();
 }
 
@@ -51,6 +56,7 @@ function openSettingsModal() {
 function closeSettingsModal() {
     const modal = document.getElementById('settings-modal');
     modal.classList.remove('active');
+    document.body.style.overflow = '';
 }
 
 // Modal done button
