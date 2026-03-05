@@ -362,6 +362,14 @@
             border-color: var(--text-secondary);
         }
 
+        .bees-dropdown-btn svg {
+            transition: transform 0.2s;
+        }
+
+        .bees-dropdown-btn.open svg {
+            transform: rotate(180deg);
+        }
+
         .bees-dropdown-menu {
             position: absolute;
             top: calc(100% + 8px);

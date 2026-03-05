@@ -1592,12 +1592,18 @@ function updateBeesDropdownCount() {
 function toggleBeesDropdown(menuId = 'bees-dropdown-menu') {
     // Close any other open dropdown first
     document.querySelectorAll('.bees-dropdown-menu.open').forEach(m => {
-        if (m.id !== menuId) m.classList.remove('open');
+        if (m.id !== menuId) {
+            m.classList.remove('open');
+            // Also remove open class from its button
+            m.previousElementSibling?.classList.remove('open');
+        }
     });
 
     const menu = document.getElementById(menuId);
+    const btn = menu?.previousElementSibling;
     if (menu) {
         menu.classList.toggle('open');
+        btn?.classList.toggle('open');
         if (menu.classList.contains('open')) {
             renderBeesDropdown();
         }
@@ -1607,6 +1613,9 @@ function toggleBeesDropdown(menuId = 'bees-dropdown-menu') {
 function closeBeesDropdown() {
     document.querySelectorAll('.bees-dropdown-menu').forEach(menu => {
         menu.classList.remove('open');
+    });
+    document.querySelectorAll('.bees-dropdown-btn').forEach(btn => {
+        btn.classList.remove('open');
     });
 }
 
