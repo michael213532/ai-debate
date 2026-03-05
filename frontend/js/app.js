@@ -1391,8 +1391,8 @@ async function handleQuestionSubmit(question) {
         const suggested = await fetchPersonalitySuggestions(currentQuestion);
         selectedPersonalities = suggested.slice(0, 3);
         saveSelectedBees();
-        updateBeesDropdownCount();
-        renderBeesDropdown();
+        updateVoicesCount();
+        renderVoicesBar();
     }
 
     // Start debate directly (skip personality selector)
@@ -1553,39 +1553,34 @@ attachQuestionFlowListeners();
 fetchPersonalities();
 
 // ============================================
-// Bees Dropdown (Header Personality Selector)
+// Voices Horizontal Bar (Personality Chips)
 // ============================================
 
-function renderBeesDropdown() {
-    // Render both desktop and mobile dropdowns
-    ['bees-dropdown-list', 'bees-dropdown-list-mobile'].forEach(listId => {
-        const list = document.getElementById(listId);
-        if (!list || !allPersonalities.length) return;
+function renderVoicesBar() {
+    const container = document.getElementById('voices-chips');
+    if (!container || !allPersonalities.length) return;
 
-        list.innerHTML = '';
+    container.innerHTML = '';
 
-        allPersonalities.forEach(personality => {
-            const isSelected = selectedPersonalities.includes(personality.id);
-            const item = document.createElement('div');
-            item.className = `bees-dropdown-item ${isSelected ? 'selected' : ''}`;
-            item.dataset.personalityId = personality.id;
-            item.innerHTML = `
-                <span class="bee-emoji">${personality.emoji}</span>
-                <span class="bee-name">${personality.name.replace('The ', '')}</span>
-                <span class="bee-check">✓</span>
-            `;
-            item.addEventListener('click', (e) => {
-                e.stopPropagation();
-                togglePersonalityFromDropdown(personality.id);
-            });
-            list.appendChild(item);
+    allPersonalities.forEach(personality => {
+        const isSelected = selectedPersonalities.includes(personality.id);
+        const chip = document.createElement('div');
+        chip.className = `voice-chip ${isSelected ? 'selected' : ''}`;
+        chip.dataset.personalityId = personality.id;
+        chip.innerHTML = `
+            <span class="voice-emoji">${personality.emoji}</span>
+            <span class="voice-name">${personality.name.replace('The ', '')}</span>
+        `;
+        chip.addEventListener('click', () => {
+            toggleVoiceChip(personality.id);
         });
+        container.appendChild(chip);
     });
 
-    updateBeesDropdownCount();
+    updateVoicesCount();
 }
 
-function togglePersonalityFromDropdown(personalityId) {
+function toggleVoiceChip(personalityId) {
     const index = selectedPersonalities.indexOf(personalityId);
     if (index >= 0) {
         selectedPersonalities.splice(index, 1);
@@ -1593,91 +1588,22 @@ function togglePersonalityFromDropdown(personalityId) {
         selectedPersonalities.push(personalityId);
     }
     saveSelectedBees();
-    renderBeesDropdown();
+    renderVoicesBar();
     // Also update the personality selector in the empty state if visible
     renderPersonalitySelector();
 }
 
-function updateBeesDropdownCount() {
+function updateVoicesCount() {
     const count = selectedPersonalities.length;
-    const text = `${count} selected${count < 2 ? ' (need 2+)' : ''}`;
-
-    // Update both desktop and mobile
-    ['bees-selected-count', 'bees-selected-count-mobile'].forEach(id => {
-        const el = document.getElementById(id);
-        if (el) el.textContent = text;
-    });
-
-    // Update button text (mobile and desktop)
-    const mobileBtnCount = document.getElementById('mobile-bees-count');
-    if (mobileBtnCount) {
-        mobileBtnCount.textContent = count > 0 ? `${count} voice${count > 1 ? 's' : ''}` : 'Select a voice';
-    }
-
-    // Update desktop button text
-    const desktopBtn = document.querySelector('#bees-dropdown-btn span');
-    if (desktopBtn) {
-        desktopBtn.textContent = count > 0 ? `${count} voice${count > 1 ? 's' : ''}` : 'Select a voice';
+    const countEl = document.getElementById('voices-count');
+    if (countEl) {
+        countEl.textContent = count === 0 ? 'Select 2+' : `${count} selected${count < 2 ? ' (need 2+)' : ''}`;
     }
 }
 
-function toggleBeesDropdown(menuId = 'bees-dropdown-menu') {
-    // Close any other open dropdown first
-    document.querySelectorAll('.bees-dropdown-menu.open').forEach(m => {
-        if (m.id !== menuId) {
-            m.classList.remove('open');
-            // Also remove open class from its button
-            m.previousElementSibling?.classList.remove('open');
-        }
-    });
-
-    const menu = document.getElementById(menuId);
-    const btn = menu?.previousElementSibling;
-    if (menu) {
-        menu.classList.toggle('open');
-        btn?.classList.toggle('open');
-        if (menu.classList.contains('open')) {
-            renderBeesDropdown();
-        }
-    }
-}
-
-function closeBeesDropdown() {
-    document.querySelectorAll('.bees-dropdown-menu').forEach(menu => {
-        menu.classList.remove('open');
-    });
-    document.querySelectorAll('.bees-dropdown-btn').forEach(btn => {
-        btn.classList.remove('open');
-    });
-}
-
-// Event listeners for bees dropdown (desktop)
-document.getElementById('bees-dropdown-btn')?.addEventListener('click', (e) => {
-    e.stopPropagation();
-    toggleBeesDropdown('bees-dropdown-menu');
-});
-
-// Event listeners for bees dropdown (mobile)
-document.getElementById('bees-dropdown-btn-mobile')?.addEventListener('click', (e) => {
-    e.stopPropagation();
-    toggleBeesDropdown('bees-dropdown-menu-mobile');
-});
-
-// Close dropdown when clicking outside
-document.addEventListener('click', (e) => {
-    const containers = document.querySelectorAll('.bees-dropdown-container');
-    let clickedInside = false;
-    containers.forEach(container => {
-        if (container.contains(e.target)) clickedInside = true;
-    });
-    if (!clickedInside) {
-        closeBeesDropdown();
-    }
-});
-
-// Re-render bees dropdown when personalities load
+// Re-render voices bar when personalities load
 const originalFetchPersonalities = fetchPersonalities;
 fetchPersonalities = async function() {
     await originalFetchPersonalities();
-    renderBeesDropdown();
+    renderVoicesBar();
 };

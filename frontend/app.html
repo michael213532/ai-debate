@@ -336,125 +336,79 @@
             line-height: 1.2;
         }
 
-        /* Bees Dropdown */
-        .bees-dropdown-container {
-            position: relative;
-            margin-left: 16px;
+        /* Voices Horizontal Bar */
+        .voices-bar {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 24px;
+            margin-left: 260px;
+            border-bottom: 1px solid var(--border-color);
+            overflow-x: auto;
+            scrollbar-width: none;
         }
 
-        .bees-dropdown-btn {
+        .voices-bar::-webkit-scrollbar {
+            display: none;
+        }
+
+        .voices-bar-label {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            font-weight: 500;
+            white-space: nowrap;
+            margin-right: 4px;
+        }
+
+        .voice-chip {
             display: flex;
             align-items: center;
             gap: 6px;
-            padding: 8px 14px;
+            padding: 6px 12px;
             background: var(--surface-light);
             border: 1px solid var(--border-color);
             border-radius: 20px;
             cursor: pointer;
-            font-size: 0.9rem;
-            font-weight: 500;
-            color: var(--text-primary);
-            transition: all 0.15s;
-        }
-
-        .bees-dropdown-btn:hover {
-            background: var(--border-color);
-            border-color: var(--text-secondary);
-        }
-
-        .bees-dropdown-btn svg {
-            transition: transform 0.2s;
-        }
-
-        .bees-dropdown-btn.open svg {
-            transform: rotate(180deg);
-        }
-
-        .bees-dropdown-menu {
-            position: absolute;
-            top: calc(100% + 8px);
-            left: 0;
-            background: var(--surface);
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
-            min-width: 240px;
-            max-height: 400px;
-            overflow: hidden;
-            display: none;
-            z-index: 1000;
-        }
-
-        .bees-dropdown-menu.open {
-            display: block;
-        }
-
-        .bees-dropdown-header {
-            padding: 12px 16px;
-            font-weight: 600;
             font-size: 0.85rem;
-            color: var(--text-secondary);
-            border-bottom: 1px solid var(--border-color);
-        }
-
-        .bees-dropdown-list {
-            max-height: 300px;
-            overflow-y: auto;
-            padding: 8px 0;
-        }
-
-        .bees-dropdown-item {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 10px 16px;
-            cursor: pointer;
-            transition: background 0.15s;
-        }
-
-        .bees-dropdown-item:hover {
-            background: var(--surface-light);
-        }
-
-        .bees-dropdown-item.selected {
-            background: rgba(99, 102, 241, 0.1);
-        }
-
-        .bees-dropdown-item .bee-emoji {
-            font-size: 1.2rem;
-        }
-
-        .bees-dropdown-item .bee-name {
-            flex: 1;
-            font-size: 0.9rem;
             color: var(--text-primary);
+            transition: all 0.15s;
+            white-space: nowrap;
         }
 
-        .bees-dropdown-item .bee-check {
-            width: 20px;
-            height: 20px;
-            border: 2px solid var(--border-color);
-            border-radius: 4px;
+        .voice-chip:hover {
+            border-color: var(--primary-color);
+            background: rgba(99, 102, 241, 0.05);
+        }
+
+        .voice-chip.selected {
+            background: rgba(99, 102, 241, 0.15);
+            border-color: var(--primary-color);
+            color: var(--primary-color);
+        }
+
+        .voice-chip .voice-emoji {
+            font-size: 1rem;
+        }
+
+        .voice-chip .voice-name {
+            font-weight: 500;
+        }
+
+        .voices-chips {
             display: flex;
             align-items: center;
-            justify-content: center;
+            gap: 8px;
+            flex-wrap: nowrap;
+        }
+
+        .voices-count {
+            margin-left: auto;
             font-size: 0.75rem;
-            color: transparent;
-            transition: all 0.15s;
-        }
-
-        .bees-dropdown-item.selected .bee-check {
-            background: var(--primary-color);
-            border-color: var(--primary-color);
-            color: white;
-        }
-
-        .bees-dropdown-footer {
-            padding: 10px 16px;
-            border-top: 1px solid var(--border-color);
-            font-size: 0.8rem;
             color: var(--text-secondary);
-            text-align: center;
+            padding: 4px 10px;
+            background: var(--surface-light);
+            border-radius: 12px;
+            white-space: nowrap;
         }
 
         .models-dropdown-trigger {
@@ -1548,23 +1502,29 @@
                 display: none;
             }
 
-            /* Show bees dropdown on mobile too */
-            .bees-dropdown-container {
-                position: relative;
-                margin-left: auto;
+            /* Voices bar on mobile - scrollable horizontal */
+            .voices-bar {
+                margin-left: 0;
+                padding: 10px 16px;
+                gap: 6px;
             }
 
-            .bees-dropdown-btn {
-                padding: 6px 10px;
-                font-size: 0.75rem;
+            .voices-bar-label {
+                display: none;
             }
 
-            .bees-dropdown-menu {
-                left: 50%;
-                transform: translateX(-50%);
-                right: auto;
-                min-width: 200px;
-                max-width: calc(100vw - 32px);
+            .voice-chip {
+                padding: 5px 10px;
+                font-size: 0.8rem;
+            }
+
+            .voice-chip .voice-emoji {
+                font-size: 0.9rem;
+            }
+
+            .voices-count {
+                font-size: 0.7rem;
+                padding: 3px 8px;
             }
 
             /* Question templates - scrollable on mobile */
@@ -2140,24 +2100,6 @@
                     <span class="mobile-logo">Beecision</span>
                     <span class="mobile-tagline">Let the hive decide</span>
                 </div>
-                <!-- Bees dropdown for mobile -->
-                <div class="bees-dropdown-container">
-                    <button id="bees-dropdown-btn-mobile" class="bees-dropdown-btn">
-                        <span id="mobile-bees-count">Voices</span>
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                            <path d="M6 9l6 6 6-6"/>
-                        </svg>
-                    </button>
-                    <div id="bees-dropdown-menu-mobile" class="bees-dropdown-menu">
-                        <div class="bees-dropdown-header">Select Your Hive Council</div>
-                        <div id="bees-dropdown-list-mobile" class="bees-dropdown-list">
-                            <!-- Personality options loaded here -->
-                        </div>
-                        <div class="bees-dropdown-footer">
-                            <span id="bees-selected-count-mobile">0 selected</span>
-                        </div>
-                    </div>
-                </div>
                 <div class="header-actions">
                     <span id="subscription-status" class="subscription-badge"></span>
                     <!-- Mobile profile button -->
@@ -2243,24 +2185,15 @@
                 <span class="logo-title">Beecision</span>
                 <span class="logo-tagline">Let the hive decide</span>
             </div>
-            <!-- Bees dropdown button -->
-            <div class="bees-dropdown-container">
-                <button id="bees-dropdown-btn" class="bees-dropdown-btn">
-                    <span>Voices</span>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                        <path d="M6 9l6 6 6-6"/>
-                    </svg>
-                </button>
-                <div id="bees-dropdown-menu" class="bees-dropdown-menu">
-                    <div class="bees-dropdown-header">Select Your Hive Council</div>
-                    <div id="bees-dropdown-list" class="bees-dropdown-list">
-                        <!-- Personality options loaded here -->
-                    </div>
-                    <div class="bees-dropdown-footer">
-                        <span id="bees-selected-count">0 selected</span>
-                    </div>
-                </div>
+        </div>
+
+        <!-- Voices Horizontal Bar -->
+        <div class="voices-bar">
+            <span class="voices-bar-label">Voices:</span>
+            <div id="voices-chips" class="voices-chips">
+                <!-- Voice chips loaded here by JS -->
             </div>
+            <span id="voices-count" class="voices-count">0 selected</span>
         </div>
 
         <!-- Main Chat Layout -->
