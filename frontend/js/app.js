@@ -1549,9 +1549,6 @@ window.attachQuestionFlowListeners = attachQuestionFlowListeners;
 // Initial attachment
 attachQuestionFlowListeners();
 
-// Load personalities on init
-fetchPersonalities();
-
 // ============================================
 // Voices Horizontal Bar (Personality Chips)
 // ============================================
@@ -1601,9 +1598,9 @@ function updateVoicesCount() {
     }
 }
 
-// Re-render voices bar when personalities load
-const originalFetchPersonalities = fetchPersonalities;
-fetchPersonalities = async function() {
-    await originalFetchPersonalities();
+// Load personalities on init and render voices bar
+async function initVoicesBar() {
+    await fetchPersonalities();
     renderVoicesBar();
-};
+}
+initVoicesBar();
