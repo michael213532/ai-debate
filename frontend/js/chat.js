@@ -1383,13 +1383,7 @@ function renderHiveVerdict(verdict) {
             const beeImg = beeType
                 ? `<img src="/bee-${beeType}.png" alt="" style="width: 24px; height: 24px; vertical-align: middle; margin-right: -10px; image-rendering: -webkit-optimize-contrast;">`
                 : '';
-            votesHtml += `
-                <div class="verdict-vote">
-                    ${beeImg}<span class="name">${escapeHtml(vote.name || '')}</span>
-                    <span class="arrow">→</span>
-                    <span class="choice">${escapeHtml(vote.choice || '-')}</span>
-                </div>
-            `;
+            votesHtml += `<div class="verdict-vote">${beeImg}<span class="name">${escapeHtml(vote.name || '')}</span><span class="arrow">→</span><span class="choice">${escapeHtml(vote.choice || '-')}</span></div>`;
         }
         votesHtml += '</div>';
     }
