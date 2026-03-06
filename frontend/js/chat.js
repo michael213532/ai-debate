@@ -558,7 +558,7 @@ function addAiDiscussionMessage(modelName, provider, content, personalityId) {
     }
     const beePersonalities = ['expert', 'optimist', 'analyst', 'skeptic', 'realist'];
     const personalityImgHtml = personalityId && beePersonalities.includes(personalityId)
-        ? `<img src="/bee-${personalityId}.png" alt="" style="width: 50px; height: 50px; margin: -15px 8px -15px -5px; image-rendering: -webkit-optimize-contrast;">`
+        ? `<img src="/bee-${personalityId}.png" alt="" style="width: 50px; height: 50px; margin: -15px 2px -15px -5px; image-rendering: -webkit-optimize-contrast;">`
         : '';
 
     msg.innerHTML = `
@@ -1379,7 +1379,6 @@ function renderHiveVerdict(verdict) {
         for (const vote of verdict.votes) {
             votesHtml += `
                 <div class="verdict-vote">
-                    <span class="emoji">${escapeHtml(vote.emoji || '🐝')}</span>
                     <span class="name">${escapeHtml(vote.name || '')}</span>
                     <span class="arrow">→</span>
                     <span class="choice">${escapeHtml(vote.choice || '-')}</span>
@@ -1391,7 +1390,7 @@ function renderHiveVerdict(verdict) {
 
     verdictEl.innerHTML = `
         <div class="verdict-decision">
-            <span class="verdict-bee">🐝</span>
+            <img src="/bee-icon.png" alt="" class="verdict-bee" style="width: 36px; height: 36px; image-rendering: -webkit-optimize-contrast;">
             <div class="verdict-main">
                 <div class="verdict-label">Hive Decision</div>
                 <div class="verdict-answer">${escapeHtml(verdict.hive_decision || 'No consensus')}</div>

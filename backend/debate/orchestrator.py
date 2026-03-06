@@ -242,7 +242,7 @@ class DebateOrchestrator:
             if personality_id:
                 personality = get_personality(personality_id)
                 if personality:
-                    display_name = f"{personality.emoji} {personality.name}"
+                    display_name = personality.name
 
             await self._broadcast({
                 "type": "model_start",
@@ -323,7 +323,7 @@ class DebateOrchestrator:
         if personality_id:
             personality = get_personality(personality_id)
             if personality:
-                display_name = f"{personality.emoji} {personality.name}"
+                display_name = personality.name
 
         # Only include images for vision-capable models in round 1
         # Non-vision models will just respond to the text conversation
@@ -359,7 +359,7 @@ class DebateOrchestrator:
             personality = get_personality(personality_id)
             if personality:
                 personality_role = personality.role
-                display_name = f"{personality.emoji} {personality.name}"
+                display_name = personality.name
 
         # Round 1: Be opinionated and form your own view
         if round_num == 1:
@@ -667,7 +667,7 @@ Do all AIs agree? Reply ONLY with AGREE or DISAGREE."""
                         if m["model_name"] == msg["model_name"] and m.get("personality_id"):
                             p = get_personality(m["personality_id"])
                             if p:
-                                personality_info = f" ({p.emoji} {p.name})"
+                                personality_info = f" ({p.name})"
                     responses_text += f"**{msg['model_name']}{personality_info}**: {msg['content']}\n\n"
 
             system_prompt = """Output ONLY valid JSON. Extract each AI's choice and determine the winner.
