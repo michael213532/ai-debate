@@ -266,10 +266,10 @@ class DebateOrchestrator:
                     personality_id=personality_id
                 )
 
-                # Save message to database
+                # Save message to database (use display_name which includes personality)
                 await self._save_message(
                     round_num=round_num,
-                    model_name=model_name,
+                    model_name=display_name,
                     provider=provider_name,
                     content=content
                 )

@@ -1109,7 +1109,9 @@ function renderHistoryList(debates) {
             const topic = debate.topic.length > 30 ? debate.topic.substring(0, 30) + '...' : debate.topic;
             html += `
                 <div class="history-item" data-id="${debate.id}">
-                    <img src="/bee-icon.png" alt="" style="width: 24px; height: 24px; flex-shrink: 0; image-rendering: -webkit-optimize-contrast;">
+                    <svg class="history-item-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                    </svg>
                     <div class="history-item-content">
                         <div class="history-item-topic">${escapeHtml(topic)}</div>
                     </div>
@@ -1310,12 +1312,25 @@ function addHistoryAiMessage(modelName, provider, content) {
     msg.className = 'message ai-individual';
     msg.dataset.model = modelName;
     msg.dataset.provider = provider;
+
+    // Check if this is a personality name and add bee icon
+    const beeTypes = ['expert', 'optimist', 'analyst', 'skeptic', 'realist'];
+    const nameLower = modelName.toLowerCase();
+    const beeType = beeTypes.find(b => nameLower.includes(b));
+    const beeImg = beeType
+        ? `<img src="/bee-${beeType}.png" alt="" style="width: 50px; height: 50px; margin: -15px -2px -15px -8px; image-rendering: -webkit-optimize-contrast;">`
+        : '';
+
+    // Clean content of markdown
+    const cleanContent = content.replace(/\*\*/g, '');
+
     msg.innerHTML = `
         <div class="ai-model-header">
+            ${beeImg}
             <span class="ai-model-name">${escapeHtml(modelName)}</span>
             <span class="ai-provider-tag">${escapeHtml(provider)}</span>
         </div>
-        <div class="message-content">${escapeHtml(content)}</div>
+        <div class="message-content">${escapeHtml(cleanContent)}</div>
     `;
     container.appendChild(msg);
 }
