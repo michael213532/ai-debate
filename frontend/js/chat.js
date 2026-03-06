@@ -1373,7 +1373,7 @@ function renderHiveVerdict(verdict) {
         for (const vote of verdict.votes) {
             votesHtml += `
                 <div class="verdict-vote">
-                    ${vote.emoji ? `<span class="emoji">${escapeHtml(vote.emoji)}</span>` : `<img src="/bee-icon.png" alt="" style="width: 32px; height: 32px;">`}
+                    ${vote.emoji ? `<span class="emoji">${escapeHtml(vote.emoji)}</span>` : `<img src="/bee-icon.png" alt="" style="width: 40px; height: 40px;">`}
                     <span class="name">${escapeHtml(vote.name || '')}</span>
                     <span class="arrow">→</span>
                     <span class="choice">${escapeHtml(vote.choice || '-')}</span>
@@ -1385,7 +1385,7 @@ function renderHiveVerdict(verdict) {
 
     verdictEl.innerHTML = `
         <div class="verdict-decision">
-            <img src="/bee-icon.png" alt="" class="verdict-bee" style="width: 64px; height: 64px;">
+            <img src="/bee-icon.png" alt="" class="verdict-bee" style="width: 80px; height: 80px;">
             <div class="verdict-main">
                 <div class="verdict-label">Hive Decision</div>
                 <div class="verdict-answer">${escapeHtml(verdict.hive_decision || 'No consensus')}</div>
