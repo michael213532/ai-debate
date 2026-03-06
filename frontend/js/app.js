@@ -793,6 +793,8 @@ let userIsPro = false;
 function updateModeSelectorBubble() {
     const btn = document.getElementById('mode-selector-btn');
     const text = document.getElementById('mode-selector-text');
+    const checkFast = document.getElementById('check-fast');
+    const checkDetailed = document.getElementById('check-detailed');
     if (!btn || !text) return;
 
     const currentMode = localStorage.getItem('detailMode') || 'normal';
@@ -800,6 +802,10 @@ function updateModeSelectorBubble() {
 
     text.textContent = isDetailed ? 'Detailed' : 'Fast';
     btn.classList.toggle('detailed', isDetailed);
+
+    // Update checkmarks
+    if (checkFast) checkFast.textContent = isDetailed ? '' : '✓';
+    if (checkDetailed) checkDetailed.textContent = isDetailed ? '✓' : '';
 }
 
 // Initialize mode selector on load
@@ -807,29 +813,53 @@ document.addEventListener('DOMContentLoaded', () => {
     updateModeSelectorBubble();
 });
 
-// Mode selector click handler
+// Mode selector dropdown toggle
 document.getElementById('mode-selector-btn')?.addEventListener('click', (e) => {
     e.stopPropagation();
-
-    // Check if user is Pro
-    if (!userIsPro) {
-        showUpgradeModal();
-        return;
+    const wrapper = document.getElementById('mode-selector-wrapper');
+    if (wrapper) {
+        wrapper.classList.toggle('open');
     }
+});
 
-    // Toggle mode
-    const currentMode = localStorage.getItem('detailMode') || 'normal';
-    const newMode = currentMode === 'detailed' ? 'normal' : 'detailed';
-    localStorage.setItem('detailMode', newMode);
+// Close dropdown when clicking outside
+document.addEventListener('click', (e) => {
+    const wrapper = document.getElementById('mode-selector-wrapper');
+    if (wrapper && !wrapper.contains(e.target)) {
+        wrapper.classList.remove('open');
+    }
+});
 
-    // Sync toggles in profile dropdown
-    const isDetailed = newMode === 'detailed';
-    ['detail-mode-toggle-desktop', 'detail-mode-toggle-mobile'].forEach(id => {
-        const el = document.getElementById(id);
-        if (el) el.checked = isDetailed;
+// Mode option click handlers
+document.querySelectorAll('.mode-option').forEach(option => {
+    option.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const mode = option.dataset.mode;
+        const wrapper = document.getElementById('mode-selector-wrapper');
+
+        // If clicking detailed and not Pro, show upgrade modal
+        if (mode === 'detailed' && !userIsPro) {
+            wrapper?.classList.remove('open');
+            showUpgradeModal();
+            return;
+        }
+
+        // Set the mode
+        const newMode = mode === 'detailed' ? 'detailed' : 'normal';
+        localStorage.setItem('detailMode', newMode);
+
+        // Sync toggles in profile dropdown
+        const isDetailed = newMode === 'detailed';
+        ['detail-mode-toggle-desktop', 'detail-mode-toggle-mobile'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.checked = isDetailed;
+        });
+
+        updateModeSelectorBubble();
+
+        // Close dropdown
+        wrapper?.classList.remove('open');
     });
-
-    updateModeSelectorBubble();
 });
 
 // Chat input handlers

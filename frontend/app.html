@@ -840,6 +840,10 @@
         }
 
         /* Mode Selector Bubble */
+        .mode-selector-wrapper {
+            position: relative;
+        }
+
         .mode-selector-bubble {
             display: inline-flex;
             align-items: center;
@@ -869,6 +873,94 @@
 
         .mode-selector-bubble.detailed:hover {
             background: linear-gradient(135deg, rgba(255, 215, 0, 0.25), rgba(255, 165, 0, 0.25));
+        }
+
+        .mode-selector-bubble .mode-arrow {
+            transition: transform 0.2s;
+        }
+
+        .mode-selector-wrapper.open .mode-arrow {
+            transform: rotate(180deg);
+        }
+
+        /* Dropdown menu - opens upward */
+        .mode-selector-dropdown {
+            position: absolute;
+            bottom: calc(100% + 8px);
+            left: 0;
+            background: var(--surface);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15);
+            min-width: 220px;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(10px);
+            transition: all 0.2s;
+            z-index: 100;
+            overflow: hidden;
+        }
+
+        .mode-selector-wrapper.open .mode-selector-dropdown {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+
+        .mode-option {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 14px;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+
+        .mode-option:hover {
+            background: var(--surface-light);
+        }
+
+        .mode-option-icon {
+            font-size: 1.2rem;
+            width: 28px;
+            text-align: center;
+        }
+
+        .mode-option-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .mode-option-title {
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .mode-option-desc {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        .mode-option-check {
+            width: 20px;
+            text-align: center;
+            color: var(--primary-color);
+            font-weight: bold;
+        }
+
+        .pro-tag {
+            background: linear-gradient(135deg, #FFD700, #FFA500);
+            color: #000;
+            font-size: 0.6rem;
+            font-weight: 700;
+            padding: 2px 6px;
+            border-radius: 4px;
         }
 
         .action-btn:disabled {
@@ -2363,12 +2455,32 @@
                                     <line x1="12" y1="15" x2="12" y2="3"/>
                                 </svg>
                             </button>
-                            <button id="mode-selector-btn" class="mode-selector-bubble" title="Response mode">
-                                <span id="mode-selector-text">Fast</span>
-                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                                    <polyline points="6 9 12 15 18 9"/>
-                                </svg>
-                            </button>
+                            <div class="mode-selector-wrapper" id="mode-selector-wrapper">
+                                <button id="mode-selector-btn" class="mode-selector-bubble" title="Response mode">
+                                    <span id="mode-selector-text">Fast</span>
+                                    <svg class="mode-arrow" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                        <polyline points="6 15 12 9 18 15"/>
+                                    </svg>
+                                </button>
+                                <div class="mode-selector-dropdown" id="mode-selector-dropdown">
+                                    <div class="mode-option" data-mode="normal">
+                                        <span class="mode-option-icon">⚡</span>
+                                        <div class="mode-option-content">
+                                            <span class="mode-option-title">Fast</span>
+                                            <span class="mode-option-desc">Quick 2-3 sentence responses</span>
+                                        </div>
+                                        <span class="mode-option-check" id="check-fast">✓</span>
+                                    </div>
+                                    <div class="mode-option" data-mode="detailed">
+                                        <span class="mode-option-icon">🔬</span>
+                                        <div class="mode-option-content">
+                                            <span class="mode-option-title">Detailed <span class="pro-tag">PRO</span></span>
+                                            <span class="mode-option-desc">In-depth analysis & arguments</span>
+                                        </div>
+                                        <span class="mode-option-check" id="check-detailed"></span>
+                                    </div>
+                                </div>
+                            </div>
                             <div class="chat-buttons-spacer"></div>
                             <button id="send-btn" class="start-debate-btn" disabled>
                                 Start Debate
