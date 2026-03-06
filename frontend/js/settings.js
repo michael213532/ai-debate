@@ -284,7 +284,7 @@ function loadRoleAssignments() {
         const savedModelId = savedRoles[p.id];
         return `
             <div class="role-assignment-card" data-role="${p.id}">
-                <div class="role-emoji">${p.id === 'expert' ? '<img src="/bee-expert.png" alt="" style="width: 40px; height: 40px; image-rendering: -webkit-optimize-contrast;">' : p.emoji}</div>
+                <div class="role-emoji">${p.id === 'expert' ? '<img src="/bee-expert.png" alt="" style="width: 50px; height: 50px; image-rendering: -webkit-optimize-contrast;">' : p.emoji}</div>
                 <div class="role-info">
                     <div class="role-name">${p.name}</div>
                     <div class="role-description">${p.description}</div>
