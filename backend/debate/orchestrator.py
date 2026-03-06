@@ -114,15 +114,15 @@ class DebateOrchestrator:
                 )
                 await db.commit()
 
-            # Run rounds until agreement or max rounds reached
+            # Run exactly 3 rounds - no early exit for agreement
             round_num = self.start_round
-            agreement_reached = False
+            total_rounds = 3
 
-            while not self._stopped and round_num <= self.max_rounds:
+            while not self._stopped and round_num <= total_rounds:
                 await self._broadcast({
                     "type": "round_start",
                     "round": round_num,
-                    "total_rounds": "until agreement"
+                    "total_rounds": total_rounds
                 })
 
                 await self._run_round(round_num)
@@ -131,17 +131,6 @@ class DebateOrchestrator:
                     "type": "round_end",
                     "round": round_num
                 })
-
-                # Check for agreement only after round 2+ (ensure at least one round of debate)
-                # Round 1 is for independent opinions, round 2+ is for finding middle ground
-                if round_num >= 2 and len(self.messages) >= len(self.models) * 2:
-                    agreement_reached = await self._check_agreement()
-                    if agreement_reached:
-                        await self._broadcast({
-                            "type": "agreement_reached",
-                            "round": round_num
-                        })
-                        break
 
                 round_num += 1
 
@@ -368,9 +357,9 @@ class DebateOrchestrator:
         # FAST MODE (free users) - shorter, quicker responses
         if self.detail_mode == "fast":
             if round_num == 1:
-                base_prompt = f"""You are {display_name}. Pick ONE answer and defend it in 2-3 sentences. Be direct, be opinionated. Disagree with others if you think differently. No markdown."""
+                base_prompt = f"""You are {display_name}. Pick ONE answer and defend it in 2-3 sentences. Be direct, be opinionated. No markdown."""
             else:
-                base_prompt = f"""You are {display_name}. Round {round_num}. State your final pick in 2-3 sentences. You can agree if convinced but explain why. No markdown."""
+                base_prompt = f"""You are {display_name}. Round {round_num}. Respond to the others in 2-3 sentences. You might agree if they made a great point, or push back if you still disagree. Be natural. No markdown."""
 
         # DETAILED MODE (pro users) - full debate experience
         else:
@@ -401,24 +390,22 @@ RULES:
             else:
                 base_prompt = f"""You are {display_name}.
 
-This is ROUND {round_num}. You've been debating. You can START to find common ground, but don't just cave in.
+This is ROUND {round_num}. You've heard what others think. Respond naturally like a real person would.
 
 RULES:
-1. STILL PICK ONE ANSWER. Even if compromising, state YOUR final choice clearly.
+1. BE YOURSELF: You might agree if someone made a killer point. Or you might double down on your position. Do what feels right.
 
-2. ONLY AGREE IF CONVINCED: Don't just agree to be nice. If you're changing your mind, explain exactly what argument convinced you. Say "Okay [name], you got me with the point about..."
+2. IF YOU AGREE: Say it naturally. "Actually [name], that's a good point, I'm changing my mind because..." or "Okay you convinced me"
 
-3. STILL PUSH BACK: If you disagree, keep fighting! "I hear you, but I still think..." or "Nice try, but that doesn't change..."
+3. IF YOU DISAGREE: Keep fighting! "Nah I still think..." or "That doesn't change anything because..."
 
-4. ASK FOLLOW-UPS: "So you're saying...?", "But what about...?", "How do you explain...?"
+4. BE HUMAN: Some people are stubborn, some change their minds easily. Be natural, not robotic.
 
-5. ACKNOWLEDGE GOOD HITS: If someone made a great point against you, admit it with humor. "Okay fine, that's actually a good point" or "Damn, didn't think of that"
+5. RESPOND TO SPECIFIC POINTS: Reference what others actually said. "When [name] said X, I thought..."
 
-6. BE HUMAN: Real debates have back-and-forth, not just everyone agreeing. Show personality.
+6. BE CONCISE: 3-6 sentences max.
 
-7. BE CONCISE: 3-6 sentences max.
-
-8. NO MARKDOWN: Plain text only, no ** or * or #."""
+7. NO MARKDOWN: Plain text only, no ** or * or #."""
 
         # Add personality role if specified
         if personality_role:
@@ -454,11 +441,11 @@ RULES:
             else:
                 context += "Share YOUR OWN genuine opinion on this. Be opinionated and take a clear stance. If comparing things, make a clear choice and explain why. Don't hedge - say what you really think."
         else:
-            # Round 2+: Show all previous responses, work towards middle ground
+            # Round 2+: Show all previous responses, let them naturally debate
             context += "DISCUSSION SO FAR:\n\n"
             for msg in self.messages:
                 context += f"**{msg['model_name']}**: {msg['content']}\n\n"
-            context += "---\nYou've all shared your opinions. Now find middle ground. What do you agree on? Where can you compromise? Acknowledge good points from others and work towards a consensus."
+            context += "---\nRespond to the discussion. You can agree, disagree, or partially agree - whatever feels natural based on the arguments."
 
         return context
 
