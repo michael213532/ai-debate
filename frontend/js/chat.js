@@ -1156,23 +1156,30 @@ function renderHistoryList(debates) {
 
 // Delete a conversation
 async function deleteConversation(debateId) {
+    console.log('Attempting to delete debate:', debateId);
     try {
+        const headers = getAuthHeaders();
+        console.log('Using headers:', headers);
+
         const response = await fetch(`${API_BASE}/api/debates/${debateId}`, {
             method: 'DELETE',
-            headers: getAuthHeaders()
+            headers: headers
         });
 
+        console.log('Delete response status:', response.status);
+
         if (response.ok) {
+            console.log('Delete successful');
             loadedDebates = loadedDebates.filter(d => d.id !== debateId);
             renderHistoryList(loadedDebates);
         } else {
             const errorText = await response.text();
             console.error('Delete failed:', response.status, errorText);
-            alert('Failed to delete conversation');
+            alert(`Failed to delete: ${response.status} - ${errorText}`);
         }
     } catch (error) {
         console.error('Error deleting conversation:', error);
-        alert('Error deleting conversation');
+        alert(`Error: ${error.message}`);
     }
 }
 
