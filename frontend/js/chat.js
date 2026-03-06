@@ -556,8 +556,14 @@ function addAiDiscussionMessage(modelName, provider, content, personalityId) {
     if (personalityId) {
         msg.dataset.personality = personalityId;
     }
+    const beePersonalities = ['expert', 'optimist', 'analyst', 'skeptic', 'realist'];
+    const personalityImgHtml = personalityId && beePersonalities.includes(personalityId)
+        ? `<img src="/bee-${personalityId}.png" alt="" style="width: 50px; height: 50px; margin: -15px 8px -15px -5px; image-rendering: -webkit-optimize-contrast;">`
+        : '';
+
     msg.innerHTML = `
         <div class="ai-model-header">
+            ${personalityImgHtml}
             <span class="ai-model-name">${escapeHtml(modelName)}</span>
             <span class="ai-provider-tag">${escapeHtml(provider)}</span>
         </div>

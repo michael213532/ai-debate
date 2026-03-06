@@ -280,11 +280,16 @@ function loadRoleAssignments() {
     // Get saved role assignments
     const savedRoles = getRoleAssignments();
 
+    const beePersonalities = ['expert', 'optimist', 'analyst', 'skeptic', 'realist'];
+
     container.innerHTML = personalities.map(p => {
         const savedModelId = savedRoles[p.id];
+        const emojiHtml = beePersonalities.includes(p.id)
+            ? `<img src="/bee-${p.id}.png" alt="" style="width: 50px; height: 50px; image-rendering: -webkit-optimize-contrast;">`
+            : p.emoji;
         return `
             <div class="role-assignment-card" data-role="${p.id}">
-                <div class="role-emoji">${p.emoji}</div>
+                <div class="role-emoji">${emojiHtml}</div>
                 <div class="role-info">
                     <div class="role-name">${p.name}</div>
                     <div class="role-description">${p.description}</div>

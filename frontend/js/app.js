@@ -1434,9 +1434,14 @@ function renderPersonalitySelector(suggestedIds = []) {
         card.dataset.personalityId = personality.id;
         card.style.position = 'relative';
 
+        const beePersonalities = ['expert', 'optimist', 'analyst', 'skeptic', 'realist'];
+        const emojiHtml = beePersonalities.includes(personality.id)
+            ? `<img src="/bee-${personality.id}.png" alt="" class="emoji" style="width: 50px; height: 50px; image-rendering: -webkit-optimize-contrast;">`
+            : `<span class="emoji">${personality.emoji}</span>`;
+
         card.innerHTML = `
             <span class="checkmark">✓</span>
-            <span class="emoji">${personality.emoji}</span>
+            ${emojiHtml}
             <span class="name">${personality.name.replace('The ', '')}</span>
             ${assignedModel ? `<span class="model">powered by ${assignedModel}</span>` : ''}
         `;
@@ -1690,8 +1695,13 @@ function renderVoicesBar() {
         const chip = document.createElement('div');
         chip.className = `voice-chip ${isSelected ? 'selected' : ''}`;
         chip.dataset.personalityId = personality.id;
+        const beePersonalities = ['expert', 'optimist', 'analyst', 'skeptic', 'realist'];
+        const voiceEmojiHtml = beePersonalities.includes(personality.id)
+            ? `<img src="/bee-${personality.id}.png" alt="" class="voice-emoji" style="width: 50px; height: 50px; margin: -15px -5px; image-rendering: -webkit-optimize-contrast;">`
+            : `<span class="voice-emoji">${personality.emoji}</span>`;
+
         chip.innerHTML = `
-            <span class="voice-emoji">${personality.emoji}</span>
+            ${voiceEmojiHtml}
             <span class="voice-name">${personality.name.replace('The ', '')}</span>
         `;
         chip.addEventListener('click', () => {
