@@ -1319,6 +1319,12 @@ function addHistoryAiMessage(modelName, provider, content) {
     const beeTypes = ['expert', 'optimist', 'analyst', 'skeptic', 'realist'];
     const nameLower = modelName.toLowerCase();
     const beeType = beeTypes.find(b => nameLower.includes(b));
+
+    // Set data-personality for CSS colors (colored border + name)
+    if (beeType) {
+        msg.dataset.personality = beeType;
+    }
+
     const beeImg = beeType
         ? `<img src="/bee-${beeType}.png" alt="" style="width: 50px; height: 50px; margin: -15px -2px -15px -8px; image-rendering: -webkit-optimize-contrast;">`
         : '';
