@@ -1143,9 +1143,12 @@ function renderHistoryList(debates) {
     // Add click handlers for delete buttons
     list.querySelectorAll('.history-item-delete').forEach(btn => {
         btn.addEventListener('click', async (e) => {
+            e.preventDefault();
             e.stopPropagation();
-            if (confirm('Delete this conversation?')) {
-                await deleteConversation(btn.dataset.id);
+            const debateId = btn.dataset.id;
+            console.log('Delete clicked for debate:', debateId);
+            if (debateId && confirm('Delete this conversation?')) {
+                await deleteConversation(debateId);
             }
         });
     });
