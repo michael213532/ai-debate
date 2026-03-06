@@ -672,9 +672,11 @@ Do all AIs agree? Reply ONLY with AGREE or DISAGREE."""
 
             system_prompt = """Output ONLY valid JSON. Extract each AI's choice and determine the winner.
 
-{"votes":[{"name":"AI Name","emoji":"📊","choice":"Their pick","reason":"Why (5 words)"}],"hive_decision":"Winner","confidence":75,"key_reasons":["Reason 1","Reason 2"]}
+{"votes":[{"name":"Personality Name","choice":"Their pick","reason":"Why (5 words)"}],"hive_decision":"Winner","confidence":75,"key_reasons":["Reason 1","Reason 2"]}
 
 Rules:
+- Each AI should appear ONLY ONCE in votes (no duplicates)
+- Use the personality name from parentheses (e.g., "Analyst", "Expert", "Optimist", "Skeptic", "Realist")
 - hive_decision = ONE answer only (most votes wins)
 - confidence = (votes for winner / total) * 100
 - Keep it brief. No markdown."""
