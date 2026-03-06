@@ -1162,9 +1162,14 @@ async function deleteConversation(debateId) {
         if (response.ok) {
             loadedDebates = loadedDebates.filter(d => d.id !== debateId);
             renderHistoryList(loadedDebates);
+        } else {
+            const errorText = await response.text();
+            console.error('Delete failed:', response.status, errorText);
+            alert('Failed to delete conversation');
         }
     } catch (error) {
         console.error('Error deleting conversation:', error);
+        alert('Error deleting conversation');
     }
 }
 
