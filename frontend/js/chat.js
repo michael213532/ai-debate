@@ -1387,9 +1387,9 @@ function renderHiveVerdict(verdict) {
             const voteName = (vote.name || '').toLowerCase();
             const beeType = beeTypes.find(b => voteName.includes(b));
             const beeImg = beeType
-                ? `<img src="/bee-${beeType}.png" alt="" style="width: 28px; height: 28px; vertical-align: middle; margin-right: -12px; margin-left: -4px; image-rendering: -webkit-optimize-contrast;">`
+                ? `<img src="/bee-${beeType}.png" alt="" style="width: 24px; height: 24px; vertical-align: middle; margin-right: 2px; image-rendering: -webkit-optimize-contrast;">`
                 : '';
-            votesHtml += `<div class="verdict-vote">${beeImg}<span class="name" style="margin-left: -8px;">${escapeHtml(vote.name || '')}</span><span class="arrow">→</span><span class="choice">${escapeHtml(vote.choice || '-')}</span></div>`;
+            votesHtml += `<div class="verdict-vote">${beeImg}<span class="name">${escapeHtml(vote.name || '')}</span><span class="arrow">→</span><span class="choice">${escapeHtml(vote.choice || '-')}</span></div>`;
         }
         votesHtml += '</div>';
     }
