@@ -752,6 +752,11 @@ function updateProfileDisplay(email, isPro) {
             }
         }
     });
+
+    // Update mode selector bubble in chat input
+    if (typeof updateModeSelectorBubble === 'function') {
+        updateModeSelectorBubble();
+    }
 }
 
 // Track if user is Pro for toggle handlers
@@ -772,15 +777,59 @@ let userIsPro = false;
 
             const newMode = e.target.checked ? 'detailed' : 'normal';
             localStorage.setItem('detailMode', newMode);
-            // Sync both toggles
+            // Sync both toggles and mode selector
             ['detail-mode-toggle-desktop', 'detail-mode-toggle-mobile'].forEach(otherId => {
                 const otherEl = document.getElementById(otherId);
                 if (otherEl && otherEl !== e.target) {
                     otherEl.checked = e.target.checked;
                 }
             });
+            updateModeSelectorBubble();
         });
     }
+});
+
+// Mode selector bubble in chat input area
+function updateModeSelectorBubble() {
+    const btn = document.getElementById('mode-selector-btn');
+    const text = document.getElementById('mode-selector-text');
+    if (!btn || !text) return;
+
+    const currentMode = localStorage.getItem('detailMode') || 'normal';
+    const isDetailed = currentMode === 'detailed';
+
+    text.textContent = isDetailed ? 'Detailed' : 'Fast';
+    btn.classList.toggle('detailed', isDetailed);
+}
+
+// Initialize mode selector on load
+document.addEventListener('DOMContentLoaded', () => {
+    updateModeSelectorBubble();
+});
+
+// Mode selector click handler
+document.getElementById('mode-selector-btn')?.addEventListener('click', (e) => {
+    e.stopPropagation();
+
+    // Check if user is Pro
+    if (!userIsPro) {
+        showUpgradeModal();
+        return;
+    }
+
+    // Toggle mode
+    const currentMode = localStorage.getItem('detailMode') || 'normal';
+    const newMode = currentMode === 'detailed' ? 'normal' : 'detailed';
+    localStorage.setItem('detailMode', newMode);
+
+    // Sync toggles in profile dropdown
+    const isDetailed = newMode === 'detailed';
+    ['detail-mode-toggle-desktop', 'detail-mode-toggle-mobile'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.checked = isDetailed;
+    });
+
+    updateModeSelectorBubble();
 });
 
 // Chat input handlers

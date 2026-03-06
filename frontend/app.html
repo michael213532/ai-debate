@@ -839,6 +839,38 @@
             cursor: not-allowed;
         }
 
+        /* Mode Selector Bubble */
+        .mode-selector-bubble {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 14px;
+            background: var(--surface-light);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: var(--text-primary);
+            cursor: pointer;
+            transition: all 0.15s;
+            white-space: nowrap;
+        }
+
+        .mode-selector-bubble:hover {
+            background: var(--border-color);
+            border-color: var(--text-secondary);
+        }
+
+        .mode-selector-bubble.detailed {
+            background: linear-gradient(135deg, rgba(255, 215, 0, 0.15), rgba(255, 165, 0, 0.15));
+            border-color: #FFD700;
+            color: var(--text-primary);
+        }
+
+        .mode-selector-bubble.detailed:hover {
+            background: linear-gradient(135deg, rgba(255, 215, 0, 0.25), rgba(255, 165, 0, 0.25));
+        }
+
         .action-btn:disabled {
             opacity: 0.5;
         }
@@ -2329,6 +2361,12 @@
                                     <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
                                     <polyline points="7 10 12 15 17 10"/>
                                     <line x1="12" y1="15" x2="12" y2="3"/>
+                                </svg>
+                            </button>
+                            <button id="mode-selector-btn" class="mode-selector-bubble" title="Response mode">
+                                <span id="mode-selector-text">Fast</span>
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                    <polyline points="6 9 12 15 18 9"/>
                                 </svg>
                             </button>
                             <div class="chat-buttons-spacer"></div>
