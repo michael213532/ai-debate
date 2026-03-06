@@ -590,12 +590,6 @@ function finishAiDiscussion(modelName) {
     const msg = container.querySelector(`.message.ai-individual[data-model="${modelName}"].streaming`);
     if (msg) {
         msg.classList.remove('streaming');
-        // Render Markdown
-        const content = msg.querySelector('.message-content');
-        if (content && typeof marked !== 'undefined') {
-            const rawText = content.textContent;
-            content.innerHTML = marked.parse(rawText);
-        }
     }
 }
 
@@ -1301,8 +1295,6 @@ async function loadConversation(debateId) {
             const formattedHtml = formatSummaryAsCards(summary.content);
             if (formattedHtml) {
                 contentEl.innerHTML = formattedHtml;
-            } else if (typeof marked !== 'undefined') {
-                contentEl.innerHTML = marked.parse(summary.content);
             } else {
                 contentEl.textContent = summary.content;
             }
