@@ -485,8 +485,11 @@ async def delete_debate(
                 detail="Debate not found"
             )
 
-        # Delete messages first (foreign key constraint)
+        # Delete related records first (foreign key constraints)
         await db.execute("DELETE FROM messages WHERE debate_id = ?", (debate_id,))
+        await db.execute("DELETE FROM debate_summaries WHERE debate_id = ?", (debate_id,))
+        # Clear source_debate_id reference in user_memory (no FK but good to clean up)
+        await db.execute("UPDATE user_memory SET source_debate_id = NULL WHERE source_debate_id = ?", (debate_id,))
         # Delete debate
         await db.execute("DELETE FROM debates WHERE id = ?", (debate_id,))
         await db.commit()
