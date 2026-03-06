@@ -561,7 +561,7 @@ function addAiDiscussionMessage(modelName, provider, content, personalityId) {
     let emojiHtml = '';
     if (personalityId) {
         if (personalityId === 'expert') {
-            emojiHtml = '<img src="/bee-expert.png" alt="" style="width: 24px; height: 24px; vertical-align: middle; margin-right: 6px;">';
+            emojiHtml = '<img src="/bee-expert.png" alt="" style="width: 36px; height: 36px; vertical-align: middle; margin-right: 6px;">';
         } else {
             const personality = (window.allPersonalities || []).find(p => p.id === personalityId);
             if (personality && personality.emoji) {
