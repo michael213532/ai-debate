@@ -559,9 +559,10 @@ function addAiDiscussionMessage(modelName, provider, content, personalityId) {
 
     // Get personality emoji/image
     let emojiHtml = '';
+    const beePersonalities = ['expert', 'optimist', 'analyst', 'skeptic', 'realist'];
     if (personalityId) {
-        if (personalityId === 'expert') {
-            emojiHtml = '<img src="/bee-expert.png" alt="" style="width: 50px; height: 50px; vertical-align: middle; margin-right: 6px; image-rendering: -webkit-optimize-contrast;">';
+        if (beePersonalities.includes(personalityId)) {
+            emojiHtml = `<img src="/bee-${personalityId}.png" alt="" style="width: 50px; height: 50px; vertical-align: middle; margin-right: 6px; image-rendering: -webkit-optimize-contrast;">`;
         } else {
             const personality = (window.allPersonalities || []).find(p => p.id === personalityId);
             if (personality && personality.emoji) {

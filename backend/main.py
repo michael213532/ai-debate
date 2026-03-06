@@ -125,6 +125,30 @@ async def serve_bee_expert():
     return FileResponse(frontend_path / "bee-expert.png", media_type="image/png")
 
 
+@app.get("/bee-optimist.png")
+async def serve_bee_optimist():
+    """Serve the optimist bee icon."""
+    return FileResponse(frontend_path / "bee-optimist.png", media_type="image/png")
+
+
+@app.get("/bee-analyst.png")
+async def serve_bee_analyst():
+    """Serve the analyst bee icon."""
+    return FileResponse(frontend_path / "bee-analyst.png", media_type="image/png")
+
+
+@app.get("/bee-skeptic.png")
+async def serve_bee_skeptic():
+    """Serve the skeptic bee icon."""
+    return FileResponse(frontend_path / "bee-skeptic.png", media_type="image/png")
+
+
+@app.get("/bee-realist.png")
+async def serve_bee_realist():
+    """Serve the realist bee icon."""
+    return FileResponse(frontend_path / "bee-realist.png", media_type="image/png")
+
+
 @app.get("/health")
 async def health_check():
     """Health check endpoint."""
