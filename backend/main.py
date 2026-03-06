@@ -119,6 +119,12 @@ async def serve_favicon():
     return FileResponse(frontend_path / "favicon.svg", media_type="image/svg+xml")
 
 
+@app.get("/bee-expert.png")
+async def serve_bee_expert():
+    """Serve the expert bee icon."""
+    return FileResponse(frontend_path / "bee-expert.png", media_type="image/png")
+
+
 @app.get("/health")
 async def health_check():
     """Health check endpoint."""

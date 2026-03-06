@@ -1436,7 +1436,7 @@ function renderPersonalitySelector(suggestedIds = []) {
 
         card.innerHTML = `
             <span class="checkmark">✓</span>
-            <span class="emoji">${personality.emoji}</span>
+            ${personality.id === 'expert' ? '<img src="/bee-expert.png" alt="" class="emoji" style="width: 36px; height: 36px;">' : `<span class="emoji">${personality.emoji}</span>`}
             <span class="name">${personality.name.replace('The ', '')}</span>
             ${assignedModel ? `<span class="model">powered by ${assignedModel}</span>` : ''}
         `;
@@ -1691,7 +1691,7 @@ function renderVoicesBar() {
         chip.className = `voice-chip ${isSelected ? 'selected' : ''}`;
         chip.dataset.personalityId = personality.id;
         chip.innerHTML = `
-            <span class="voice-emoji">${personality.emoji}</span>
+            ${personality.id === 'expert' ? '<img src="/bee-expert.png" alt="" class="voice-emoji" style="width: 24px; height: 24px;">' : `<span class="voice-emoji">${personality.emoji}</span>`}
             <span class="voice-name">${personality.name.replace('The ', '')}</span>
         `;
         chip.addEventListener('click', () => {
