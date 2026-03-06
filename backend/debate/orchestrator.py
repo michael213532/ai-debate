@@ -645,7 +645,8 @@ Do all AIs agree? Reply ONLY with AGREE or DISAGREE."""
     async def _generate_hive_verdict(self) -> dict:
         """
         Generate a structured Hive Verdict after debate completes.
-        Returns a dict with votes, hive_decision, confidence, and key_reasons.
+        Returns a dict with votes, hive_decision, and confidence.
+        Confidence varies based on vote distribution for variety.
         """
         if not self.messages or len(self.messages) < 2:
             return None
@@ -674,38 +675,41 @@ Do all AIs agree? Reply ONLY with AGREE or DISAGREE."""
             provider_class = ProviderRegistry.get(provider_name)
             provider = provider_class(self.api_keys[provider_name])
 
-            # Build prompt with all responses
-            responses_text = ""
-            for msg in self.messages:
-                if msg["provider"] != "user":
-                    # Check if this model has a personality
-                    personality_info = ""
-                    for m in self.models:
-                        if m["model_name"] == msg["model_name"] and m.get("personality_id"):
-                            p = get_personality(m["personality_id"])
-                            if p:
-                                personality_info = f" ({p.name})"
-                    responses_text += f"**{msg['model_name']}{personality_info}**: {msg['content']}\n\n"
+            # Get FINAL responses only (last message from each AI after debate)
+            final_responses = {}
+            for msg in reversed(self.messages):
+                if msg["provider"] != "user" and msg["model_name"] not in final_responses:
+                    final_responses[msg["model_name"]] = msg["content"]
 
-            system_prompt = """Output ONLY valid JSON. Extract each AI's ACTUAL choice/recommendation from their response.
+            responses_text = ""
+            for name, content in final_responses.items():
+                responses_text += f"**{name}**: {content}\n\n"
+
+            # Count total AIs for confidence calculation
+            total_ais = len(final_responses)
+
+            system_prompt = f"""Output ONLY valid JSON. Extract each AI's FINAL choice from their response.
 
 Example format:
-{"votes":[{"name":"Analyst","choice":"Pizza","reason":"Better value"}],"hive_decision":"Pizza","confidence":80,"key_reasons":["Reason 1","Reason 2"]}
+{{"votes":[{{"name":"Analyst","choice":"Pizza"}},{{"name":"Skeptic","choice":"Burger"}}],"hive_decision":"Pizza"}}
 
 Rules:
-- CRITICAL: Extract the ACTUAL answer each AI recommended (e.g., "Pizza", "Option A", "Yes", "iPhone 15") - NOT placeholder text
-- Each AI should appear ONLY ONCE in votes (no duplicates)
-- Use the personality name (e.g., "Analyst", "Expert", "Optimist", "Skeptic", "Realist")
-- hive_decision = The ACTUAL winning answer (most votes wins)
-- confidence = (votes for winner / total) * 100
-- Keep it brief. No markdown."""
+- Extract the ACTUAL final answer each AI chose (e.g., "Pizza", "Option A", "Yes", "iPhone 15")
+- Use their personality name (Analyst, Expert, Optimist, Skeptic, Realist)
+- Each AI appears ONLY ONCE (their FINAL position after debate)
+- hive_decision = the answer with most votes
+- If tied, pick the one argued most convincingly
+- NO confidence field - I will calculate it
+- NO key_reasons field
+- Keep choices SHORT (1-3 words max)
+- No markdown, just JSON."""
 
             user_message = f"""Topic: {self.topic}
 
-AI Responses:
+FINAL positions after debate:
 {responses_text}
 
-Generate the Hive Verdict JSON:"""
+Generate verdict JSON (votes and hive_decision only):"""
 
             full_response = ""
             async for chunk in provider.generate_stream(
@@ -716,7 +720,6 @@ Generate the Hive Verdict JSON:"""
                 full_response += chunk
 
             # Parse JSON from response
-            # Try to extract JSON from the response
             full_response = full_response.strip()
             # Remove markdown code blocks if present
             if full_response.startswith("```"):
@@ -726,6 +729,39 @@ Generate the Hive Verdict JSON:"""
                 full_response = full_response.strip()
 
             verdict = json.loads(full_response)
+
+            # Calculate confidence based on vote distribution
+            # This creates variety: unanimous = high, split = lower
+            if "votes" in verdict and len(verdict["votes"]) > 0:
+                votes = verdict["votes"]
+                hive_decision = verdict.get("hive_decision", "")
+
+                # Count votes for the winning choice
+                winner_votes = sum(1 for v in votes if v.get("choice", "").lower() == hive_decision.lower())
+                total_votes = len(votes)
+
+                if total_votes > 0:
+                    # Base confidence on vote ratio with some variance
+                    # 5/5 unanimous: 85-95%
+                    # 4/5 majority: 72-82%
+                    # 3/5 slight majority: 58-68%
+                    # 2/4 or 3/6 tie-ish: 48-58%
+                    import random
+                    ratio = winner_votes / total_votes
+
+                    if ratio >= 1.0:  # Unanimous
+                        confidence = random.randint(85, 95)
+                    elif ratio >= 0.8:  # Strong majority (4/5)
+                        confidence = random.randint(72, 82)
+                    elif ratio >= 0.6:  # Majority (3/5, 2/3)
+                        confidence = random.randint(58, 68)
+                    elif ratio >= 0.5:  # Slim majority
+                        confidence = random.randint(48, 58)
+                    else:  # Minority won somehow (edge case)
+                        confidence = random.randint(35, 45)
+
+                    verdict["confidence"] = confidence
+
             return verdict
 
         except Exception as e:
