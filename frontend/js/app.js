@@ -681,6 +681,9 @@ document.addEventListener('click', (e) => {
 
 // Update profile display
 function updateProfileDisplay(email, isPro) {
+    // Update global Pro status for toggle handlers
+    userIsPro = isPro;
+
     const initial = email ? email.charAt(0).toUpperCase() : 'U';
 
     // Update avatars (desktop + mobile)
@@ -719,26 +722,54 @@ function updateProfileDisplay(email, isPro) {
         if (el) el.style.display = isPro ? 'none' : 'flex';
     });
 
-    // Show/hide detail mode toggle for Pro users
+    // Always show detail mode toggle (but with PRO badge for free users)
     ['desktop-mode-toggle', 'mobile-mode-toggle'].forEach(id => {
         const el = document.getElementById(id);
-        if (el) el.style.display = isPro ? 'flex' : 'none';
+        if (el) el.style.display = 'flex';
     });
 
-    // Set detail mode toggle state from localStorage
-    const currentMode = localStorage.getItem('detailMode') || 'normal';
-    const isDetailed = currentMode === 'detailed';
+    // Show/hide PRO badge based on subscription (show for free users)
+    ['desktop-mode-pro-badge', 'mobile-mode-pro-badge'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.style.display = isPro ? 'none' : 'inline';
+    });
+
+    // For free users, disable the toggle and show it as off
     ['detail-mode-toggle-desktop', 'detail-mode-toggle-mobile'].forEach(id => {
         const el = document.getElementById(id);
-        if (el) el.checked = isDetailed;
+        if (el) {
+            if (isPro) {
+                // Pro users can toggle freely
+                const currentMode = localStorage.getItem('detailMode') || 'normal';
+                el.checked = currentMode === 'detailed';
+                el.disabled = false;
+                el.parentElement.style.opacity = '1';
+            } else {
+                // Free users see it as off and slightly dimmed
+                el.checked = false;
+                el.disabled = false; // Keep enabled so click handler fires
+                el.parentElement.style.opacity = '0.7';
+            }
+        }
     });
 }
 
-// Detail mode toggle event listeners (Pro users only)
+// Track if user is Pro for toggle handlers
+let userIsPro = false;
+
+// Detail mode toggle event listeners
 ['detail-mode-toggle-desktop', 'detail-mode-toggle-mobile'].forEach(id => {
     const el = document.getElementById(id);
     if (el) {
         el.addEventListener('change', (e) => {
+            // Check if user is Pro
+            if (!userIsPro) {
+                // Revert the toggle and show upgrade modal
+                e.target.checked = false;
+                showUpgradeModal();
+                return;
+            }
+
             const newMode = e.target.checked ? 'detailed' : 'normal';
             localStorage.setItem('detailMode', newMode);
             // Sync both toggles
