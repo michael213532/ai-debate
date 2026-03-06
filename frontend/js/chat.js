@@ -1381,7 +1381,7 @@ function renderHiveVerdict(verdict) {
             const voteName = (vote.name || '').toLowerCase();
             const beeType = beeTypes.find(b => voteName.includes(b));
             const beeImg = beeType
-                ? `<img src="/bee-${beeType}.png" alt="" style="width: 24px; height: 24px; vertical-align: middle; margin-right: -2px; image-rendering: -webkit-optimize-contrast;">`
+                ? `<img src="/bee-${beeType}.png" alt="" style="width: 24px; height: 24px; vertical-align: middle; margin-right: -6px; image-rendering: -webkit-optimize-contrast;">`
                 : '';
             votesHtml += `
                 <div class="verdict-vote">
