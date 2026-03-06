@@ -215,12 +215,14 @@ async function sendMessage() {
             // Keep continuingDebateId for future follow-ups in this session
         } else {
             // Create new debate/session
+            const detailMode = localStorage.getItem('detailMode') || 'normal';
             const requestBody = {
                 topic: message,
                 config: {
                     models: selectedModels,
                     rounds: 1,
-                    summarizer_index: summarizerIndex
+                    summarizer_index: summarizerIndex,
+                    detail_mode: detailMode
                 }
             };
 

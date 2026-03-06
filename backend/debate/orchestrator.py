@@ -19,7 +19,9 @@ class DebateOrchestrator:
         on_message: Callable[[dict], None],
         images: list = None,
         user_id: Optional[str] = None,
-        user_memory_context: Optional[str] = None
+        user_memory_context: Optional[str] = None,
+        is_pro: bool = False,
+        detail_mode: str = "fast"
     ):
         self.debate_id = debate_id
         self.topic = topic
@@ -37,6 +39,8 @@ class DebateOrchestrator:
         self._intervention_queue = asyncio.Queue()  # Queue for user interventions
         self.user_id = user_id  # For memory extraction
         self.user_memory_context = user_memory_context  # Memory context to inject
+        self.is_pro = is_pro  # Pro subscription status
+        self.detail_mode = detail_mode  # "fast" or "detailed"
 
         # If images are attached, reorder models so vision-capable ones go first
         if self.images:
@@ -361,9 +365,17 @@ class DebateOrchestrator:
                 personality_role = personality.role
                 display_name = personality.name
 
-        # Round 1: Be opinionated and fight for your view
-        if round_num == 1:
-            base_prompt = f"""You are {display_name}.
+        # FAST MODE (free users) - shorter, quicker responses
+        if self.detail_mode == "fast":
+            if round_num == 1:
+                base_prompt = f"""You are {display_name}. Pick ONE answer and defend it in 2-3 sentences. Be direct, be opinionated. Disagree with others if you think differently. No markdown."""
+            else:
+                base_prompt = f"""You are {display_name}. Round {round_num}. State your final pick in 2-3 sentences. You can agree if convinced but explain why. No markdown."""
+
+        # DETAILED MODE (pro users) - full debate experience
+        else:
+            if round_num == 1:
+                base_prompt = f"""You are {display_name}.
 
 You're in a heated debate with other AI personalities. This is ROUND 1 - state your opinion and FIGHT for it.
 
@@ -386,9 +398,8 @@ RULES:
 
 9. NO MARKDOWN: Plain text only, no ** or * or #."""
 
-        # Round 2+: Still fight but start finding ground
-        else:
-            base_prompt = f"""You are {display_name}.
+            else:
+                base_prompt = f"""You are {display_name}.
 
 This is ROUND {round_num}. You've been debating. You can START to find common ground, but don't just cave in.
 

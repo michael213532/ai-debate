@@ -718,7 +718,39 @@ function updateProfileDisplay(email, isPro) {
         const el = document.getElementById(id);
         if (el) el.style.display = isPro ? 'none' : 'flex';
     });
+
+    // Show/hide detail mode toggle for Pro users
+    ['desktop-mode-toggle', 'mobile-mode-toggle'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.style.display = isPro ? 'flex' : 'none';
+    });
+
+    // Set detail mode toggle state from localStorage
+    const currentMode = localStorage.getItem('detailMode') || 'normal';
+    const isDetailed = currentMode === 'detailed';
+    ['detail-mode-toggle-desktop', 'detail-mode-toggle-mobile'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.checked = isDetailed;
+    });
 }
+
+// Detail mode toggle event listeners (Pro users only)
+['detail-mode-toggle-desktop', 'detail-mode-toggle-mobile'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) {
+        el.addEventListener('change', (e) => {
+            const newMode = e.target.checked ? 'detailed' : 'normal';
+            localStorage.setItem('detailMode', newMode);
+            // Sync both toggles
+            ['detail-mode-toggle-desktop', 'detail-mode-toggle-mobile'].forEach(otherId => {
+                const otherEl = document.getElementById(otherId);
+                if (otherEl && otherEl !== e.target) {
+                    otherEl.checked = e.target.checked;
+                }
+            });
+        });
+    }
+});
 
 // Chat input handlers
 const chatInput = document.getElementById('chat-input');
@@ -1614,12 +1646,15 @@ async function startDebateWithPersonalities() {
     try {
         // Get summarizer index based on bee preference
         const summarizerIndex = getSummarizerIndexByBee(modelsConfig);
+        // Get detail mode from localStorage (Pro users can toggle)
+        const detailMode = localStorage.getItem('detailMode') || 'normal';
         const requestBody = {
             topic: questionToSend,
             config: {
                 models: modelsConfig,
                 rounds: 1,
-                summarizer_index: summarizerIndex
+                summarizer_index: summarizerIndex,
+                detail_mode: detailMode
             }
         };
 

@@ -640,7 +640,7 @@ async def debate_websocket(websocket: WebSocket, debate_id: str):
 
     user_id = payload.get("sub")
 
-    # Verify debate belongs to user
+    # Verify debate belongs to user and get subscription status
     async with get_db() as db:
         cursor = await db.execute(
             "SELECT * FROM debates WHERE id = ? AND user_id = ?",
@@ -651,6 +651,14 @@ async def debate_websocket(websocket: WebSocket, debate_id: str):
         if not debate_row:
             await websocket.close(code=4004, reason="Debate not found")
             return
+
+        # Get user's subscription status
+        user_cursor = await db.execute(
+            "SELECT subscription_status FROM users WHERE id = ?",
+            (user_id,)
+        )
+        user_row = await user_cursor.fetchone()
+        is_pro = user_row and user_row["subscription_status"] == "active"
 
     # Add to connections (prevent duplicates)
     if debate_id not in debate_connections:
@@ -685,6 +693,9 @@ async def debate_websocket(websocket: WebSocket, debate_id: str):
             # Build user memory context for AI injection
             user_memory_context = await get_user_memory_context(user_id)
 
+            # Get detail mode from config (Pro users can choose)
+            detail_mode = config.pop("detail_mode", "normal") if is_pro else "fast"
+
             orchestrator = DebateOrchestrator(
                 debate_id=debate_id,
                 topic=topic,
@@ -693,7 +704,9 @@ async def debate_websocket(websocket: WebSocket, debate_id: str):
                 on_message=broadcast_message,
                 images=images,
                 user_id=user_id,
-                user_memory_context=user_memory_context
+                user_memory_context=user_memory_context,
+                is_pro=is_pro,
+                detail_mode=detail_mode
             )
             active_debates[debate_id] = orchestrator
 
