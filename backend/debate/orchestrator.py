@@ -730,8 +730,8 @@ Generate verdict JSON (votes and hive_decision only):"""
 
             verdict = json.loads(full_response)
 
-            # Calculate confidence based on vote distribution
-            # This creates variety: unanimous = high, split = lower
+            # Calculate confidence based on actual vote count
+            # (votes for winner / total votes) * 100
             if "votes" in verdict and len(verdict["votes"]) > 0:
                 votes = verdict["votes"]
                 hive_decision = verdict.get("hive_decision", "")
@@ -741,25 +741,7 @@ Generate verdict JSON (votes and hive_decision only):"""
                 total_votes = len(votes)
 
                 if total_votes > 0:
-                    # Base confidence on vote ratio with some variance
-                    # 5/5 unanimous: 85-95%
-                    # 4/5 majority: 72-82%
-                    # 3/5 slight majority: 58-68%
-                    # 2/4 or 3/6 tie-ish: 48-58%
-                    import random
-                    ratio = winner_votes / total_votes
-
-                    if ratio >= 1.0:  # Unanimous
-                        confidence = random.randint(85, 95)
-                    elif ratio >= 0.8:  # Strong majority (4/5)
-                        confidence = random.randint(72, 82)
-                    elif ratio >= 0.6:  # Majority (3/5, 2/3)
-                        confidence = random.randint(58, 68)
-                    elif ratio >= 0.5:  # Slim majority
-                        confidence = random.randint(48, 58)
-                    else:  # Minority won somehow (edge case)
-                        confidence = random.randint(35, 45)
-
+                    confidence = round((winner_votes / total_votes) * 100)
                     verdict["confidence"] = confidence
 
             return verdict
