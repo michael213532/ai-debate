@@ -674,14 +674,16 @@ Do all AIs agree? Reply ONLY with AGREE or DISAGREE."""
                                 personality_info = f" ({p.name})"
                     responses_text += f"**{msg['model_name']}{personality_info}**: {msg['content']}\n\n"
 
-            system_prompt = """Output ONLY valid JSON. Extract each AI's choice and determine the winner.
+            system_prompt = """Output ONLY valid JSON. Extract each AI's ACTUAL choice/recommendation from their response.
 
-{"votes":[{"name":"Personality Name","choice":"Their pick","reason":"Why (5 words)"}],"hive_decision":"Winner","confidence":75,"key_reasons":["Reason 1","Reason 2"]}
+Example format:
+{"votes":[{"name":"Analyst","choice":"Pizza","reason":"Better value"}],"hive_decision":"Pizza","confidence":80,"key_reasons":["Reason 1","Reason 2"]}
 
 Rules:
+- CRITICAL: Extract the ACTUAL answer each AI recommended (e.g., "Pizza", "Option A", "Yes", "iPhone 15") - NOT placeholder text
 - Each AI should appear ONLY ONCE in votes (no duplicates)
-- Use the personality name from parentheses (e.g., "Analyst", "Expert", "Optimist", "Skeptic", "Realist")
-- hive_decision = ONE answer only (most votes wins)
+- Use the personality name (e.g., "Analyst", "Expert", "Optimist", "Skeptic", "Realist")
+- hive_decision = The ACTUAL winning answer (most votes wins)
 - confidence = (votes for winner / total) * 100
 - Keep it brief. No markdown."""
 
