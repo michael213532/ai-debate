@@ -1008,48 +1008,9 @@ document.getElementById('sidebar-close')?.addEventListener('click', closeSidebar
 // Close on overlay click
 document.getElementById('sidebar-overlay')?.addEventListener('click', closeSidebar);
 
-// New chat button - reset to question-first flow
+// New debate button - just reload the page for fresh state
 document.getElementById('new-chat-btn')?.addEventListener('click', () => {
-    // Clear current chat and continuation state
-    document.getElementById('chat-messages').innerHTML = '';
-    currentSessionId = null;
-    window.continuingDebateId = null;
-    window.loadedConversationTopic = null;
-    conversationHistory = [];
-    closeSidebar();
-
-    // Hide chat input area
-    const inputArea = document.getElementById('chat-input-area');
-    if (inputArea) inputArea.style.display = 'none';
-
-    // Show question-first empty state
-    const container = document.getElementById('chat-messages');
-    container.innerHTML = `
-        <div class="empty-chat" id="empty-state">
-            <img src="/logo.png" alt="Beecision" style="width: 80px; height: 80px; margin-bottom: 16px;">
-
-            <!-- Question templates -->
-            <div style="margin-bottom: 24px;">
-                <span style="color: var(--text-secondary); font-size: 0.85rem;">Try one of these:</span>
-                <div class="question-templates" style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; justify-content: center;">
-                    <button class="question-template" data-question="Should I buy or rent a home?">Should I buy or rent?</button>
-                    <button class="question-template" data-question="Best country to move to in 2026?">Best country to move to?</button>
-                    <button class="question-template" data-question="Which laptop should I buy?">Which laptop to buy?</button>
-                    <button class="question-template" data-question="Should I quit my job and start a business?">Should I quit my job?</button>
-                </div>
-            </div>
-        </div>
-    `;
-
-    // Reset chat input placeholder
-    const chatInput = document.getElementById('chat-input');
-    if (chatInput) {
-        chatInput.value = '';
-        chatInput.placeholder = 'Ask your question';
-    }
-
-    // Re-attach event listeners for the new elements
-    attachQuestionFlowListeners();
+    window.location.href = '/';
 });
 
 // Store loaded debates for search filtering
@@ -1148,9 +1109,7 @@ function renderHistoryList(debates) {
             const topic = debate.topic.length > 30 ? debate.topic.substring(0, 30) + '...' : debate.topic;
             html += `
                 <div class="history-item" data-id="${debate.id}">
-                    <svg class="history-item-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-                    </svg>
+                    <img src="/bee-icon.png" alt="" style="width: 24px; height: 24px; flex-shrink: 0; image-rendering: -webkit-optimize-contrast;">
                     <div class="history-item-content">
                         <div class="history-item-topic">${escapeHtml(topic)}</div>
                     </div>
