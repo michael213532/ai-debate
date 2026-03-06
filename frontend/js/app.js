@@ -1691,7 +1691,7 @@ function renderVoicesBar() {
         chip.className = `voice-chip ${isSelected ? 'selected' : ''}`;
         chip.dataset.personalityId = personality.id;
         chip.innerHTML = `
-            ${personality.id === 'expert' ? '<img src="/bee-expert.png" alt="" class="voice-emoji" style="width: 50px; height: 50px; image-rendering: -webkit-optimize-contrast;">' : `<span class="voice-emoji">${personality.emoji}</span>`}
+            ${personality.id === 'expert' ? '<img src="/bee-expert.png" alt="" class="voice-emoji" style="width: 50px; height: 50px; margin: -15px -5px; image-rendering: -webkit-optimize-contrast;">' : `<span class="voice-emoji">${personality.emoji}</span>`}
             <span class="voice-name">${personality.name.replace('The ', '')}</span>
         `;
         chip.addEventListener('click', () => {
