@@ -380,7 +380,9 @@ IMPORTANT RULES:
 
 6. MAKE CLEAR CHOICES: When asked to compare or choose, clearly state YOUR choice and explain WHY with specific criteria.
 
-7. DON'T JUST AGREE: If another AI already responded, don't just agree with them. Share what YOU think, even if it's different. Healthy disagreement leads to better answers."""
+7. DON'T JUST AGREE: If another AI already responded, don't just agree with them. Share what YOU think, even if it's different. Healthy disagreement leads to better answers.
+
+8. NO MARKDOWN: Do not use any markdown formatting like ** or * or # or bullet points. Write plain text only."""
 
         # Round 2+: Now work towards middle ground
         else:
@@ -401,7 +403,9 @@ IMPORTANT RULES:
 
 6. BE SPECIFIC: When agreeing or compromising, explain exactly what you're agreeing on.
 
-7. SIGNAL PROGRESS: Explicitly state what you agree on and what (if anything) you still disagree about."""
+7. SIGNAL PROGRESS: Explicitly state what you agree on and what (if anything) you still disagree about.
+
+8. NO MARKDOWN: Do not use any markdown formatting like ** or * or # or bullet points. Write plain text only."""
 
         # Add personality role if specified
         if personality_role:
