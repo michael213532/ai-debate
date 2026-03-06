@@ -558,7 +558,7 @@ function addAiDiscussionMessage(modelName, provider, content, personalityId) {
     }
     const beePersonalities = ['expert', 'optimist', 'analyst', 'skeptic', 'realist'];
     const personalityImgHtml = personalityId && beePersonalities.includes(personalityId)
-        ? `<img src="/bee-${personalityId}.png" alt="" style="width: 50px; height: 50px; margin: -15px 2px -15px -5px; image-rendering: -webkit-optimize-contrast;">`
+        ? `<img src="/bee-${personalityId}.png" alt="" style="width: 50px; height: 50px; margin: -15px -2px -15px -8px; image-rendering: -webkit-optimize-contrast;">`
         : '';
 
     msg.innerHTML = `
@@ -1372,14 +1372,20 @@ function renderHiveVerdict(verdict) {
     const verdictEl = document.createElement('div');
     verdictEl.className = 'hive-verdict';
 
-    // Build compact votes HTML
+    // Build compact votes HTML with bee images
+    const beeTypes = ['expert', 'optimist', 'analyst', 'skeptic', 'realist'];
     let votesHtml = '';
     if (verdict.votes && verdict.votes.length > 0) {
         votesHtml = '<div class="verdict-votes">';
         for (const vote of verdict.votes) {
+            const voteName = (vote.name || '').toLowerCase();
+            const beeType = beeTypes.find(b => voteName.includes(b));
+            const beeImg = beeType
+                ? `<img src="/bee-${beeType}.png" alt="" style="width: 24px; height: 24px; vertical-align: middle; margin-right: 4px; image-rendering: -webkit-optimize-contrast;">`
+                : '';
             votesHtml += `
                 <div class="verdict-vote">
-                    <span class="name">${escapeHtml(vote.name || '')}</span>
+                    ${beeImg}<span class="name">${escapeHtml(vote.name || '')}</span>
                     <span class="arrow">→</span>
                     <span class="choice">${escapeHtml(vote.choice || '-')}</span>
                 </div>
@@ -1395,7 +1401,7 @@ function renderHiveVerdict(verdict) {
                 <div class="verdict-label">Hive Decision</div>
                 <div class="verdict-answer">${escapeHtml(verdict.hive_decision || 'No consensus')}</div>
             </div>
-            ${verdict.confidence !== undefined ? `<div class="verdict-confidence">${verdict.confidence}%</div>` : ''}
+            ${verdict.confidence !== undefined ? `<div class="verdict-confidence">${verdict.confidence}% confidence</div>` : ''}
         </div>
         ${votesHtml}
     `;
