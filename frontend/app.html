@@ -518,26 +518,41 @@
             gap: 16px;
         }
 
-        /* Sticky Question Header */
-        .sticky-question {
+        /* Question Header - big bold and sticky */
+        .question-header {
             position: sticky;
             top: 0;
             z-index: 50;
             background: var(--bg-color);
-            padding: 20px 0;
-            margin: -24px -24px 20px -24px;
+            text-align: center;
+            padding: 20px 16px;
+            margin: 0 -24px 16px -24px;
             padding-left: 24px;
             padding-right: 24px;
             border-bottom: 2px solid var(--primary-color);
             flex-shrink: 0;
         }
 
-        .sticky-question-text {
-            font-size: 1.3rem;
+        .question-header-text {
+            font-size: 1.4rem;
             font-weight: 700;
             color: var(--text-primary);
-            line-height: 1.4;
-            text-align: center;
+            line-height: 1.5;
+        }
+
+        .question-images {
+            display: flex;
+            gap: 8px;
+            justify-content: center;
+            margin-top: 12px;
+            flex-wrap: wrap;
+        }
+
+        .question-image {
+            max-width: 150px;
+            max-height: 150px;
+            border-radius: 8px;
+            object-fit: cover;
         }
 
         .message {
@@ -1819,14 +1834,19 @@
                 overscroll-behavior: contain;
             }
 
-            /* Sticky question header mobile */
-            .sticky-question {
-                margin: -12px -10px 12px -10px;
-                padding: 14px 10px;
+            /* Question header mobile */
+            .question-header {
+                margin: 0 -10px 12px -10px;
+                padding: 16px 10px;
             }
 
-            .sticky-question-text {
-                font-size: 1.1rem;
+            .question-header-text {
+                font-size: 1.15rem;
+            }
+
+            .question-image {
+                max-width: 100px;
+                max-height: 100px;
             }
 
             .message {
@@ -2446,11 +2466,6 @@
 
                 <!-- Chat Messages -->
                 <div id="chat-messages" class="chat-messages">
-                    <!-- Sticky Question Header -->
-                    <div id="sticky-question" class="sticky-question" style="display: none;">
-                        <div class="sticky-question-text"></div>
-                    </div>
-
                     <div class="empty-chat" id="empty-state">
                         <img src="/logo.png" alt="Beecision" style="width: 80px; height: 80px; margin-bottom: 24px;">
 

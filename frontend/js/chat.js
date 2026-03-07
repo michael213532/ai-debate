@@ -12,26 +12,6 @@ let selectedImages = []; // Array of { base64: string, media_type: string, dataU
 let lastSentMessage = null; // Track last message for retry functionality
 const MAX_IMAGES = 10;
 
-// Update the sticky question header with the current topic
-function updateStickyQuestion(question) {
-    const stickyEl = document.getElementById('sticky-question');
-    if (stickyEl) {
-        const textEl = stickyEl.querySelector('.sticky-question-text');
-        if (textEl) {
-            textEl.textContent = question;
-        }
-        stickyEl.style.display = 'block';
-    }
-}
-
-// Hide the sticky question header
-function hideStickyQuestion() {
-    const stickyEl = document.getElementById('sticky-question');
-    if (stickyEl) {
-        stickyEl.style.display = 'none';
-    }
-}
-
 // Vision-capable models (all others cannot see images)
 const VISION_MODELS = new Set([
     'gpt-5.2', 'gpt-5', 'gpt-5-mini', 'gpt-4o', 'gpt-4o-mini',  // OpenAI
@@ -172,9 +152,6 @@ async function sendMessage() {
 
     // Store for retry functionality
     lastSentMessage = message;
-
-    // Update sticky question header
-    updateStickyQuestion(message);
 
     // Lock input
     setInputLocked(true);
@@ -415,17 +392,17 @@ function handleWebSocketMessage(message) {
     }
 }
 
-// Add user message to chat
+// Add user message to chat as a big bold question header
 function addUserMessage(text, imageDataUrls = []) {
     const container = document.getElementById('chat-messages');
     const msg = document.createElement('div');
-    msg.className = 'message user';
+    msg.className = 'question-header';
 
-    let html = `<div class="message-content">${escapeHtml(text)}</div>`;
+    let html = `<div class="question-header-text">${escapeHtml(text)}</div>`;
     if (imageDataUrls && imageDataUrls.length > 0) {
-        html += '<div class="message-images">';
+        html += '<div class="question-images">';
         for (const dataUrl of imageDataUrls) {
-            html += `<img src="${dataUrl}" class="message-image" alt="Attached image">`;
+            html += `<img src="${dataUrl}" class="question-image" alt="Attached image">`;
         }
         html += '</div>';
     }
@@ -1242,9 +1219,6 @@ async function loadConversation(debateId) {
 
         // Get original topic (first part before any "---" for old data compatibility)
         const originalTopic = debate.topic.split(/\s*---\s*/)[0].trim();
-
-        // Update sticky question header
-        updateStickyQuestion(originalTopic);
 
         // Separate summary from other messages
         let summary = null;
