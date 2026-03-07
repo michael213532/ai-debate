@@ -589,10 +589,16 @@ function updateSendButton() {
 
     // During active discussion, only need text to intervene
     // On empty state (no session), only need text to start question flow
+    // After a completed session (continuingDebateId set), only need text to continue
     // Otherwise, need text and at least 2 models
     const isActive = typeof isProcessing !== 'undefined' && isProcessing;
     const noSession = typeof currentSessionId !== 'undefined' && !currentSessionId;
-    const canSend = hasText && (isActive || noSession || selectedModels.length >= 2);
+    const hasModels = selectedModels.length >= 2;
+    const canContinue = typeof window.continuingDebateId !== 'undefined' && window.continuingDebateId;
+    const canSend = hasText && (isActive || noSession || hasModels || canContinue);
+
+    console.log('[updateSendButton] hasText:', !!hasText, 'isActive:', isActive, 'noSession:', noSession, 'hasModels:', hasModels, 'canContinue:', !!canContinue, 'canSend:', canSend);
+
     sendBtn.disabled = !canSend;
 }
 
