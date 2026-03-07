@@ -164,9 +164,26 @@ async function sendMessage() {
     }
 
     if (selectedModels.length < 2) {
-        console.log('[sendMessage] BLOCKED - not enough models');
-        showToast('Please select at least 2 AI voices first', 4000, 'warning');
-        return;
+        // Try to reload from localStorage if we're continuing a debate
+        if (window.continuingDebateId) {
+            console.log('[sendMessage] Attempting to reload models from localStorage');
+            const saved = localStorage.getItem('selectedModels');
+            if (saved) {
+                try {
+                    selectedModels = JSON.parse(saved);
+                    console.log('[sendMessage] Reloaded models:', selectedModels.length);
+                } catch (e) {
+                    console.error('[sendMessage] Failed to reload models:', e);
+                }
+            }
+        }
+
+        // Check again after potential reload
+        if (selectedModels.length < 2) {
+            console.log('[sendMessage] BLOCKED - not enough models');
+            showToast('Please select at least 2 AI voices first', 4000, 'warning');
+            return;
+        }
     }
 
     if (isProcessing) {
