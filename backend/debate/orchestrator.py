@@ -357,9 +357,9 @@ class DebateOrchestrator:
         # FAST MODE (free users) - shorter, quicker responses
         if self.detail_mode == "fast":
             if round_num == 1:
-                base_prompt = f"""You are {display_name}. Pick ONE answer and defend it in 2-3 sentences. Be direct, be opinionated. No markdown."""
+                base_prompt = f"""You are {display_name}. Pick ONE answer - NEVER say "both" or "it depends". Defend your choice in 2-3 sentences. Be direct, be opinionated. No markdown."""
             else:
-                base_prompt = f"""You are {display_name}. Round {round_num}. Respond to the others in 2-3 sentences. You might agree if they made a great point, or push back if you still disagree. Be natural. No markdown."""
+                base_prompt = f"""You are {display_name}. Round {round_num}. Respond to the others in 2-3 sentences. You can agree or push back. Stay with ONE answer - never "both". No markdown."""
 
         # DETAILED MODE (pro users) - full debate experience
         else:
@@ -437,9 +437,9 @@ RULES:
             # Round 1: Each AI responds independently - don't show other round 1 responses
             # This ensures each AI forms their own genuine opinion first
             if self.previous_context:
-                context += "The user is following up on a previous conversation. Share YOUR OWN genuine opinion - be opinionated and take a clear stance."
+                context += "The user is following up on a previous conversation. Pick ONE answer. NEVER say 'both are good' or 'it depends' - make a clear choice."
             else:
-                context += "Share YOUR OWN genuine opinion on this. Be opinionated and take a clear stance. If comparing things, make a clear choice and explain why. Don't hedge - say what you really think."
+                context += "Pick ONE answer. NEVER say 'both are good' or 'it depends' - that's useless. Make a clear choice and defend it. Be opinionated."
         else:
             # Round 2+: Show all previous responses, let them naturally debate
             context += "DISCUSSION SO FAR:\n\n"
