@@ -174,6 +174,8 @@ async function sendMessage() {
         return;
     }
 
+    console.log('[sendMessage] Starting - continuingDebateId:', window.continuingDebateId, 'currentSessionId:', currentSessionId);
+
     // Store for retry functionality
     lastSentMessage = message;
 
@@ -213,6 +215,9 @@ async function sendMessage() {
         // Check if we're continuing an existing conversation
         if (window.continuingDebateId) {
             // Continue existing debate
+            console.log('[sendMessage] Continuing debate:', window.continuingDebateId);
+            updateChatStatus('Continuing discussion...');
+
             const continueBody = {
                 topic: message,
                 config: {
@@ -226,15 +231,24 @@ async function sendMessage() {
                 continueBody.images = imagesToSend;
             }
 
+            console.log('[sendMessage] Continue body:', JSON.stringify(continueBody));
+
             const response = await fetch(`${API_BASE}/api/debates/${window.continuingDebateId}/continue`, {
                 method: 'POST',
                 headers: getAuthHeaders(),
                 body: JSON.stringify(continueBody)
             });
 
-            if (!response.ok) throw new Error('Failed to continue session');
+            console.log('[sendMessage] Continue response status:', response.status);
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error('[sendMessage] Continue failed:', errorText);
+                throw new Error('Failed to continue session');
+            }
 
             session = await response.json();
+            console.log('[sendMessage] Continue session:', session);
             currentSessionId = session.id;
             // Keep continuingDebateId for future follow-ups in this session
         } else {
@@ -287,8 +301,11 @@ async function sendMessage() {
 
 // Connect to WebSocket
 function connectWebSocket(sessionId) {
+    console.log('[WebSocket] Connecting to session:', sessionId);
+
     // Close any existing connection first to prevent duplicates
     if (chatWebSocket) {
+        console.log('[WebSocket] Closing existing connection');
         try {
             chatWebSocket.onclose = null; // Prevent cleanup handler from running
             chatWebSocket.close();
@@ -301,11 +318,12 @@ function connectWebSocket(sessionId) {
     const token = localStorage.getItem('token');
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const wsUrl = `${protocol}//${window.location.host}/ws/debates/${sessionId}?token=${token}`;
+    console.log('[WebSocket] URL:', wsUrl);
 
     chatWebSocket = new WebSocket(wsUrl);
 
     chatWebSocket.onopen = () => {
-        console.log('WebSocket connected');
+        console.log('[WebSocket] Connected successfully');
         updateChatStatus('Discussing...');
     };
 
@@ -315,13 +333,13 @@ function connectWebSocket(sessionId) {
     };
 
     chatWebSocket.onerror = (error) => {
-        console.error('WebSocket error:', error);
+        console.error('[WebSocket] Error:', error);
         updateChatStatus('Connection error');
         setInputLocked(false);
     };
 
-    chatWebSocket.onclose = () => {
-        console.log('WebSocket closed');
+    chatWebSocket.onclose = (event) => {
+        console.log('[WebSocket] Closed - code:', event.code, 'reason:', event.reason);
         chatWebSocket = null;
         // Always unlock input when connection closes to prevent softlock
         if (isProcessing) {
@@ -668,31 +686,16 @@ function addAiDiscussionError(modelName, error) {
     }
 }
 
-// Update chat status indicator - shows a floating status pill above the input
+// Update chat status indicator - shows in the input placeholder
 function updateChatStatus(text) {
-    let statusEl = document.getElementById('chat-status-indicator');
+    const input = document.getElementById('chat-input');
+    if (!input) return;
 
-    if (!text) {
-        // Hide status indicator
-        if (statusEl) {
-            statusEl.classList.remove('visible');
-        }
-        return;
+    if (text) {
+        input.placeholder = text;
+    } else {
+        input.placeholder = 'Ask your question';
     }
-
-    // Create status indicator if it doesn't exist
-    if (!statusEl) {
-        statusEl = document.createElement('div');
-        statusEl.id = 'chat-status-indicator';
-        statusEl.className = 'chat-status-indicator';
-        const inputArea = document.querySelector('.chat-input-area');
-        if (inputArea) {
-            inputArea.insertBefore(statusEl, inputArea.firstChild);
-        }
-    }
-
-    statusEl.textContent = text;
-    statusEl.classList.add('visible');
 }
 
 // Lock/unlock input - toggle between send and stop mode
@@ -700,9 +703,6 @@ function setInputLocked(locked) {
     isProcessing = locked;
     const input = document.getElementById('chat-input');
     const sendBtn = document.getElementById('send-btn');
-
-    // Always keep placeholder as "Ask your question"
-    input.placeholder = 'Ask your question';
 
     if (locked) {
         // Switch to stop mode - circular pause button
@@ -713,6 +713,7 @@ function setInputLocked(locked) {
         // Switch to send mode - Start Debate text
         sendBtn.classList.remove('stop-mode');
         sendBtn.innerHTML = 'Start Debate';
+        input.placeholder = 'Ask your question';
         updateSendButton();
     }
 }
