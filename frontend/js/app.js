@@ -1739,11 +1739,11 @@ async function startDebateWithPersonalities() {
     const inputArea = document.getElementById('chat-input-area');
     if (inputArea) inputArea.style.display = 'block';
 
-    // Add user message directly to chat
+    // Add user message as big bold header
     const container = document.getElementById('chat-messages');
     const userMsg = document.createElement('div');
-    userMsg.className = 'message user';
-    userMsg.innerHTML = `<div class="message-content">${escapeHtml(currentQuestion)}</div>`;
+    userMsg.className = 'question-header';
+    userMsg.innerHTML = `<div class="question-header-text">${escapeHtml(currentQuestion)}</div>`;
     container.appendChild(userMsg);
 
     // Store question and start debate
