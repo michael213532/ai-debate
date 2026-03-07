@@ -883,17 +883,19 @@ if (chatInput) {
 
             e.preventDefault();
             const question = chatInput.value.trim();
+            if (!question) return;
 
             // If no session yet, trigger question flow
-            if (typeof currentSessionId !== 'undefined' && !currentSessionId && question) {
+            if (typeof currentSessionId !== 'undefined' && !currentSessionId) {
                 handleQuestionSubmit(question);
                 return;
             }
 
             // Check if we're in a discussion (intervention) or starting new
-            if (typeof isProcessing !== 'undefined' && isProcessing && chatWebSocket && chatWebSocket.readyState === WebSocket.OPEN) {
+            if (typeof isProcessing !== 'undefined' && isProcessing && typeof chatWebSocket !== 'undefined' && chatWebSocket && chatWebSocket.readyState === WebSocket.OPEN) {
                 sendIntervention();
-            } else if (!document.getElementById('send-btn').disabled) {
+            } else if (typeof sendMessage === 'function') {
+                // Try to send message for follow-up questions
                 sendMessage();
             }
         }
