@@ -66,11 +66,13 @@ function getSummarizerIndex(models) {
 // Send button click - send message or stop discussion
 document.getElementById('send-btn').addEventListener('click', () => {
     const btn = document.getElementById('send-btn');
+    console.log('[send-btn click] stopMode:', btn.classList.contains('stop-mode'), 'currentSessionId:', currentSessionId);
     if (btn.classList.contains('stop-mode')) {
         // Stop the discussion
         stopDiscussion();
     } else if (!currentSessionId && typeof handleQuestionSubmit === 'function') {
         // No session yet - trigger question flow
+        console.log('[send-btn] triggering handleQuestionSubmit');
         const input = document.getElementById('chat-input');
         const question = input.value.trim();
         if (question) {
@@ -78,6 +80,7 @@ document.getElementById('send-btn').addEventListener('click', () => {
         }
     } else {
         // Normal message send
+        console.log('[send-btn] calling sendMessage');
         sendMessage();
     }
 });
@@ -146,7 +149,10 @@ async function sendMessage() {
     const input = document.getElementById('chat-input');
     const message = input.value.trim();
 
+    console.log('[sendMessage] message:', message, 'selectedModels:', selectedModels.length, 'isProcessing:', isProcessing);
+
     if (!message || selectedModels.length < 2 || isProcessing) {
+        console.log('[sendMessage] BLOCKED - missing requirements');
         return;
     }
 
