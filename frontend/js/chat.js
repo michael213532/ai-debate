@@ -66,20 +66,26 @@ function getSummarizerIndex(models) {
 // Send button click - send message or stop discussion
 document.getElementById('send-btn').addEventListener('click', () => {
     const btn = document.getElementById('send-btn');
-    console.log('[send-btn click] stopMode:', btn.classList.contains('stop-mode'), 'currentSessionId:', currentSessionId);
+    const input = document.getElementById('chat-input');
+    const question = input.value.trim();
+
+    console.log('[send-btn click] stopMode:', btn.classList.contains('stop-mode'), 'currentSessionId:', currentSessionId, 'question:', question);
+
     if (btn.classList.contains('stop-mode')) {
         // Stop the discussion
         stopDiscussion();
+    } else if (!question) {
+        // No question typed - highlight input
+        input.focus();
+        input.classList.add('shake');
+        setTimeout(() => input.classList.remove('shake'), 500);
+        return;
     } else if (!currentSessionId && typeof handleQuestionSubmit === 'function') {
         // No session yet - trigger question flow
         console.log('[send-btn] triggering handleQuestionSubmit');
-        const input = document.getElementById('chat-input');
-        const question = input.value.trim();
-        if (question) {
-            handleQuestionSubmit(question);
-        }
+        handleQuestionSubmit(question);
     } else {
-        // Normal message send
+        // Normal message send (continuation)
         console.log('[send-btn] calling sendMessage');
         sendMessage();
     }
@@ -151,8 +157,20 @@ async function sendMessage() {
 
     console.log('[sendMessage] message:', message, 'selectedModels:', selectedModels.length, 'isProcessing:', isProcessing);
 
-    if (!message || selectedModels.length < 2 || isProcessing) {
-        console.log('[sendMessage] BLOCKED - missing requirements');
+    if (!message) {
+        console.log('[sendMessage] BLOCKED - no message');
+        input.focus();
+        return;
+    }
+
+    if (selectedModels.length < 2) {
+        console.log('[sendMessage] BLOCKED - not enough models');
+        showToast('Please select at least 2 AI voices first', 4000, 'warning');
+        return;
+    }
+
+    if (isProcessing) {
+        console.log('[sendMessage] BLOCKED - already processing');
         return;
     }
 
@@ -650,10 +668,31 @@ function addAiDiscussionError(modelName, error) {
     }
 }
 
-// Update chat status indicator (no longer uses placeholder)
+// Update chat status indicator - shows a floating status pill above the input
 function updateChatStatus(text) {
-    // Status messages are now shown elsewhere, not in the input placeholder
-    // The placeholder always stays "Ask your question"
+    let statusEl = document.getElementById('chat-status-indicator');
+
+    if (!text) {
+        // Hide status indicator
+        if (statusEl) {
+            statusEl.classList.remove('visible');
+        }
+        return;
+    }
+
+    // Create status indicator if it doesn't exist
+    if (!statusEl) {
+        statusEl = document.createElement('div');
+        statusEl.id = 'chat-status-indicator';
+        statusEl.className = 'chat-status-indicator';
+        const inputArea = document.querySelector('.chat-input-area');
+        if (inputArea) {
+            inputArea.insertBefore(statusEl, inputArea.firstChild);
+        }
+    }
+
+    statusEl.textContent = text;
+    statusEl.classList.add('visible');
 }
 
 // Lock/unlock input - toggle between send and stop mode
@@ -1385,6 +1424,16 @@ function renderHiveVerdict(verdict) {
         votesHtml += '</div>';
     }
 
+    // Check if the decision indicates more info is needed
+    const needsMoreInfo = verdict.hive_decision &&
+        (verdict.hive_decision.toLowerCase().includes('options needed') ||
+         verdict.hive_decision.toLowerCase().includes('more info') ||
+         verdict.hive_decision.toLowerCase().includes('need more'));
+
+    const followUpHint = needsMoreInfo
+        ? `<div class="verdict-hint">Type your follow-up question below to continue the discussion</div>`
+        : '';
+
     verdictEl.innerHTML = `
         <div class="verdict-decision">
             <img src="/bee-icon.png" alt="" class="verdict-bee" style="width: 36px; height: 36px; image-rendering: -webkit-optimize-contrast;">
@@ -1395,6 +1444,7 @@ function renderHiveVerdict(verdict) {
             ${verdict.confidence !== undefined ? `<div class="verdict-confidence">${verdict.confidence}% confidence</div>` : ''}
         </div>
         ${votesHtml}
+        ${followUpHint}
     `;
 
     container.appendChild(verdictEl);

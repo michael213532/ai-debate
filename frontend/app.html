@@ -660,6 +660,29 @@
             z-index: 50;
         }
 
+        /* Chat status indicator - floating pill above input */
+        .chat-status-indicator {
+            position: absolute;
+            top: -32px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--surface);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 6px 16px;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            opacity: 0;
+            transition: opacity 0.2s ease;
+            pointer-events: none;
+            white-space: nowrap;
+        }
+
+        .chat-status-indicator.visible {
+            opacity: 1;
+        }
+
         .chat-input-container {
             background: var(--surface);
             border: 1px solid var(--border-color);
@@ -812,6 +835,16 @@
         .chat-input:disabled {
             opacity: 0.6;
             cursor: not-allowed;
+        }
+
+        .chat-input.shake {
+            animation: shake 0.5s ease-in-out;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            10%, 30%, 50%, 70%, 90% { transform: translateX(-4px); }
+            20%, 40%, 60%, 80% { transform: translateX(4px); }
         }
 
         .chat-buttons-row {
@@ -1385,6 +1418,16 @@
         .verdict-vote .choice {
             font-weight: 600;
             color: var(--text-primary);
+        }
+
+        .verdict-hint {
+            margin-top: 12px;
+            padding: 10px 14px;
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.08), rgba(139, 92, 246, 0.08));
+            border-radius: 8px;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            text-align: center;
         }
 
         /* Setup Section */
