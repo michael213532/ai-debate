@@ -406,7 +406,7 @@ function handleWebSocketMessage(message) {
 
         case 'model_start':
             console.log('[AI Response] Starting:', message.model_name);
-            addAiDiscussionMessage(message.model_name, message.provider, '', message.personality_id, message.human_name);
+            addAiDiscussionMessage(message.model_name, message.provider, '', message.personality_id, message.role_name);
             updateChatStatus(`${message.model_name} is responding...`);
             break;
 
@@ -638,7 +638,7 @@ function getProviderClassFromName(name) {
 }
 
 // Add AI discussion message to main chat (inline)
-function addAiDiscussionMessage(modelName, provider, content, personalityId, humanName) {
+function addAiDiscussionMessage(modelName, provider, content, personalityId, roleName) {
     const container = document.getElementById('chat-messages');
 
     const msg = document.createElement('div');
@@ -653,14 +653,14 @@ function addAiDiscussionMessage(modelName, provider, content, personalityId, hum
         ? `<img src="/bee-${personalityId}.png" alt="" style="width: 50px; height: 50px; margin: -15px -2px -15px -8px; image-rendering: -webkit-optimize-contrast;">`
         : '';
 
-    const humanNameHtml = humanName ? `<span class="ai-human-name">${escapeHtml(humanName)}</span>` : '';
+    const roleNameHtml = roleName ? `<span class="ai-role-name">${escapeHtml(roleName)}</span>` : '';
 
     msg.innerHTML = `
         <div class="ai-model-header">
             ${personalityImgHtml}
             <div class="ai-name-info">
                 <span class="ai-model-name">${escapeHtml(modelName)}</span>
-                ${humanNameHtml}
+                ${roleNameHtml}
             </div>
             <span class="ai-provider-tag">${escapeHtml(provider)}</span>
         </div>
@@ -1431,9 +1431,9 @@ function addHistoryAiMessage(modelName, provider, content) {
         ? `<img src="/bee-${beeType}.png" alt="" style="width: 50px; height: 50px; margin: -15px -2px -15px -8px; image-rendering: -webkit-optimize-contrast;">`
         : '';
 
-    // Get human name for personality
-    const humanName = beeType ? PERSONALITY_TO_HUMAN_NAME[beeType] : null;
-    const humanNameHtml = humanName ? `<span class="ai-human-name">${escapeHtml(humanName)}</span>` : '';
+    // Get role name for personality (capitalize first letter)
+    const roleName = beeType ? beeType.charAt(0).toUpperCase() + beeType.slice(1) : null;
+    const roleNameHtml = roleName ? `<span class="ai-role-name">${escapeHtml(roleName)}</span>` : '';
 
     // Clean content of markdown
     const cleanContent = content.replace(/\*\*/g, '');
@@ -1443,7 +1443,7 @@ function addHistoryAiMessage(modelName, provider, content) {
             ${beeImg}
             <div class="ai-name-info">
                 <span class="ai-model-name">${escapeHtml(modelName)}</span>
-                ${humanNameHtml}
+                ${roleNameHtml}
             </div>
             <span class="ai-provider-tag">${escapeHtml(provider)}</span>
         </div>
