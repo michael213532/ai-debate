@@ -2178,12 +2178,50 @@ function renderVoicesBar() {
     if (unselectedSpecialBees.length > 0) {
         const wrapper = document.createElement('div');
         wrapper.className = 'add-special-wrapper';
-        wrapper.innerHTML = `
-            <button class="add-special-btn" title="Add special bee" onclick="toggleSpecialBeesDropdown(event)">+</button>
-            <div id="special-bees-dropdown" class="special-bees-dropdown">
-                <!-- Populated by JS -->
-            </div>
-        `;
+
+        // Create button
+        const addBtn = document.createElement('button');
+        addBtn.className = 'add-special-btn';
+        addBtn.title = 'Add special bee';
+        addBtn.textContent = '+';
+
+        // Create dropdown
+        const dropdown = document.createElement('div');
+        dropdown.id = 'special-bees-dropdown';
+        dropdown.className = 'special-bees-dropdown';
+
+        // Pre-populate dropdown content
+        const optionsHtml = unselectedSpecialBees.map(bee => `
+            <button class="special-bee-option" data-bee-id="${bee.id}">
+                <span class="bee-emoji">${bee.emoji}</span>
+                <div class="bee-info">
+                    <div class="bee-name">${bee.human_name}</div>
+                    <div class="bee-desc">${bee.description}</div>
+                </div>
+            </button>
+        `).join('');
+        dropdown.innerHTML = `<div class="special-bees-dropdown-title">Add-on Bees</div>${optionsHtml}`;
+
+        // Add click handler for button
+        addBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            dropdown.classList.toggle('open');
+        });
+
+        // Add click handlers for options
+        wrapper.appendChild(addBtn);
+        wrapper.appendChild(dropdown);
+
+        // Add click handlers to options after adding to DOM
+        dropdown.querySelectorAll('.special-bee-option').forEach(option => {
+            option.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const beeId = option.dataset.beeId;
+                toggleSpecialBee(beeId);
+                dropdown.classList.remove('open');
+            });
+        });
+
         container.appendChild(wrapper);
     }
 }
