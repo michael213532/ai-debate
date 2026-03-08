@@ -1825,7 +1825,8 @@ document.addEventListener('click', (e) => {
     if (specialBeesJustOpened) return;
     const dropdown = document.getElementById('special-bees-dropdown');
     const wrapper = document.querySelector('.add-special-wrapper');
-    if (dropdown && wrapper && !wrapper.contains(e.target)) {
+    // Check if click is inside wrapper OR inside dropdown (since dropdown is now in body)
+    if (dropdown && wrapper && !wrapper.contains(e.target) && !dropdown.contains(e.target)) {
         dropdown.classList.remove('open');
     }
 });
@@ -2246,7 +2247,8 @@ function renderVoicesBar() {
 
         // Add click handlers for options
         wrapper.appendChild(addBtn);
-        wrapper.appendChild(dropdown);
+        // Append dropdown to body to escape stacking context issues
+        document.body.appendChild(dropdown);
 
         // Add click handlers to options after adding to DOM
         dropdown.querySelectorAll('.special-bee-option').forEach(option => {
