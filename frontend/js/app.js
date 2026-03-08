@@ -1823,7 +1823,10 @@ function toggleSpecialBeesDropdown(e) {
 document.addEventListener('pointerdown', (e) => {
     const dropdown = document.getElementById('special-bees-dropdown');
     const wrapper = document.querySelector('.add-special-wrapper');
+    console.log('[DEBUG] Document pointerdown fired, target:', e.target.className);
+    console.log('[DEBUG] wrapper contains target:', wrapper?.contains(e.target));
     if (dropdown && wrapper && !wrapper.contains(e.target)) {
+        console.log('[DEBUG] Closing dropdown from document listener');
         dropdown.classList.remove('open');
     }
 });
@@ -2217,7 +2220,11 @@ function renderVoicesBar() {
         addBtn.addEventListener('pointerdown', (e) => {
             e.preventDefault();
             e.stopPropagation();
+            console.log('[DEBUG] Button pointerdown fired');
+            console.log('[DEBUG] Number of + buttons:', document.querySelectorAll('.add-special-btn').length);
+            console.log('[DEBUG] Before toggle, open:', dropdown.classList.contains('open'));
             dropdown.classList.toggle('open');
+            console.log('[DEBUG] After toggle, open:', dropdown.classList.contains('open'));
         });
 
         // Add click handlers for options
