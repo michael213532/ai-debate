@@ -1821,7 +1821,8 @@ function toggleSpecialBeesDropdown(e) {
 
 // Close special bees dropdown when clicking outside (with delay to prevent race condition)
 let specialBeesJustOpened = false;
-document.addEventListener('pointerdown', (e) => {
+document.addEventListener('click', (e) => {
+    console.log('[DEBUG] Document click, justOpened:', specialBeesJustOpened, 'target:', e.target.className);
     if (specialBeesJustOpened) {
         console.log('[DEBUG] Ignoring - just opened');
         return;
@@ -1829,6 +1830,7 @@ document.addEventListener('pointerdown', (e) => {
     const dropdown = document.getElementById('special-bees-dropdown');
     const wrapper = document.querySelector('.add-special-wrapper');
     if (dropdown && wrapper && !wrapper.contains(e.target)) {
+        console.log('[DEBUG] Closing from document');
         dropdown.classList.remove('open');
     }
 });
@@ -2219,17 +2221,25 @@ function renderVoicesBar() {
         `).join('');
         dropdown.innerHTML = `<div class="special-bees-dropdown-title">Add-on Bees</div>${optionsHtml}`;
 
-        // Add click handler for button
-        addBtn.addEventListener('pointerdown', (e) => {
+        // Add click handler for button - use mousedown instead of pointerdown
+        addBtn.addEventListener('mousedown', (e) => {
             e.preventDefault();
             e.stopPropagation();
-            const wasOpen = dropdown.classList.contains('open');
-            dropdown.classList.toggle('open');
-            if (!wasOpen) {
-                // Set flag to prevent document listener from immediately closing
-                window.setSpecialBeesJustOpened(true);
-                setTimeout(() => window.setSpecialBeesJustOpened(false), 100);
-            }
+        });
+        addBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            console.log('[DEBUG] Button CLICK fired');
+            // Delay toggle to escape current event loop
+            setTimeout(() => {
+                const wasOpen = dropdown.classList.contains('open');
+                dropdown.classList.toggle('open');
+                console.log('[DEBUG] Toggled to:', dropdown.classList.contains('open'));
+                if (!wasOpen) {
+                    window.setSpecialBeesJustOpened(true);
+                    setTimeout(() => window.setSpecialBeesJustOpened(false), 200);
+                }
+            }, 0);
         });
 
         // Add click handlers for options
