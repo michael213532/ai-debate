@@ -420,10 +420,11 @@ function handleWebSocketMessage(message) {
         case 'debate_end':
             updateChatStatus('');
             finishFinalResponse();
-            setInputLocked(false);
             showExportButton();
             // Enable continuing this conversation with follow-up messages
+            // MUST be set before setInputLocked so updateSendButton sees it
             window.continuingDebateId = currentSessionId;
+            setInputLocked(false);
             break;
 
         case 'error':
