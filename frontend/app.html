@@ -358,10 +358,13 @@
             gap: 8px;
             padding: 12px 24px;
             overflow-x: auto;
+            overflow-y: visible;
             scrollbar-width: none;
             background: var(--background);
             border-top: 1px solid var(--border-color);
             margin-left: 260px;
+            position: relative;
+            z-index: 200;
         }
 
         .voices-bar::-webkit-scrollbar {
@@ -467,15 +470,15 @@
 
         .special-bees-dropdown {
             position: absolute;
-            bottom: calc(100% + 8px);
+            top: calc(100% + 8px);
             right: 0;
             background: var(--surface);
             border: 1px solid var(--border-color);
             border-radius: 12px;
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-            min-width: 200px;
+            min-width: 220px;
             display: none;
-            z-index: 100;
+            z-index: 1000;
             overflow: hidden;
         }
 

@@ -1505,6 +1505,42 @@ window.showTutorial = showTutorial;
 
 // ============ HIVES & PERSONALITY BEES SYSTEM ============
 
+// Hive colors for styling
+const HIVE_COLORS = {
+    'chaos': { bg: 'rgba(239, 68, 68, 0.15)', border: '#ef4444', text: '#dc2626' },        // Red
+    'friend-group': { bg: 'rgba(236, 72, 153, 0.15)', border: '#ec4899', text: '#db2777' }, // Pink
+    'billionaire': { bg: 'rgba(245, 158, 11, 0.15)', border: '#f59e0b', text: '#d97706' }, // Amber
+    'internet': { bg: 'rgba(6, 182, 212, 0.15)', border: '#06b6d4', text: '#0891b2' },     // Cyan
+    'generations': { bg: 'rgba(139, 92, 246, 0.15)', border: '#8b5cf6', text: '#7c3aed' }, // Violet
+    'courtroom': { bg: 'rgba(16, 185, 129, 0.15)', border: '#10b981', text: '#059669' },   // Emerald
+    'special': { bg: 'rgba(99, 102, 241, 0.15)', border: '#6366f1', text: '#4f46e5' }      // Indigo
+};
+
+// Get color for a personality ID
+function getPersonalityColor(personalityId) {
+    if (!personalityId) return HIVE_COLORS['chaos'];
+
+    // Special bees
+    if (personalityId.startsWith('special-')) {
+        return HIVE_COLORS['special'];
+    }
+
+    // Find which hive this bee belongs to
+    const hivePrefix = personalityId.split('-')[0];
+    if (hivePrefix === 'chaos') return HIVE_COLORS['chaos'];
+    if (hivePrefix === 'friend') return HIVE_COLORS['friend-group'];
+    if (hivePrefix === 'billionaire') return HIVE_COLORS['billionaire'];
+    if (hivePrefix === 'internet') return HIVE_COLORS['internet'];
+    if (hivePrefix === 'gen') return HIVE_COLORS['generations'];
+    if (hivePrefix === 'court') return HIVE_COLORS['courtroom'];
+
+    return HIVE_COLORS['chaos']; // Default
+}
+
+// Make it globally available
+window.getPersonalityColor = getPersonalityColor;
+window.HIVE_COLORS = HIVE_COLORS;
+
 let allHives = [];
 let allSpecialBees = [];
 let allPersonalities = [];  // All personalities from current hive + selected special bees
@@ -2081,9 +2117,17 @@ function renderVoicesBar() {
     // Render hive bees first
     hive.personalities.forEach(personality => {
         const isSelected = selectedPersonalities.includes(personality.id);
+        const colors = getPersonalityColor(personality.id);
         const chip = document.createElement('div');
         chip.className = `voice-chip ${isSelected ? 'selected' : ''}`;
         chip.dataset.personalityId = personality.id;
+
+        // Apply hive color
+        if (isSelected) {
+            chip.style.background = colors.bg;
+            chip.style.borderColor = colors.border;
+            chip.style.color = colors.text;
+        }
 
         chip.innerHTML = `
             <span class="voice-emoji">${personality.emoji}</span>
@@ -2104,9 +2148,17 @@ function renderVoicesBar() {
         if (!specialBee) return;
 
         const isSelected = selectedPersonalities.includes(specialBee.id);
+        const colors = getPersonalityColor(specialBee.id);
         const chip = document.createElement('div');
         chip.className = `voice-chip special ${isSelected ? 'selected' : ''}`;
         chip.dataset.personalityId = specialBee.id;
+
+        // Apply special bee color
+        if (isSelected) {
+            chip.style.background = colors.bg;
+            chip.style.borderColor = colors.border;
+            chip.style.color = colors.text;
+        }
 
         chip.innerHTML = `
             <span class="voice-emoji">${specialBee.emoji}</span>

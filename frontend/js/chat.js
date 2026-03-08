@@ -648,18 +648,26 @@ function addAiDiscussionMessage(modelName, provider, content, personalityId, rol
     if (personalityId) {
         msg.dataset.personality = personalityId;
     }
-    const beePersonalities = ['expert', 'optimist', 'analyst', 'skeptic', 'realist'];
-    const personalityImgHtml = personalityId && beePersonalities.includes(personalityId)
-        ? `<img src="/bee-${personalityId}.png" alt="" style="width: 50px; height: 50px; margin: -15px -2px -15px -8px; image-rendering: -webkit-optimize-contrast;">`
-        : '';
+
+    // Get personality color
+    const colors = window.getPersonalityColor ? window.getPersonalityColor(personalityId) : null;
+    if (colors) {
+        msg.style.borderLeftColor = colors.border;
+    }
+
+    // Use emoji from personality data
+    const emojiHtml = personalityId ? `<span style="font-size: 1.5rem; margin-right: 4px;">${getPersonalityEmoji(personalityId)}</span>` : '';
 
     const roleNameHtml = roleName ? `<span class="ai-role-name">${escapeHtml(roleName)}</span>` : '';
 
+    // Apply color to header
+    const headerStyle = colors ? `color: ${colors.text};` : '';
+
     msg.innerHTML = `
         <div class="ai-model-header">
-            ${personalityImgHtml}
+            ${emojiHtml}
             <div class="ai-name-info">
-                <span class="ai-model-name">${escapeHtml(modelName)}</span>
+                <span class="ai-model-name" style="${headerStyle}">${escapeHtml(modelName)}</span>
                 ${roleNameHtml}
             </div>
             <span class="ai-provider-tag">${escapeHtml(provider)}</span>
@@ -668,6 +676,13 @@ function addAiDiscussionMessage(modelName, provider, content, personalityId, rol
     `;
     container.appendChild(msg);
     scrollToBottom(container);
+}
+
+// Get emoji for a personality
+function getPersonalityEmoji(personalityId) {
+    const personalities = window.allPersonalities || [];
+    const p = personalities.find(p => p.id === personalityId);
+    return p ? p.emoji : '🐝';
 }
 
 // Append to AI message in main chat
