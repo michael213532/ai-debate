@@ -1502,27 +1502,77 @@ window.showTutorial = showTutorial;
 
 // ============ HIVES & PERSONALITY BEES SYSTEM ============
 
-// Hive colors for styling
+// Individual bee colors - each bee has its own unique color
+const BEE_COLORS = {
+    // Chaos Hive - warm reds/oranges
+    'chaos-optimist': { bg: 'rgba(34, 197, 94, 0.15)', border: '#22c55e', text: '#16a34a' },      // Green
+    'chaos-pessimist': { bg: 'rgba(239, 68, 68, 0.15)', border: '#ef4444', text: '#dc2626' },     // Red
+    'chaos-realist': { bg: 'rgba(107, 114, 128, 0.15)', border: '#6b7280', text: '#4b5563' },     // Gray
+    'chaos-contrarian': { bg: 'rgba(249, 115, 22, 0.15)', border: '#f97316', text: '#ea580c' },   // Orange
+    'chaos-cynic': { bg: 'rgba(162, 28, 175, 0.15)', border: '#a21caf', text: '#86198f' },        // Fuchsia
+
+    // Friend Group Hive - pinks/warm tones
+    'friend-bestie': { bg: 'rgba(236, 72, 153, 0.15)', border: '#ec4899', text: '#db2777' },      // Pink
+    'friend-honest': { bg: 'rgba(59, 130, 246, 0.15)', border: '#3b82f6', text: '#2563eb' },      // Blue
+    'friend-funny': { bg: 'rgba(250, 204, 21, 0.15)', border: '#facc15', text: '#ca8a04' },       // Yellow
+    'friend-wise': { bg: 'rgba(139, 92, 246, 0.15)', border: '#8b5cf6', text: '#7c3aed' },        // Violet
+    'friend-practical': { bg: 'rgba(20, 184, 166, 0.15)', border: '#14b8a6', text: '#0d9488' },   // Teal
+
+    // Billionaire Hive - golds/greens
+    'billionaire-builder': { bg: 'rgba(245, 158, 11, 0.15)', border: '#f59e0b', text: '#d97706' }, // Amber
+    'billionaire-investor': { bg: 'rgba(16, 185, 129, 0.15)', border: '#10b981', text: '#059669' }, // Emerald
+    'billionaire-strategist': { bg: 'rgba(99, 102, 241, 0.15)', border: '#6366f1', text: '#4f46e5' }, // Indigo
+    'billionaire-disruptor': { bg: 'rgba(239, 68, 68, 0.15)', border: '#ef4444', text: '#dc2626' }, // Red
+    'billionaire-visionary': { bg: 'rgba(168, 85, 247, 0.15)', border: '#a855f7', text: '#9333ea' }, // Purple
+
+    // Internet Hive - cyans/blues
+    'internet-redditor': { bg: 'rgba(249, 115, 22, 0.15)', border: '#f97316', text: '#ea580c' },  // Orange (Reddit)
+    'internet-influencer': { bg: 'rgba(236, 72, 153, 0.15)', border: '#ec4899', text: '#db2777' }, // Pink
+    'internet-coder': { bg: 'rgba(34, 197, 94, 0.15)', border: '#22c55e', text: '#16a34a' },       // Green
+    'internet-gamer': { bg: 'rgba(139, 92, 246, 0.15)', border: '#8b5cf6', text: '#7c3aed' },      // Violet
+    'internet-troll': { bg: 'rgba(6, 182, 212, 0.15)', border: '#06b6d4', text: '#0891b2' },       // Cyan
+
+    // Generations Hive - varied
+    'gen-z': { bg: 'rgba(236, 72, 153, 0.15)', border: '#ec4899', text: '#db2777' },              // Pink
+    'gen-millennial': { bg: 'rgba(245, 158, 11, 0.15)', border: '#f59e0b', text: '#d97706' },     // Amber
+    'gen-x': { bg: 'rgba(107, 114, 128, 0.15)', border: '#6b7280', text: '#4b5563' },             // Gray
+    'gen-boomer': { bg: 'rgba(59, 130, 246, 0.15)', border: '#3b82f6', text: '#2563eb' },         // Blue
+    'gen-future': { bg: 'rgba(6, 182, 212, 0.15)', border: '#06b6d4', text: '#0891b2' },          // Cyan
+
+    // Courtroom Hive - formal colors
+    'court-judge': { bg: 'rgba(30, 41, 59, 0.15)', border: '#1e293b', text: '#0f172a' },          // Slate
+    'court-prosecutor': { bg: 'rgba(239, 68, 68, 0.15)', border: '#ef4444', text: '#dc2626' },    // Red
+    'court-defense': { bg: 'rgba(59, 130, 246, 0.15)', border: '#3b82f6', text: '#2563eb' },      // Blue
+    'court-witness': { bg: 'rgba(250, 204, 21, 0.15)', border: '#facc15', text: '#ca8a04' },      // Yellow
+    'court-jury': { bg: 'rgba(16, 185, 129, 0.15)', border: '#10b981', text: '#059669' },         // Emerald
+
+    // Special Bees
+    'special-devils-advocate': { bg: 'rgba(239, 68, 68, 0.15)', border: '#ef4444', text: '#dc2626' }, // Red
+    'special-wild-card': { bg: 'rgba(168, 85, 247, 0.15)', border: '#a855f7', text: '#9333ea' }       // Purple
+};
+
+// Fallback hive colors (for unknown bees)
 const HIVE_COLORS = {
-    'chaos': { bg: 'rgba(239, 68, 68, 0.15)', border: '#ef4444', text: '#dc2626' },        // Red
-    'friend-group': { bg: 'rgba(236, 72, 153, 0.15)', border: '#ec4899', text: '#db2777' }, // Pink
-    'billionaire': { bg: 'rgba(245, 158, 11, 0.15)', border: '#f59e0b', text: '#d97706' }, // Amber
-    'internet': { bg: 'rgba(6, 182, 212, 0.15)', border: '#06b6d4', text: '#0891b2' },     // Cyan
-    'generations': { bg: 'rgba(139, 92, 246, 0.15)', border: '#8b5cf6', text: '#7c3aed' }, // Violet
-    'courtroom': { bg: 'rgba(16, 185, 129, 0.15)', border: '#10b981', text: '#059669' },   // Emerald
-    'special': { bg: 'rgba(99, 102, 241, 0.15)', border: '#6366f1', text: '#4f46e5' }      // Indigo
+    'chaos': { bg: 'rgba(239, 68, 68, 0.15)', border: '#ef4444', text: '#dc2626' },
+    'friend-group': { bg: 'rgba(236, 72, 153, 0.15)', border: '#ec4899', text: '#db2777' },
+    'billionaire': { bg: 'rgba(245, 158, 11, 0.15)', border: '#f59e0b', text: '#d97706' },
+    'internet': { bg: 'rgba(6, 182, 212, 0.15)', border: '#06b6d4', text: '#0891b2' },
+    'generations': { bg: 'rgba(139, 92, 246, 0.15)', border: '#8b5cf6', text: '#7c3aed' },
+    'courtroom': { bg: 'rgba(16, 185, 129, 0.15)', border: '#10b981', text: '#059669' },
+    'special': { bg: 'rgba(99, 102, 241, 0.15)', border: '#6366f1', text: '#4f46e5' }
 };
 
 // Get color for a personality ID
 function getPersonalityColor(personalityId) {
     if (!personalityId) return HIVE_COLORS['chaos'];
 
-    // Special bees
-    if (personalityId.startsWith('special-')) {
-        return HIVE_COLORS['special'];
+    // Check for individual bee color first
+    if (BEE_COLORS[personalityId]) {
+        return BEE_COLORS[personalityId];
     }
 
-    // Find which hive this bee belongs to
+    // Fallback to hive colors for unknown bees
+    if (personalityId.startsWith('special-')) return HIVE_COLORS['special'];
     const hivePrefix = personalityId.split('-')[0];
     if (hivePrefix === 'chaos') return HIVE_COLORS['chaos'];
     if (hivePrefix === 'friend') return HIVE_COLORS['friend-group'];
@@ -1531,11 +1581,12 @@ function getPersonalityColor(personalityId) {
     if (hivePrefix === 'gen') return HIVE_COLORS['generations'];
     if (hivePrefix === 'court') return HIVE_COLORS['courtroom'];
 
-    return HIVE_COLORS['chaos']; // Default
+    return HIVE_COLORS['chaos'];
 }
 
 // Make it globally available
 window.getPersonalityColor = getPersonalityColor;
+window.BEE_COLORS = BEE_COLORS;
 window.HIVE_COLORS = HIVE_COLORS;
 
 let allHives = [];
