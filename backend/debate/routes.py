@@ -37,9 +37,18 @@ from .schemas import (
     PersonalityInfo,
     PersonalitySuggestionRequest,
     PersonalitySuggestionResponse,
+    HiveInfo,
+    SpecialBeeInfo,
 )
 from .orchestrator import DebateOrchestrator
-from backend.personalities import get_all_personalities, suggest_personalities, PERSONALITIES
+from backend.personalities import (
+    get_all_personalities,
+    get_all_hives,
+    get_hive_personalities,
+    get_special_bees,
+    suggest_personalities,
+    PERSONALITIES,
+)
 from backend.providers import ProviderRegistry
 
 router = APIRouter(tags=["debates"])
@@ -114,7 +123,67 @@ async def get_user_api_keys(user_id: str) -> dict[str, str]:
         return keys
 
 
-# Personalities endpoints
+# Hives endpoints
+@router.get("/api/hives", response_model=list[HiveInfo])
+async def list_hives():
+    """List all available hives with their bees (public endpoint)."""
+    hives_data = get_all_hives()
+    return [
+        HiveInfo(
+            id=h["id"],
+            name=h["name"],
+            description=h["description"],
+            personalities=[
+                PersonalityInfo(
+                    id=p["id"],
+                    name=p["name"],
+                    human_name=p["human_name"],
+                    emoji=p["emoji"],
+                    description=p["description"],
+                    is_special=p.get("is_special", False)
+                )
+                for p in h["personalities"]
+            ]
+        )
+        for h in hives_data
+    ]
+
+
+@router.get("/api/hives/{hive_id}/personalities", response_model=list[PersonalityInfo])
+async def list_hive_personalities(hive_id: str):
+    """List personalities for a specific hive (public endpoint)."""
+    personalities = get_hive_personalities(hive_id)
+    return [
+        PersonalityInfo(
+            id=p["id"],
+            name=p["name"],
+            human_name=p["human_name"],
+            emoji=p["emoji"],
+            description=p["description"],
+            is_special=p.get("is_special", False)
+        )
+        for p in personalities
+    ]
+
+
+@router.get("/api/special-bees", response_model=list[SpecialBeeInfo])
+async def list_special_bees():
+    """List all special add-on bees (public endpoint)."""
+    special = get_special_bees()
+    return [
+        SpecialBeeInfo(
+            id=b["id"],
+            name=b["name"],
+            human_name=b["human_name"],
+            emoji=b["emoji"],
+            description=b["description"],
+            is_special=True
+        )
+        for b in special
+    ]
+
+
+# Personalities endpoints (legacy + all personalities)
 @router.get("/api/personalities", response_model=list[PersonalityInfo])
 async def list_personalities():
     """List all available personality bees (public endpoint)."""
@@ -124,7 +193,8 @@ async def list_personalities():
             name=p["name"],
             human_name=p["human_name"],
             emoji=p["emoji"],
-            description=p["description"]
+            description=p["description"],
+            is_special=p.get("is_special", False)
         )
         for p in get_all_personalities()
     ]
@@ -143,7 +213,8 @@ async def get_personality_suggestions(
             name=p["name"],
             human_name=p["human_name"],
             emoji=p["emoji"],
-            description=p["description"]
+            description=p["description"],
+            is_special=p.get("is_special", False)
         )
         for p in get_all_personalities()
     ]

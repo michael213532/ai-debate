@@ -265,10 +265,36 @@ function loadRoleAssignments() {
     const container = document.getElementById('role-assignments');
     if (!container) return;
 
-    // Get all personalities (from global loaded in app.js)
-    const personalities = window.allPersonalities || [];
+    // Get current hive and special bees from app.js globals
+    const allHives = window.allHives || [];
+    const selectedHiveId = localStorage.getItem('selectedHive') || 'chaos';
+    const selectedSpecialBees = (() => {
+        try {
+            const saved = localStorage.getItem('selectedSpecialBees');
+            return saved ? JSON.parse(saved) : [];
+        } catch (e) {
+            return [];
+        }
+    })();
+    const allSpecialBees = window.allSpecialBees || [];
+
+    // Get current hive
+    const hive = allHives.find(h => h.id === selectedHiveId);
+
+    // Build personalities list: hive bees + selected special bees
+    let personalities = [];
+    if (hive) {
+        personalities = [...hive.personalities];
+    }
+    selectedSpecialBees.forEach(specialId => {
+        const specialBee = allSpecialBees.find(b => b.id === specialId);
+        if (specialBee && !personalities.find(p => p.id === specialBee.id)) {
+            personalities.push(specialBee);
+        }
+    });
+
     if (personalities.length === 0) {
-        container.innerHTML = '<p style="color: var(--text-secondary);">Loading personalities...</p>';
+        container.innerHTML = '<p style="color: var(--text-secondary);">Select a hive to see available bees.</p>';
         return;
     }
 
@@ -280,20 +306,24 @@ function loadRoleAssignments() {
     // Get saved role assignments
     const savedRoles = getRoleAssignments();
 
-    const beePersonalities = ['expert', 'optimist', 'analyst', 'skeptic', 'realist'];
+    // Show hive name at top
+    const hiveHeader = hive ? `
+        <div style="margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid var(--border-color);">
+            <span style="font-size: 0.9rem; color: var(--text-secondary);">Current Hive:</span>
+            <span style="font-weight: 600; color: var(--text-primary); margin-left: 8px;">${hive.name}</span>
+        </div>
+    ` : '';
 
-    container.innerHTML = personalities.map(p => {
+    container.innerHTML = hiveHeader + personalities.map(p => {
         const savedModelId = savedRoles[p.id];
-        const emojiHtml = beePersonalities.includes(p.id)
-            ? `<img src="/bee-${p.id}.png" alt="" style="width: 50px; height: 50px; image-rendering: -webkit-optimize-contrast;">`
-            : p.emoji;
+        const isSpecial = p.is_special || selectedSpecialBees.includes(p.id);
         return `
-            <div class="role-assignment-card" data-role="${p.id}">
-                <div class="role-emoji">${emojiHtml}</div>
+            <div class="role-assignment-card ${isSpecial ? 'special' : ''}" data-role="${p.id}">
+                <div class="role-emoji">${p.emoji}</div>
                 <div class="role-main">
                     <div class="role-header">
                         <div class="role-name-group">
-                            <div class="role-human-name">${p.human_name || p.name}</div>
+                            <div class="role-human-name">${p.human_name || p.name}${isSpecial ? ' <span style="font-size: 0.7rem; color: var(--primary-color);">(Add-on)</span>' : ''}</div>
                             <div class="role-title">${p.name}</div>
                         </div>
                         <div class="role-description">${p.description}</div>

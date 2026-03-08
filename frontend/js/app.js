@@ -1503,11 +1503,52 @@ function updateSetupModelCount() {
 // Allow manually showing tutorial (for testing or help)
 window.showTutorial = showTutorial;
 
-// ============ PERSONALITY BEES SYSTEM ============
+// ============ HIVES & PERSONALITY BEES SYSTEM ============
 
-let allPersonalities = [];
+let allHives = [];
+let allSpecialBees = [];
+let allPersonalities = [];  // All personalities from current hive + selected special bees
+let selectedHiveId = loadSelectedHive();
+let selectedSpecialBees = loadSelectedSpecialBees();
 let selectedPersonalities = loadSelectedBees();
 let currentQuestion = '';
+
+// Load selected hive from localStorage
+function loadSelectedHive() {
+    try {
+        return localStorage.getItem('selectedHive') || 'chaos';
+    } catch (e) {
+        return 'chaos';
+    }
+}
+
+// Save selected hive to localStorage
+function saveSelectedHive() {
+    try {
+        localStorage.setItem('selectedHive', selectedHiveId);
+    } catch (e) {
+        console.error('Error saving hive:', e);
+    }
+}
+
+// Load selected special bees from localStorage
+function loadSelectedSpecialBees() {
+    try {
+        const saved = localStorage.getItem('selectedSpecialBees');
+        return saved ? JSON.parse(saved) : [];
+    } catch (e) {
+        return [];
+    }
+}
+
+// Save selected special bees to localStorage
+function saveSelectedSpecialBees() {
+    try {
+        localStorage.setItem('selectedSpecialBees', JSON.stringify(selectedSpecialBees));
+    } catch (e) {
+        console.error('Error saving special bees:', e);
+    }
+}
 
 // Load selected bees from localStorage
 function loadSelectedBees() {
@@ -1528,40 +1569,187 @@ function saveSelectedBees() {
     }
 }
 
-// Fetch all personalities from API
-async function fetchPersonalities() {
+// Fetch all hives from API
+async function fetchHives() {
     try {
-        const response = await fetch(`${API_BASE}/api/personalities`, {
+        const response = await fetch(`${API_BASE}/api/hives`, {
             headers: getAuthHeaders()
         });
         if (response.ok) {
-            allPersonalities = await response.json();
-            window.allPersonalities = allPersonalities;
+            allHives = await response.json();
+            window.allHives = allHives;
         }
     } catch (error) {
-        console.error('Error fetching personalities:', error);
+        console.error('Error fetching hives:', error);
     }
 }
 
-// Get personality suggestions for a question
-async function fetchPersonalitySuggestions(question) {
+// Fetch special bees from API
+async function fetchSpecialBees() {
     try {
-        const response = await fetch(`${API_BASE}/api/suggest-personalities`, {
-            method: 'POST',
-            headers: getAuthHeaders(),
-            body: JSON.stringify({ question })
+        const response = await fetch(`${API_BASE}/api/special-bees`, {
+            headers: getAuthHeaders()
         });
         if (response.ok) {
-            const data = await response.json();
-            allPersonalities = data.all_personalities;
-            window.allPersonalities = allPersonalities;
-            return data.suggested;
+            allSpecialBees = await response.json();
+            window.allSpecialBees = allSpecialBees;
         }
     } catch (error) {
-        console.error('Error fetching personality suggestions:', error);
+        console.error('Error fetching special bees:', error);
     }
-    return ['analyst', 'optimist', 'skeptic']; // Default
 }
+
+// Fetch all personalities from API (legacy, now uses hive personalities)
+async function fetchPersonalities() {
+    await fetchHives();
+    await fetchSpecialBees();
+    updateAllPersonalities();
+}
+
+// Update allPersonalities based on selected hive + special bees
+function updateAllPersonalities() {
+    const hive = allHives.find(h => h.id === selectedHiveId);
+    if (hive) {
+        // Start with hive personalities
+        allPersonalities = [...hive.personalities];
+        // Add selected special bees
+        selectedSpecialBees.forEach(specialId => {
+            const specialBee = allSpecialBees.find(b => b.id === specialId);
+            if (specialBee && !allPersonalities.find(p => p.id === specialBee.id)) {
+                allPersonalities.push(specialBee);
+            }
+        });
+        window.allPersonalities = allPersonalities;
+    }
+}
+
+// Get personality suggestions for a question (now returns hive defaults)
+async function fetchPersonalitySuggestions(question) {
+    // Return first 3 bees from current hive
+    const hive = allHives.find(h => h.id === selectedHiveId);
+    if (hive && hive.personalities.length >= 3) {
+        return hive.personalities.slice(0, 3).map(p => p.id);
+    }
+    return [];
+}
+
+// Select a hive
+function selectHive(hiveId) {
+    selectedHiveId = hiveId;
+    saveSelectedHive();
+    updateAllPersonalities();
+
+    // Reset selected personalities to all bees in the hive
+    const hive = allHives.find(h => h.id === hiveId);
+    if (hive) {
+        selectedPersonalities = hive.personalities.map(p => p.id);
+        // Add any selected special bees
+        selectedSpecialBees.forEach(specialId => {
+            if (!selectedPersonalities.includes(specialId)) {
+                selectedPersonalities.push(specialId);
+            }
+        });
+        saveSelectedBees();
+    }
+
+    // Update UI
+    renderVoicesBar();
+    renderHivesModal();
+    updateCurrentHiveDisplay();
+    closeHivesModal();
+}
+
+// Toggle special bee selection
+function toggleSpecialBee(beeId) {
+    const index = selectedSpecialBees.indexOf(beeId);
+    if (index >= 0) {
+        // Remove
+        selectedSpecialBees.splice(index, 1);
+        // Also remove from selected personalities
+        const pIndex = selectedPersonalities.indexOf(beeId);
+        if (pIndex >= 0) {
+            selectedPersonalities.splice(pIndex, 1);
+        }
+    } else {
+        // Add
+        selectedSpecialBees.push(beeId);
+        selectedPersonalities.push(beeId);
+    }
+    saveSelectedSpecialBees();
+    saveSelectedBees();
+    updateAllPersonalities();
+    renderVoicesBar();
+    renderHivesModal();
+}
+
+// Update the current hive display in header
+function updateCurrentHiveDisplay() {
+    const nameEl = document.getElementById('current-hive-name');
+    if (nameEl) {
+        const hive = allHives.find(h => h.id === selectedHiveId);
+        nameEl.textContent = hive ? hive.name : 'Select Hive';
+    }
+}
+
+// Open hives modal
+function openHivesModal() {
+    const modal = document.getElementById('hives-modal');
+    if (modal) {
+        modal.classList.add('active');
+        renderHivesModal();
+    }
+}
+
+// Close hives modal
+function closeHivesModal() {
+    const modal = document.getElementById('hives-modal');
+    if (modal) {
+        modal.classList.remove('active');
+    }
+}
+
+// Render hives modal content
+function renderHivesModal() {
+    const hivesGrid = document.getElementById('hives-grid');
+    const specialGrid = document.getElementById('special-bees-grid');
+
+    if (hivesGrid) {
+        hivesGrid.innerHTML = allHives.map(hive => `
+            <div class="hive-card ${hive.id === selectedHiveId ? 'selected' : ''}" onclick="selectHive('${hive.id}')">
+                <div class="hive-card-header">
+                    <span class="hive-card-name">${hive.name}</span>
+                </div>
+                <div class="hive-card-desc">${hive.description}</div>
+                <div class="hive-card-bees">
+                    ${hive.personalities.map(p => `
+                        <span class="hive-bee-preview">
+                            <span class="bee-emoji">${p.emoji}</span>
+                            <span>${p.human_name}</span>
+                        </span>
+                    `).join('')}
+                </div>
+            </div>
+        `).join('');
+    }
+
+    if (specialGrid) {
+        specialGrid.innerHTML = allSpecialBees.map(bee => `
+            <div class="special-bee-card ${selectedSpecialBees.includes(bee.id) ? 'selected' : ''}" onclick="toggleSpecialBee('${bee.id}')">
+                <span class="special-bee-emoji">${bee.emoji}</span>
+                <div class="special-bee-info">
+                    <span class="special-bee-name">${bee.human_name}</span>
+                    <span class="special-bee-desc">${bee.description}</span>
+                </div>
+            </div>
+        `).join('');
+    }
+}
+
+// Make functions globally available
+window.openHivesModal = openHivesModal;
+window.closeHivesModal = closeHivesModal;
+window.selectHive = selectHive;
+window.toggleSpecialBee = toggleSpecialBee;
 
 // Render personality selector cards
 function renderPersonalitySelector(suggestedIds = []) {
@@ -1840,22 +2028,26 @@ attachQuestionFlowListeners();
 
 function renderVoicesBar() {
     const container = document.getElementById('voices-chips');
-    if (!container || !allPersonalities.length) return;
+    if (!container) return;
+
+    // Wait for hives to load
+    if (!allHives.length) return;
 
     container.innerHTML = '';
 
-    allPersonalities.forEach(personality => {
+    // Get current hive personalities
+    const hive = allHives.find(h => h.id === selectedHiveId);
+    if (!hive) return;
+
+    // Render hive bees first
+    hive.personalities.forEach(personality => {
         const isSelected = selectedPersonalities.includes(personality.id);
         const chip = document.createElement('div');
         chip.className = `voice-chip ${isSelected ? 'selected' : ''}`;
         chip.dataset.personalityId = personality.id;
-        const beePersonalities = ['expert', 'optimist', 'analyst', 'skeptic', 'realist'];
-        const voiceEmojiHtml = beePersonalities.includes(personality.id)
-            ? `<img src="/bee-${personality.id}.png" alt="" class="voice-emoji" style="width: 50px; height: 50px; margin: -15px -5px; image-rendering: -webkit-optimize-contrast;">`
-            : `<span class="voice-emoji">${personality.emoji}</span>`;
 
         chip.innerHTML = `
-            ${voiceEmojiHtml}
+            <span class="voice-emoji">${personality.emoji}</span>
             <div class="voice-info">
                 <span class="voice-name">${personality.human_name || personality.name}</span>
                 <span class="voice-role">${personality.name}</span>
@@ -1866,24 +2058,98 @@ function renderVoicesBar() {
         });
         container.appendChild(chip);
     });
+
+    // Render selected special bees
+    selectedSpecialBees.forEach(specialId => {
+        const specialBee = allSpecialBees.find(b => b.id === specialId);
+        if (!specialBee) return;
+
+        const isSelected = selectedPersonalities.includes(specialBee.id);
+        const chip = document.createElement('div');
+        chip.className = `voice-chip special ${isSelected ? 'selected' : ''}`;
+        chip.dataset.personalityId = specialBee.id;
+
+        chip.innerHTML = `
+            <span class="voice-emoji">${specialBee.emoji}</span>
+            <div class="voice-info">
+                <span class="voice-name">${specialBee.human_name || specialBee.name}</span>
+                <span class="voice-role">${specialBee.name}</span>
+            </div>
+        `;
+        chip.addEventListener('click', () => {
+            toggleVoiceChip(specialBee.id);
+        });
+        container.appendChild(chip);
+    });
+
+    // Add "+" button to add special bees
+    const addBtn = document.createElement('button');
+    addBtn.className = 'add-special-btn';
+    addBtn.title = 'Add special bee';
+    addBtn.innerHTML = '+';
+    addBtn.addEventListener('click', openHivesModal);
+    container.appendChild(addBtn);
 }
 
 function toggleVoiceChip(personalityId) {
     const index = selectedPersonalities.indexOf(personalityId);
+
+    // Check if this is a special bee
+    const isSpecial = selectedSpecialBees.includes(personalityId);
+
     if (index >= 0) {
         selectedPersonalities.splice(index, 1);
-    } else if (selectedPersonalities.length < 5) {
-        selectedPersonalities.push(personalityId);
+        // If it's a special bee, also remove from selectedSpecialBees
+        if (isSpecial) {
+            const specialIndex = selectedSpecialBees.indexOf(personalityId);
+            if (specialIndex >= 0) {
+                selectedSpecialBees.splice(specialIndex, 1);
+                saveSelectedSpecialBees();
+            }
+        }
+    } else {
+        // Limit total selection (hive has 5, plus up to 2 special = 7 max)
+        if (selectedPersonalities.length < 7) {
+            selectedPersonalities.push(personalityId);
+        }
     }
     saveSelectedBees();
+    updateAllPersonalities();
     renderVoicesBar();
     // Also update the personality selector in the empty state if visible
     renderPersonalitySelector();
 }
 
 
-// Load personalities on init and render voices bar
+// Load hives and personalities on init and render voices bar
 async function initVoicesBar() {
     await fetchPersonalities();
+
+    // Auto-select all bees from current hive if none selected
+    if (selectedPersonalities.length === 0) {
+        const hive = allHives.find(h => h.id === selectedHiveId);
+        if (hive) {
+            selectedPersonalities = hive.personalities.map(p => p.id);
+            // Add any saved special bees
+            selectedSpecialBees.forEach(specialId => {
+                if (!selectedPersonalities.includes(specialId)) {
+                    selectedPersonalities.push(specialId);
+                }
+            });
+            saveSelectedBees();
+        }
+    }
+
+    updateCurrentHiveDisplay();
     renderVoicesBar();
 }
+
+// Add hives button click listener
+document.getElementById('hives-btn')?.addEventListener('click', openHivesModal);
+
+// Close hives modal when clicking outside
+document.getElementById('hives-modal')?.addEventListener('click', (e) => {
+    if (e.target.id === 'hives-modal') {
+        closeHivesModal();
+    }
+});

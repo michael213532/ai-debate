@@ -108,6 +108,20 @@ beecision/
 - Each error shows a clear label + helpful fix suggestion
 - Removed troubleshooting tutorial step - errors are now self-explanatory
 
+### Hives System (Mar 2025)
+- Replaced single 5-bee system with 6 themed "Hives" of 5 bees each (30 total)
+- **Hives**: Chaos, Friend Group, Billionaire, Internet, Generations, Courtroom
+- Each hive has distinct personality themes
+- **Special Bees**: 2 add-on bees (Devil's Advocate, Wild Card) that can be added to any hive
+- Special bees always speak LAST in debates
+- Hive selection via modal (click "Hives" button in header)
+- Selection persists in localStorage (`selectedHive`, `selectedSpecialBees`)
+- API Endpoints:
+  - `GET /api/hives` - List all hives with their bees
+  - `GET /api/hives/{hive_id}/personalities` - Bees for specific hive
+  - `GET /api/special-bees` - List add-on bees
+- Backend: `backend/personalities.py` contains all hive/bee definitions
+
 ## Model IDs (IMPORTANT - these break if wrong!)
 
 **Anthropic** - Claude 3.x models were RETIRED Jan 2026. Current models:

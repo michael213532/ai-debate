@@ -4,7 +4,7 @@ import json
 from typing import AsyncGenerator, Callable, Optional
 from backend.providers import ProviderRegistry
 from backend.database import get_db
-from backend.personalities import get_personality, PERSONALITIES
+from backend.personalities import get_personality, is_special_bee, PERSONALITIES
 
 
 class DebateOrchestrator:
@@ -42,9 +42,35 @@ class DebateOrchestrator:
         self.is_pro = is_pro  # Pro subscription status
         self.detail_mode = detail_mode  # "fast" or "detailed"
 
-        # If images are attached, reorder models so vision-capable ones go first
+        # Reorder models: special bees always last, vision-capable first when images attached
+        self._reorder_models()
+
+    def _reorder_models(self):
+        """Reorder models so special bees speak last, and vision models first when images attached."""
+        # First, separate regular and special bees
+        regular_models = []
+        special_models = []
+
+        for model in self.models:
+            personality_id = model.get("personality_id")
+            if personality_id and is_special_bee(personality_id):
+                special_models.append(model)
+            else:
+                regular_models.append(model)
+
+        # If images attached, reorder regular models for vision
         if self.images:
-            self._reorder_models_for_vision()
+            vision_models = []
+            non_vision_models = []
+            for model in regular_models:
+                if self._supports_vision(model):
+                    vision_models.append(model)
+                else:
+                    non_vision_models.append(model)
+            regular_models = vision_models + non_vision_models
+
+        # Final order: regular bees first, then special bees last
+        self.models = regular_models + special_models
 
     # Models that support vision/images
     # OpenAI: GPT-5.2, GPT-5, GPT-5-mini, GPT-4o, GPT-4o-mini support vision

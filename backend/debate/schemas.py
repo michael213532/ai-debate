@@ -27,6 +27,25 @@ class PersonalityInfo(BaseModel):
     human_name: str
     emoji: str
     description: str
+    is_special: bool = False  # True for add-on bees (Devil's Advocate, Wild Card)
+
+
+class HiveInfo(BaseModel):
+    """Information about a hive (themed group of bees)."""
+    id: str
+    name: str
+    description: str
+    personalities: list[PersonalityInfo]
+
+
+class SpecialBeeInfo(BaseModel):
+    """Information about a special add-on bee."""
+    id: str
+    name: str
+    human_name: str
+    emoji: str
+    description: str
+    is_special: bool = True
 
 
 class PersonalitySuggestionRequest(BaseModel):
