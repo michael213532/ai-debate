@@ -19,6 +19,27 @@ const VISION_MODELS = new Set([
 ]);
 const VISION_PROVIDERS = new Set(['anthropic', 'google']);  // All models from these providers support vision
 
+// Map human names to personality IDs for bee icons
+const HUMAN_NAME_TO_PERSONALITY = {
+    'alex': 'analyst',
+    'sam': 'skeptic',
+    'olivia': 'optimist',
+    'max': 'expert',
+    'riley': 'realist'
+};
+
+// Get personality ID from display name (human name or role name)
+function getPersonalityFromName(name) {
+    const nameLower = name.toLowerCase();
+    // Check human names first
+    if (HUMAN_NAME_TO_PERSONALITY[nameLower]) {
+        return HUMAN_NAME_TO_PERSONALITY[nameLower];
+    }
+    // Fall back to checking role names (analyst, skeptic, etc.)
+    const beeTypes = ['expert', 'optimist', 'analyst', 'skeptic', 'realist'];
+    return beeTypes.find(b => nameLower.includes(b)) || null;
+}
+
 // Check if a model supports vision
 function supportsVision(model) {
     if (VISION_PROVIDERS.has(model.provider)) return true;
@@ -1385,9 +1406,7 @@ function addHistoryAiMessage(modelName, provider, content) {
     msg.dataset.provider = provider;
 
     // Check if this is a personality name and add bee icon
-    const beeTypes = ['expert', 'optimist', 'analyst', 'skeptic', 'realist'];
-    const nameLower = modelName.toLowerCase();
-    const beeType = beeTypes.find(b => nameLower.includes(b));
+    const beeType = getPersonalityFromName(modelName);
 
     // Set data-personality for CSS colors (colored border + name)
     if (beeType) {
@@ -1430,13 +1449,11 @@ function renderHiveVerdict(verdict) {
     verdictEl.className = 'hive-verdict';
 
     // Build compact votes HTML with bee images
-    const beeTypes = ['expert', 'optimist', 'analyst', 'skeptic', 'realist'];
     let votesHtml = '';
     if (verdict.votes && verdict.votes.length > 0) {
         votesHtml = '<div class="verdict-votes">';
         for (const vote of verdict.votes) {
-            const voteName = (vote.name || '').toLowerCase();
-            const beeType = beeTypes.find(b => voteName.includes(b));
+            const beeType = getPersonalityFromName(vote.name || '');
             const beeImg = beeType
                 ? `<img src="/bee-${beeType}.png" alt="" style="width: 24px; height: 24px; vertical-align: middle; margin-right: -4px; image-rendering: -webkit-optimize-contrast;">`
                 : '';

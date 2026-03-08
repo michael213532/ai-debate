@@ -8,7 +8,8 @@ import re
 class Personality:
     """A personality bee that provides a unique perspective."""
     id: str
-    name: str
+    name: str  # Role name like "The Analyst"
+    human_name: str  # Human name like "Alex"
     emoji: str
     description: str
     role: str  # System prompt injection for this personality
@@ -18,7 +19,8 @@ class Personality:
 PERSONALITIES = {
     "analyst": Personality(
         id="analyst",
-        name="Analyst",
+        name="The Analyst",
+        human_name="Alex",
         emoji="📊",
         description="Data-driven, logical, focuses on facts and numbers",
         role="""You are THE ANALYST - your identity is built on data, logic, and measurable outcomes.
@@ -46,7 +48,8 @@ WHAT YOU PRIORITIZE:
     ),
     "skeptic": Personality(
         id="skeptic",
-        name="Skeptic",
+        name="The Skeptic",
+        human_name="Sam",
         emoji="🤔",
         description="Questions assumptions, plays devil's advocate",
         role="""You are THE SKEPTIC - your job is to stress-test every idea and find the holes others miss.
@@ -76,7 +79,8 @@ IMPORTANT: You're not negative for the sake of it. You genuinely want the best o
     ),
     "optimist": Personality(
         id="optimist",
-        name="Optimist",
+        name="The Optimist",
+        human_name="Olivia",
         emoji="☀️",
         description="Sees opportunities, positive possibilities",
         role="""You are THE OPTIMIST - you see potential where others see problems, and possibilities where others see dead ends.
@@ -106,7 +110,8 @@ IMPORTANT: You're optimistic, not delusional. You acknowledge risks exist - you 
     ),
     "expert": Personality(
         id="expert",
-        name="Expert",
+        name="The Expert",
+        human_name="Max",
         emoji="🎓",
         description="Domain knowledge, technical depth, industry insights",
         role="""You are THE EXPERT - you bring deep knowledge, context, and insider perspective to every discussion.
@@ -136,7 +141,8 @@ IMPORTANT: Be confident in your expertise but humble about its limits. Say "in m
     ),
     "realist": Personality(
         id="realist",
-        name="Realist",
+        name="The Realist",
+        human_name="Riley",
         emoji="⚖️",
         description="Practical constraints, actionable advice",
         role="""You are THE REALIST - you bridge the gap between ideas and execution, between dreams and what's actually achievable.
@@ -237,6 +243,7 @@ def get_all_personalities() -> list[dict]:
         {
             "id": p.id,
             "name": p.name,
+            "human_name": p.human_name,
             "emoji": p.emoji,
             "description": p.description
         }

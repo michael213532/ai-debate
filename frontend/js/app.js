@@ -1592,7 +1592,8 @@ function renderPersonalitySelector(suggestedIds = []) {
         card.innerHTML = `
             <span class="checkmark">✓</span>
             ${emojiHtml}
-            <span class="name">${personality.name.replace('The ', '')}</span>
+            <span class="name">${personality.human_name || personality.name}</span>
+            <span class="role-subtitle">${personality.name}</span>
             ${assignedModel ? `<span class="model">powered by ${assignedModel}</span>` : ''}
         `;
 
@@ -1855,7 +1856,10 @@ function renderVoicesBar() {
 
         chip.innerHTML = `
             ${voiceEmojiHtml}
-            <span class="voice-name">${personality.name.replace('The ', '')}</span>
+            <div class="voice-info">
+                <span class="voice-name">${personality.human_name || personality.name}</span>
+                <span class="voice-role">${personality.name}</span>
+            </div>
         `;
         chip.addEventListener('click', () => {
             toggleVoiceChip(personality.id);

@@ -406,8 +406,26 @@
             font-size: 1rem;
         }
 
+        .voice-chip .voice-info {
+            display: flex;
+            flex-direction: column;
+            line-height: 1.2;
+        }
+
         .voice-chip .voice-name {
             font-weight: 500;
+        }
+
+        .voice-chip .voice-role {
+            font-size: 0.65rem;
+            font-weight: 400;
+            color: var(--text-secondary);
+            font-style: italic;
+        }
+
+        .voice-chip.selected .voice-role {
+            color: var(--primary-color);
+            opacity: 0.8;
         }
 
         .voices-chips {
@@ -1310,6 +1328,14 @@
             font-weight: 600;
             font-size: 0.85rem;
             color: var(--text-primary);
+        }
+
+        .personality-card .role-subtitle {
+            font-size: 0.65rem;
+            font-weight: 400;
+            color: var(--text-secondary);
+            font-style: italic;
+            margin-top: 1px;
         }
 
         .personality-card .model {
@@ -3377,9 +3403,9 @@
     </style>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-    <script src="/js/app.js?v=9"></script>
-    <script src="/js/settings.js?v=9"></script>
-    <script src="/js/chat.js?v=9"></script>
+    <script src="/js/app.js?v=10"></script>
+    <script src="/js/settings.js?v=10"></script>
+    <script src="/js/chat.js?v=10"></script>
     <script>
         // Models bar collapse/expand via header dropdown
         const setupSection = document.getElementById('setup-section');

@@ -237,7 +237,7 @@ class DebateOrchestrator:
             if personality_id:
                 personality = get_personality(personality_id)
                 if personality:
-                    display_name = personality.name
+                    display_name = personality.human_name
 
             await self._broadcast({
                 "type": "model_start",
@@ -318,7 +318,7 @@ class DebateOrchestrator:
         if personality_id:
             personality = get_personality(personality_id)
             if personality:
-                display_name = personality.name
+                display_name = personality.human_name
 
         # Only include images for vision-capable models in round 1
         # Non-vision models will just respond to the text conversation
@@ -354,7 +354,7 @@ class DebateOrchestrator:
             personality = get_personality(personality_id)
             if personality:
                 personality_role = personality.role
-                display_name = personality.name
+                display_name = personality.human_name
 
         # FAST MODE (free users) - shorter, quicker responses
         if self.detail_mode == "fast":
