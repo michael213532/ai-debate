@@ -795,9 +795,11 @@ function setInputLocked(locked) {
         if (quickTemplates) quickTemplates.style.display = '';
         if (input) input.style.display = '';
         if (chatButtonsRow) {
-            // Show everything in buttons row
+            // Show everything in buttons row EXCEPT the hidden file input
             chatButtonsRow.querySelectorAll(':scope > *').forEach(el => {
-                el.style.display = '';
+                if (el.id !== 'image-input') {
+                    el.style.display = '';
+                }
             });
         }
         // Restore input container styling
