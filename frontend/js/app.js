@@ -2226,6 +2226,16 @@ function renderVoicesBar() {
             e.stopPropagation();
             setTimeout(() => {
                 const wasOpen = dropdown.classList.contains('open');
+
+                // Position dropdown using fixed positioning relative to button
+                if (!wasOpen) {
+                    const rect = addBtn.getBoundingClientRect();
+                    dropdown.style.position = 'fixed';
+                    dropdown.style.top = (rect.bottom + 8) + 'px';
+                    dropdown.style.right = (window.innerWidth - rect.right) + 'px';
+                    dropdown.style.left = 'auto';
+                }
+
                 dropdown.classList.toggle('open');
                 if (!wasOpen) {
                     window.setSpecialBeesJustOpened(true);
