@@ -69,7 +69,7 @@ document.getElementById('send-btn').addEventListener('click', () => {
     const input = document.getElementById('chat-input');
     const question = input.value.trim();
 
-    console.log('[send-btn click] stopMode:', btn.classList.contains('stop-mode'), 'currentSessionId:', currentSessionId, 'question:', question);
+    console.log('[send-btn click] stopMode:', btn.classList.contains('stop-mode'), 'currentSessionId:', currentSessionId, 'question:', question, 'continuingDebateId:', window.continuingDebateId, 'btn.disabled:', btn.disabled);
 
     if (btn.classList.contains('stop-mode')) {
         // Stop the discussion
@@ -155,7 +155,7 @@ async function sendMessage() {
     const input = document.getElementById('chat-input');
     const message = input.value.trim();
 
-    console.log('[sendMessage] message:', message, 'selectedModels:', selectedModels.length, 'isProcessing:', isProcessing);
+    console.log('[sendMessage] message:', message, 'selectedModels:', typeof selectedModels, selectedModels?.length, 'isProcessing:', isProcessing, 'continuingDebateId:', window.continuingDebateId);
 
     if (!message) {
         console.log('[sendMessage] BLOCKED - no message');
@@ -718,6 +718,7 @@ function updateChatStatus(text) {
 
 // Lock/unlock input - toggle between send and stop mode
 function setInputLocked(locked) {
+    console.log('[setInputLocked] locked:', locked, 'continuingDebateId:', window.continuingDebateId);
     isProcessing = locked;
     const input = document.getElementById('chat-input');
     const sendBtn = document.getElementById('send-btn');
@@ -733,6 +734,7 @@ function setInputLocked(locked) {
         sendBtn.innerHTML = 'Start Debate';
         input.placeholder = 'Ask your question';
         updateSendButton();
+        console.log('[setInputLocked] after updateSendButton, btn.disabled:', sendBtn.disabled);
     }
 }
 
