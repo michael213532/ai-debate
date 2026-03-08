@@ -290,18 +290,23 @@ function loadRoleAssignments() {
         return `
             <div class="role-assignment-card" data-role="${p.id}">
                 <div class="role-emoji">${emojiHtml}</div>
-                <div class="role-info">
-                    <div class="role-name">${p.name}</div>
-                    <div class="role-description">${p.description}</div>
+                <div class="role-main">
+                    <div class="role-header">
+                        <div class="role-name-group">
+                            <div class="role-human-name">${p.human_name || p.name}</div>
+                            <div class="role-title">${p.name}</div>
+                        </div>
+                        <div class="role-description">${p.description}</div>
+                    </div>
+                    <select class="role-model-select" data-role="${p.id}">
+                        <option value="">Auto-assign</option>
+                        ${models.map(m => `
+                            <option value="${m.provider}:${m.id}" ${savedModelId === `${m.provider}:${m.id}` ? 'selected' : ''}>
+                                ${m.name}
+                            </option>
+                        `).join('')}
+                    </select>
                 </div>
-                <select class="role-model-select" data-role="${p.id}">
-                    <option value="">Auto-assign</option>
-                    ${models.map(m => `
-                        <option value="${m.provider}:${m.id}" ${savedModelId === `${m.provider}:${m.id}` ? 'selected' : ''}>
-                            ${m.name}
-                        </option>
-                    `).join('')}
-                </select>
             </div>
         `;
     }).join('');
