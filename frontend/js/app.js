@@ -1820,7 +1820,7 @@ function toggleSpecialBeesDropdown(e) {
 }
 
 // Close special bees dropdown when clicking outside
-document.addEventListener('click', (e) => {
+document.addEventListener('pointerdown', (e) => {
     const dropdown = document.getElementById('special-bees-dropdown');
     const wrapper = document.querySelector('.add-special-wrapper');
     if (dropdown && wrapper && !wrapper.contains(e.target)) {
@@ -2217,9 +2217,7 @@ function renderVoicesBar() {
         addBtn.addEventListener('pointerdown', (e) => {
             e.preventDefault();
             e.stopPropagation();
-            console.log('+ button clicked, toggling dropdown');
             dropdown.classList.toggle('open');
-            console.log('Dropdown open:', dropdown.classList.contains('open'));
         });
 
         // Add click handlers for options
