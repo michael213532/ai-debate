@@ -1560,7 +1560,7 @@ function renderHiveVerdict(verdict) {
         ${votesHtml}
         <div class="verdict-actions">
             <button class="verdict-action-btn try-another-hive" onclick="openHivesModalForRetry()">
-                <span>🐝</span> Try Another Hive
+                <img src="/bee-icon.png" alt="" style="width: 18px; height: 18px; vertical-align: middle; image-rendering: -webkit-optimize-contrast;"> Try Another Hive
             </button>
         </div>
         ${followUpHint}
