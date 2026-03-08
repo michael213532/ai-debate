@@ -1620,18 +1620,29 @@ async function fetchHives() {
     }
 }
 
+// Fallback special bees data in case API fails
+const FALLBACK_SPECIAL_BEES = [
+    { id: "special-devils-advocate", name: "Devil's Advocate", human_name: "Lucifer", emoji: "😈", description: "Challenges consensus, prevents echo chambers", is_special: true },
+    { id: "special-wild-card", name: "Wild Card", human_name: "Joker", emoji: "🃏", description: "Random unexpected perspectives, creative chaos", is_special: true }
+];
+
 // Fetch special bees from API
 async function fetchSpecialBees() {
     try {
-        const response = await fetch(`${API_BASE}/api/special-bees`, {
-            headers: getAuthHeaders()
-        });
+        const response = await fetch(`${API_BASE}/api/special-bees`);
         if (response.ok) {
             allSpecialBees = await response.json();
+            window.allSpecialBees = allSpecialBees;
+            console.log('Special bees loaded:', allSpecialBees);
+        } else {
+            console.warn('Special bees API failed, using fallback');
+            allSpecialBees = FALLBACK_SPECIAL_BEES;
             window.allSpecialBees = allSpecialBees;
         }
     } catch (error) {
         console.error('Error fetching special bees:', error);
+        allSpecialBees = FALLBACK_SPECIAL_BEES;
+        window.allSpecialBees = allSpecialBees;
     }
 }
 
@@ -2205,7 +2216,9 @@ function renderVoicesBar() {
         // Add click handler for button
         addBtn.addEventListener('click', (e) => {
             e.stopPropagation();
+            console.log('+ button clicked, toggling dropdown');
             dropdown.classList.toggle('open');
+            console.log('Dropdown open:', dropdown.classList.contains('open'));
         });
 
         // Add click handlers for options
