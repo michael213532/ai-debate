@@ -122,6 +122,7 @@ async def list_personalities():
         PersonalityInfo(
             id=p["id"],
             name=p["name"],
+            human_name=p["human_name"],
             emoji=p["emoji"],
             description=p["description"]
         )
@@ -140,6 +141,7 @@ async def get_personality_suggestions(
         PersonalityInfo(
             id=p["id"],
             name=p["name"],
+            human_name=p["human_name"],
             emoji=p["emoji"],
             description=p["description"]
         )

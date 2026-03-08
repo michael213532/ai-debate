@@ -24,6 +24,7 @@ class PersonalityInfo(BaseModel):
     """Information about a personality bee."""
     id: str
     name: str
+    human_name: str
     emoji: str
     description: str
 
