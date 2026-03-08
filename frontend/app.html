@@ -438,7 +438,12 @@
             background: linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(139, 92, 246, 0.2));
         }
 
-        /* Add special bee button */
+        /* Add special bee button and dropdown */
+        .add-special-wrapper {
+            position: relative;
+            flex-shrink: 0;
+        }
+
         .add-special-btn {
             display: flex;
             align-items: center;
@@ -452,13 +457,85 @@
             font-size: 1.2rem;
             color: var(--text-secondary);
             transition: all 0.15s;
-            flex-shrink: 0;
         }
 
         .add-special-btn:hover {
             border-color: var(--primary-color);
             color: var(--primary-color);
             background: rgba(99, 102, 241, 0.05);
+        }
+
+        .special-bees-dropdown {
+            position: absolute;
+            bottom: calc(100% + 8px);
+            right: 0;
+            background: var(--surface);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+            min-width: 200px;
+            display: none;
+            z-index: 100;
+            overflow: hidden;
+        }
+
+        .special-bees-dropdown.open {
+            display: block;
+        }
+
+        .special-bees-dropdown-title {
+            padding: 10px 14px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .special-bee-option {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 14px;
+            cursor: pointer;
+            transition: background 0.15s;
+            border: none;
+            background: none;
+            width: 100%;
+            text-align: left;
+        }
+
+        .special-bee-option:hover {
+            background: var(--surface-light);
+        }
+
+        .special-bee-option.selected {
+            background: rgba(99, 102, 241, 0.1);
+        }
+
+        .special-bee-option .bee-emoji {
+            font-size: 1.3rem;
+        }
+
+        .special-bee-option .bee-info {
+            flex: 1;
+        }
+
+        .special-bee-option .bee-name {
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: var(--text-primary);
+        }
+
+        .special-bee-option .bee-desc {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        .special-bee-option .bee-check {
+            color: var(--primary-color);
+            font-weight: bold;
         }
 
         /* Hives Button */
@@ -2944,15 +3021,6 @@
             <div class="hives-modal-body">
                 <div id="hives-grid" class="hives-grid">
                     <!-- Hive cards populated by JS -->
-                </div>
-                <div class="special-bees-section">
-                    <div class="special-bees-title">
-                        <span>✨ Add-on Bees</span>
-                        <span style="font-weight: 400; font-size: 0.8rem; color: var(--text-secondary);">(speak last, challenge consensus)</span>
-                    </div>
-                    <div id="special-bees-grid" class="special-bees-grid">
-                        <!-- Special bee cards populated by JS -->
-                    </div>
                 </div>
             </div>
         </div>

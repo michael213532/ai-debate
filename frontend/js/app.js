@@ -1711,7 +1711,6 @@ function closeHivesModal() {
 // Render hives modal content
 function renderHivesModal() {
     const hivesGrid = document.getElementById('hives-grid');
-    const specialGrid = document.getElementById('special-bees-grid');
 
     if (hivesGrid) {
         hivesGrid.innerHTML = allHives.map(hive => `
@@ -1731,19 +1730,59 @@ function renderHivesModal() {
             </div>
         `).join('');
     }
+}
 
-    if (specialGrid) {
-        specialGrid.innerHTML = allSpecialBees.map(bee => `
-            <div class="special-bee-card ${selectedSpecialBees.includes(bee.id) ? 'selected' : ''}" onclick="toggleSpecialBee('${bee.id}')">
-                <span class="special-bee-emoji">${bee.emoji}</span>
-                <div class="special-bee-info">
-                    <span class="special-bee-name">${bee.human_name}</span>
-                    <span class="special-bee-desc">${bee.description}</span>
-                </div>
+// Render special bees dropdown content
+function renderSpecialBeesDropdown() {
+    const dropdown = document.getElementById('special-bees-dropdown');
+    if (!dropdown) return;
+
+    const optionsHtml = allSpecialBees.map(bee => `
+        <button class="special-bee-option ${selectedSpecialBees.includes(bee.id) ? 'selected' : ''}" onclick="toggleSpecialBeeFromDropdown('${bee.id}')">
+            <span class="bee-emoji">${bee.emoji}</span>
+            <div class="bee-info">
+                <div class="bee-name">${bee.human_name}</div>
+                <div class="bee-desc">${bee.description}</div>
             </div>
-        `).join('');
+            <span class="bee-check">${selectedSpecialBees.includes(bee.id) ? '✓' : ''}</span>
+        </button>
+    `).join('');
+
+    dropdown.innerHTML = `
+        <div class="special-bees-dropdown-title">Add-on Bees</div>
+        ${optionsHtml}
+    `;
+}
+
+// Toggle special bee from dropdown
+function toggleSpecialBeeFromDropdown(beeId) {
+    toggleSpecialBee(beeId);
+    renderSpecialBeesDropdown();
+}
+
+// Toggle special bees dropdown
+function toggleSpecialBeesDropdown(e) {
+    e.stopPropagation();
+    const dropdown = document.getElementById('special-bees-dropdown');
+    if (dropdown) {
+        dropdown.classList.toggle('open');
+        if (dropdown.classList.contains('open')) {
+            renderSpecialBeesDropdown();
+        }
     }
 }
+
+// Close special bees dropdown when clicking outside
+document.addEventListener('click', (e) => {
+    const dropdown = document.getElementById('special-bees-dropdown');
+    const wrapper = document.querySelector('.add-special-wrapper');
+    if (dropdown && wrapper && !wrapper.contains(e.target)) {
+        dropdown.classList.remove('open');
+    }
+});
+
+window.toggleSpecialBeesDropdown = toggleSpecialBeesDropdown;
+window.toggleSpecialBeeFromDropdown = toggleSpecialBeeFromDropdown;
 
 // Make functions globally available
 window.openHivesModal = openHivesModal;
@@ -2082,13 +2121,16 @@ function renderVoicesBar() {
         container.appendChild(chip);
     });
 
-    // Add "+" button to add special bees
-    const addBtn = document.createElement('button');
-    addBtn.className = 'add-special-btn';
-    addBtn.title = 'Add special bee';
-    addBtn.innerHTML = '+';
-    addBtn.addEventListener('click', openHivesModal);
-    container.appendChild(addBtn);
+    // Add "+" button with dropdown for special bees
+    const wrapper = document.createElement('div');
+    wrapper.className = 'add-special-wrapper';
+    wrapper.innerHTML = `
+        <button class="add-special-btn" title="Add special bee" onclick="toggleSpecialBeesDropdown(event)">+</button>
+        <div id="special-bees-dropdown" class="special-bees-dropdown">
+            <!-- Populated by JS -->
+        </div>
+    `;
+    container.appendChild(wrapper);
 }
 
 function toggleVoiceChip(personalityId) {
