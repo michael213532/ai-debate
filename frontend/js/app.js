@@ -1819,17 +1819,20 @@ function toggleSpecialBeesDropdown(e) {
     }
 }
 
-// Close special bees dropdown when clicking outside
+// Close special bees dropdown when clicking outside (with delay to prevent race condition)
+let specialBeesJustOpened = false;
 document.addEventListener('pointerdown', (e) => {
+    if (specialBeesJustOpened) {
+        console.log('[DEBUG] Ignoring - just opened');
+        return;
+    }
     const dropdown = document.getElementById('special-bees-dropdown');
     const wrapper = document.querySelector('.add-special-wrapper');
-    console.log('[DEBUG] Document pointerdown fired, target:', e.target.className);
-    console.log('[DEBUG] wrapper contains target:', wrapper?.contains(e.target));
     if (dropdown && wrapper && !wrapper.contains(e.target)) {
-        console.log('[DEBUG] Closing dropdown from document listener');
         dropdown.classList.remove('open');
     }
 });
+window.setSpecialBeesJustOpened = (val) => { specialBeesJustOpened = val; };
 
 window.toggleSpecialBeesDropdown = toggleSpecialBeesDropdown;
 window.toggleSpecialBeeFromDropdown = toggleSpecialBeeFromDropdown;
@@ -2216,15 +2219,17 @@ function renderVoicesBar() {
         `).join('');
         dropdown.innerHTML = `<div class="special-bees-dropdown-title">Add-on Bees</div>${optionsHtml}`;
 
-        // Add click handler for button (use pointerdown to avoid touch+click double-firing)
+        // Add click handler for button
         addBtn.addEventListener('pointerdown', (e) => {
             e.preventDefault();
             e.stopPropagation();
-            console.log('[DEBUG] Button pointerdown fired');
-            console.log('[DEBUG] Number of + buttons:', document.querySelectorAll('.add-special-btn').length);
-            console.log('[DEBUG] Before toggle, open:', dropdown.classList.contains('open'));
+            const wasOpen = dropdown.classList.contains('open');
             dropdown.classList.toggle('open');
-            console.log('[DEBUG] After toggle, open:', dropdown.classList.contains('open'));
+            if (!wasOpen) {
+                // Set flag to prevent document listener from immediately closing
+                window.setSpecialBeesJustOpened(true);
+                setTimeout(() => window.setSpecialBeesJustOpened(false), 100);
+            }
         });
 
         // Add click handlers for options
