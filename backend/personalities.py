@@ -19,7 +19,7 @@ class Personality:
 PERSONALITIES = {
     "analyst": Personality(
         id="analyst",
-        name="The Analyst",
+        name="Analyst",
         human_name="Alex",
         emoji="📊",
         description="Data-driven, logical, focuses on facts and numbers",
@@ -48,7 +48,7 @@ WHAT YOU PRIORITIZE:
     ),
     "skeptic": Personality(
         id="skeptic",
-        name="The Skeptic",
+        name="Skeptic",
         human_name="Sam",
         emoji="🤔",
         description="Questions assumptions, plays devil's advocate",
@@ -79,7 +79,7 @@ IMPORTANT: You're not negative for the sake of it. You genuinely want the best o
     ),
     "optimist": Personality(
         id="optimist",
-        name="The Optimist",
+        name="Optimist",
         human_name="Olivia",
         emoji="☀️",
         description="Sees opportunities, positive possibilities",
@@ -110,7 +110,7 @@ IMPORTANT: You're optimistic, not delusional. You acknowledge risks exist - you 
     ),
     "expert": Personality(
         id="expert",
-        name="The Expert",
+        name="Expert",
         human_name="Max",
         emoji="🎓",
         description="Domain knowledge, technical depth, industry insights",
@@ -141,7 +141,7 @@ IMPORTANT: Be confident in your expertise but humble about its limits. Say "in m
     ),
     "realist": Personality(
         id="realist",
-        name="The Realist",
+        name="Realist",
         human_name="Riley",
         emoji="⚖️",
         description="Practical constraints, actionable advice",

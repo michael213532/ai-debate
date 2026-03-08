@@ -28,6 +28,15 @@ const HUMAN_NAME_TO_PERSONALITY = {
     'riley': 'realist'
 };
 
+// Map personality IDs to human names
+const PERSONALITY_TO_HUMAN_NAME = {
+    'analyst': 'Alex',
+    'skeptic': 'Sam',
+    'optimist': 'Olivia',
+    'expert': 'Max',
+    'realist': 'Riley'
+};
+
 // Get personality ID from display name (human name or role name)
 function getPersonalityFromName(name) {
     const nameLower = name.toLowerCase();
@@ -397,7 +406,7 @@ function handleWebSocketMessage(message) {
 
         case 'model_start':
             console.log('[AI Response] Starting:', message.model_name);
-            addAiDiscussionMessage(message.model_name, message.provider, '', message.personality_id);
+            addAiDiscussionMessage(message.model_name, message.provider, '', message.personality_id, message.human_name);
             updateChatStatus(`${message.model_name} is responding...`);
             break;
 
@@ -629,7 +638,7 @@ function getProviderClassFromName(name) {
 }
 
 // Add AI discussion message to main chat (inline)
-function addAiDiscussionMessage(modelName, provider, content, personalityId) {
+function addAiDiscussionMessage(modelName, provider, content, personalityId, humanName) {
     const container = document.getElementById('chat-messages');
 
     const msg = document.createElement('div');
@@ -644,10 +653,15 @@ function addAiDiscussionMessage(modelName, provider, content, personalityId) {
         ? `<img src="/bee-${personalityId}.png" alt="" style="width: 50px; height: 50px; margin: -15px -2px -15px -8px; image-rendering: -webkit-optimize-contrast;">`
         : '';
 
+    const humanNameHtml = humanName ? `<span class="ai-human-name">${escapeHtml(humanName)}</span>` : '';
+
     msg.innerHTML = `
         <div class="ai-model-header">
             ${personalityImgHtml}
-            <span class="ai-model-name">${escapeHtml(modelName)}</span>
+            <div class="ai-name-info">
+                <span class="ai-model-name">${escapeHtml(modelName)}</span>
+                ${humanNameHtml}
+            </div>
             <span class="ai-provider-tag">${escapeHtml(provider)}</span>
         </div>
         <div class="message-content"></div>
@@ -1417,13 +1431,20 @@ function addHistoryAiMessage(modelName, provider, content) {
         ? `<img src="/bee-${beeType}.png" alt="" style="width: 50px; height: 50px; margin: -15px -2px -15px -8px; image-rendering: -webkit-optimize-contrast;">`
         : '';
 
+    // Get human name for personality
+    const humanName = beeType ? PERSONALITY_TO_HUMAN_NAME[beeType] : null;
+    const humanNameHtml = humanName ? `<span class="ai-human-name">${escapeHtml(humanName)}</span>` : '';
+
     // Clean content of markdown
     const cleanContent = content.replace(/\*\*/g, '');
 
     msg.innerHTML = `
         <div class="ai-model-header">
             ${beeImg}
-            <span class="ai-model-name">${escapeHtml(modelName)}</span>
+            <div class="ai-name-info">
+                <span class="ai-model-name">${escapeHtml(modelName)}</span>
+                ${humanNameHtml}
+            </div>
             <span class="ai-provider-tag">${escapeHtml(provider)}</span>
         </div>
         <div class="message-content">${escapeHtml(cleanContent)}</div>

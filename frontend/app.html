@@ -1102,9 +1102,22 @@
             font-size: 0.9rem;
         }
 
+        .message.ai-individual .ai-name-info {
+            display: flex;
+            flex-direction: column;
+            line-height: 1.2;
+        }
+
         .message.ai-individual .ai-model-name {
             font-weight: 700;
             font-size: 0.95rem;
+        }
+
+        .message.ai-individual .ai-human-name {
+            font-size: 0.7rem;
+            font-weight: 400;
+            color: var(--text-secondary);
+            font-style: italic;
         }
 
         .message.ai-individual .ai-provider-tag {
@@ -3403,9 +3416,9 @@
     </style>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-    <script src="/js/app.js?v=10"></script>
-    <script src="/js/settings.js?v=10"></script>
-    <script src="/js/chat.js?v=10"></script>
+    <script src="/js/app.js?v=11"></script>
+    <script src="/js/settings.js?v=11"></script>
+    <script src="/js/chat.js?v=11"></script>
     <script>
         // Models bar collapse/expand via header dropdown
         const setupSection = document.getElementById('setup-section');
