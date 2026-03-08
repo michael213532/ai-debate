@@ -2213,8 +2213,9 @@ function renderVoicesBar() {
         `).join('');
         dropdown.innerHTML = `<div class="special-bees-dropdown-title">Add-on Bees</div>${optionsHtml}`;
 
-        // Add click handler for button
-        addBtn.addEventListener('click', (e) => {
+        // Add click handler for button (use pointerdown to avoid touch+click double-firing)
+        addBtn.addEventListener('pointerdown', (e) => {
+            e.preventDefault();
             e.stopPropagation();
             console.log('+ button clicked, toggling dropdown');
             dropdown.classList.toggle('open');

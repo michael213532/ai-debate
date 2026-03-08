@@ -3837,8 +3837,12 @@
 
         function updateHeaderModelsCount() {
             const count = selectedModels ? selectedModels.length : 0;
-            headerModelsCount.textContent = count === 1 ? '1 voice selected' : `${count} voices selected`;
-            mobileModelsCount.textContent = count === 1 ? '1 voice' : `${count} voices`;
+            if (headerModelsCount) {
+                headerModelsCount.textContent = count === 1 ? '1 voice selected' : `${count} voices selected`;
+            }
+            if (mobileModelsCount) {
+                mobileModelsCount.textContent = count === 1 ? '1 voice' : `${count} voices`;
+            }
         }
 
         function toggleModels() {
