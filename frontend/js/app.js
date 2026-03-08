@@ -597,7 +597,7 @@ function updateSendButton() {
     const canContinue = typeof window.continuingDebateId !== 'undefined' && window.continuingDebateId;
     const canSend = hasText && (isActive || noSession || hasModels || canContinue);
 
-    console.log('[updateSendButton] hasText:', !!hasText, 'isActive:', isActive, 'noSession:', noSession, 'hasModels:', hasModels, 'canContinue:', !!canContinue, 'canSend:', canSend);
+    console.log('[updateSendButton] hasText:', !!hasText, 'isActive:', isActive, 'noSession:', noSession, 'hasModels:', hasModels, 'selectedModels.length:', selectedModels.length, 'canContinue:', !!canContinue, 'continuingDebateId:', window.continuingDebateId, 'canSend:', canSend, 'currentSessionId:', typeof currentSessionId !== 'undefined' ? currentSessionId : 'UNDEFINED');
 
     sendBtn.disabled = !canSend;
 }
