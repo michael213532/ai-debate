@@ -596,9 +596,6 @@ function updateSendButton() {
     const hasModels = selectedModels.length >= 2;
     const canContinue = typeof window.continuingDebateId !== 'undefined' && window.continuingDebateId;
     const canSend = hasText && (isActive || noSession || hasModels || canContinue);
-
-    console.log('[updateSendButton] hasText:', !!hasText, 'isActive:', isActive, 'noSession:', noSession, 'hasModels:', hasModels, 'selectedModels.length:', selectedModels.length, 'canContinue:', !!canContinue, 'continuingDebateId:', window.continuingDebateId, 'canSend:', canSend, 'currentSessionId:', typeof currentSessionId !== 'undefined' ? currentSessionId : 'UNDEFINED');
-
     sendBtn.disabled = !canSend;
 }
 
@@ -1633,7 +1630,6 @@ async function fetchSpecialBees() {
         if (response.ok) {
             allSpecialBees = await response.json();
             window.allSpecialBees = allSpecialBees;
-            console.log('Special bees loaded:', allSpecialBees);
         } else {
             console.warn('Special bees API failed, using fallback');
             allSpecialBees = FALLBACK_SPECIAL_BEES;
