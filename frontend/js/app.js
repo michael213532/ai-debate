@@ -2173,16 +2173,19 @@ function renderVoicesBar() {
         container.appendChild(chip);
     });
 
-    // Add "+" button with dropdown for special bees
-    const wrapper = document.createElement('div');
-    wrapper.className = 'add-special-wrapper';
-    wrapper.innerHTML = `
-        <button class="add-special-btn" title="Add special bee" onclick="toggleSpecialBeesDropdown(event)">+</button>
-        <div id="special-bees-dropdown" class="special-bees-dropdown">
-            <!-- Populated by JS -->
-        </div>
-    `;
-    container.appendChild(wrapper);
+    // Add "+" button with dropdown for special bees (only if not all selected)
+    const unselectedSpecialBees = allSpecialBees.filter(b => !selectedSpecialBees.includes(b.id));
+    if (unselectedSpecialBees.length > 0) {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'add-special-wrapper';
+        wrapper.innerHTML = `
+            <button class="add-special-btn" title="Add special bee" onclick="toggleSpecialBeesDropdown(event)">+</button>
+            <div id="special-bees-dropdown" class="special-bees-dropdown">
+                <!-- Populated by JS -->
+            </div>
+        `;
+        container.appendChild(wrapper);
+    }
 }
 
 function toggleVoiceChip(personalityId) {
