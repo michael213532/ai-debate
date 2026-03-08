@@ -114,9 +114,11 @@ class DebateOrchestrator:
                 )
                 await db.commit()
 
-            # Run exactly 3 rounds - no early exit for agreement
+            # Run exactly 1 round for continuations, 3 for new debates
             round_num = self.start_round
-            total_rounds = 3
+            # For continuations (start_round > 1), run 1 additional round
+            # For new debates (start_round == 1), run 3 rounds
+            total_rounds = self.start_round if self.start_round > 1 else 3
 
             while not self._stopped and round_num <= total_rounds:
                 await self._broadcast({
