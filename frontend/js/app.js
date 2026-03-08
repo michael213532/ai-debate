@@ -2125,18 +2125,20 @@ function toggleVoiceChip(personalityId) {
 async function initVoicesBar() {
     await fetchPersonalities();
 
-    // Auto-select all bees from current hive if none selected
-    if (selectedPersonalities.length === 0) {
-        const hive = allHives.find(h => h.id === selectedHiveId);
-        if (hive) {
+    // Check if we need to migrate from old system (clear invalid selections)
+    const hive = allHives.find(h => h.id === selectedHiveId);
+    if (hive) {
+        const validIds = new Set(hive.personalities.map(p => p.id));
+        allSpecialBees.forEach(b => validIds.add(b.id));
+
+        // Check if current selections contain any invalid IDs (from old system)
+        const hasInvalidIds = selectedPersonalities.some(id => !validIds.has(id));
+        if (hasInvalidIds || selectedPersonalities.length === 0) {
+            // Reset to current hive's bees
             selectedPersonalities = hive.personalities.map(p => p.id);
-            // Add any saved special bees
-            selectedSpecialBees.forEach(specialId => {
-                if (!selectedPersonalities.includes(specialId)) {
-                    selectedPersonalities.push(specialId);
-                }
-            });
+            selectedSpecialBees = [];
             saveSelectedBees();
+            saveSelectedSpecialBees();
         }
     }
 

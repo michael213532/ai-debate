@@ -757,17 +757,55 @@ function setInputLocked(locked) {
     isProcessing = locked;
     const input = document.getElementById('chat-input');
     const sendBtn = document.getElementById('send-btn');
+    const voicesBar = document.querySelector('.voices-bar');
+    const inputArea = document.getElementById('chat-input-area');
+    const quickTemplates = document.getElementById('quick-templates');
+    const chatInputContainer = document.querySelector('.chat-input-container');
+    const chatButtonsRow = document.querySelector('.chat-buttons-row');
 
     if (locked) {
-        // Switch to stop mode - circular pause button
+        // Switch to stop mode - hide everything except pause button
         sendBtn.classList.add('stop-mode');
         sendBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>`;
         sendBtn.disabled = false;
+
+        // Hide voices bar and input elements during debate
+        if (voicesBar) voicesBar.style.display = 'none';
+        if (quickTemplates) quickTemplates.style.display = 'none';
+        if (input) input.style.display = 'none';
+        if (chatButtonsRow) {
+            // Hide everything in buttons row except the send/stop button
+            chatButtonsRow.querySelectorAll(':scope > *:not(#send-btn)').forEach(el => {
+                el.style.display = 'none';
+            });
+        }
+        // Simplify the input container during debate
+        if (chatInputContainer) {
+            chatInputContainer.style.padding = '8px';
+            chatInputContainer.style.justifyContent = 'center';
+        }
     } else {
-        // Switch to send mode - Start Debate text
+        // Switch to send mode - show everything again
         sendBtn.classList.remove('stop-mode');
         sendBtn.innerHTML = 'Start Debate';
         input.placeholder = 'Ask your question';
+
+        // Show voices bar and input elements after debate
+        if (voicesBar) voicesBar.style.display = '';
+        if (quickTemplates) quickTemplates.style.display = '';
+        if (input) input.style.display = '';
+        if (chatButtonsRow) {
+            // Show everything in buttons row
+            chatButtonsRow.querySelectorAll(':scope > *').forEach(el => {
+                el.style.display = '';
+            });
+        }
+        // Restore input container styling
+        if (chatInputContainer) {
+            chatInputContainer.style.padding = '';
+            chatInputContainer.style.justifyContent = '';
+        }
+
         updateSendButton();
         console.log('[setInputLocked] after updateSendButton, btn.disabled:', sendBtn.disabled);
     }
@@ -1503,9 +1541,21 @@ function renderHiveVerdict(verdict) {
             ${verdict.confidence !== undefined ? `<div class="verdict-confidence">${verdict.confidence}% confidence</div>` : ''}
         </div>
         ${votesHtml}
+        <div class="verdict-actions">
+            <button class="verdict-action-btn try-another-hive" onclick="openHivesModalForRetry()">
+                <span>🐝</span> Try Another Hive
+            </button>
+        </div>
         ${followUpHint}
     `;
 
     container.appendChild(verdictEl);
     scrollToBottom(container);
+}
+
+// Open hives modal for retry - allows choosing a different hive to re-ask the question
+function openHivesModalForRetry() {
+    if (typeof window.openHivesModal === 'function') {
+        window.openHivesModal();
+    }
 }
