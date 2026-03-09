@@ -3121,6 +3121,19 @@
             margin-top: 8px;
         }
 
+        .bee-preview-icon .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid var(--border-color);
+            border-top-color: var(--primary-color);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
         .bee-creator-form {
             display: flex;
             flex-direction: column;
@@ -3497,6 +3510,7 @@
                     <div>
                         <div class="bee-preview-icon" id="bee-preview-icon">🐝</div>
                         <div class="bee-preview-status" id="bee-preview-status">Icon will be AI-generated</div>
+                        <button class="btn btn-secondary btn-small" id="regenerate-icon-btn" style="display: none; margin-top: 8px;" onclick="regeneratePreviewIcon()">Regenerate Icon</button>
                     </div>
                 </div>
                 <div class="bee-creator-form">
@@ -3524,7 +3538,8 @@
             </div>
             <div class="bee-creator-footer">
                 <button class="btn btn-secondary" onclick="closeBeeCreator()">Cancel</button>
-                <button class="btn btn-primary" id="save-bee-btn" onclick="saveBeeToSlot()">Add Bee</button>
+                <button class="btn btn-primary" id="generate-icon-btn" onclick="generateBeeIcon()">Generate Icon</button>
+                <button class="btn btn-primary" id="save-bee-btn" onclick="saveBeeToSlot()" style="display: none;">Confirm & Add</button>
             </div>
         </div>
     </div>

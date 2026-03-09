@@ -2723,9 +2723,13 @@ function updateSaveHiveButton() {
 // Open bee creator modal
 function openBeeCreator(index) {
     editingBeeIndex = index;
+    generatedIconBase64 = null; // Reset
+
     const modal = document.getElementById('bee-creator-modal');
     const titleEl = document.getElementById('bee-creator-title');
+    const generateBtn = document.getElementById('generate-icon-btn');
     const saveBtn = document.getElementById('save-bee-btn');
+    const regenerateBtn = document.getElementById('regenerate-icon-btn');
 
     const humanNameInput = document.getElementById('bee-human-name-input');
     const nameInput = document.getElementById('bee-name-input');
@@ -2737,7 +2741,6 @@ function openBeeCreator(index) {
     const existingBee = currentEditingBees[index];
     if (existingBee) {
         titleEl.textContent = 'Edit Bee';
-        saveBtn.textContent = 'Save Bee';
         humanNameInput.value = existingBee.human_name || '';
         nameInput.value = existingBee.name || '';
         descInput.value = existingBee.description || '';
@@ -2745,20 +2748,37 @@ function openBeeCreator(index) {
 
         if (existingBee.icon_base64) {
             previewIcon.innerHTML = `<img src="data:image/png;base64,${existingBee.icon_base64}" alt="">`;
-            previewStatus.textContent = 'AI-generated icon';
+            previewStatus.textContent = 'Current icon';
+            generatedIconBase64 = existingBee.icon_base64;
+            // Show regenerate and confirm for editing
+            generateBtn.style.display = 'none';
+            regenerateBtn.style.display = 'inline-block';
+            saveBtn.style.display = 'inline-block';
+            saveBtn.textContent = 'Save Changes';
         } else {
             previewIcon.innerHTML = existingBee.emoji || '🐝';
-            previewStatus.textContent = existingBee.icon_generation_status === 'pending' ? 'Icon generating...' : 'Icon will be AI-generated';
+            previewStatus.textContent = 'Click Generate Icon to create';
+            generateBtn.style.display = 'inline-block';
+            generateBtn.disabled = false;
+            generateBtn.textContent = 'Generate Icon';
+            regenerateBtn.style.display = 'none';
+            saveBtn.style.display = 'none';
         }
     } else {
         titleEl.textContent = 'Add Bee';
-        saveBtn.textContent = 'Add Bee';
         humanNameInput.value = '';
         nameInput.value = '';
         descInput.value = '';
         roleInput.value = '';
         previewIcon.innerHTML = '🐝';
-        previewStatus.textContent = 'Icon will be AI-generated';
+        previewStatus.textContent = 'Fill in details, then generate icon';
+
+        // Reset buttons
+        generateBtn.style.display = 'inline-block';
+        generateBtn.disabled = false;
+        generateBtn.textContent = 'Generate Icon';
+        regenerateBtn.style.display = 'none';
+        saveBtn.style.display = 'none';
     }
 
     modal.classList.add('active');
@@ -2769,6 +2789,96 @@ function closeBeeCreator() {
     const modal = document.getElementById('bee-creator-modal');
     modal.classList.remove('active');
     editingBeeIndex = null;
+}
+
+// Temporary storage for generated icon
+let generatedIconBase64 = null;
+
+// Generate bee icon via API
+async function generateBeeIcon() {
+    const humanName = document.getElementById('bee-human-name-input').value.trim();
+    const name = document.getElementById('bee-name-input').value.trim();
+    const description = document.getElementById('bee-desc-input').value.trim();
+    const role = document.getElementById('bee-role-input').value.trim();
+
+    if (!humanName || !name || !description || !role) {
+        alert('Please fill in all fields first.');
+        return;
+    }
+
+    if (role.length < 10) {
+        alert('Personality prompt must be at least 10 characters.');
+        return;
+    }
+
+    const generateBtn = document.getElementById('generate-icon-btn');
+    const previewIcon = document.getElementById('bee-preview-icon');
+    const previewStatus = document.getElementById('bee-preview-status');
+    const regenerateBtn = document.getElementById('regenerate-icon-btn');
+    const saveBtn = document.getElementById('save-bee-btn');
+
+    // Show loading state
+    generateBtn.disabled = true;
+    generateBtn.textContent = 'Generating...';
+    previewIcon.innerHTML = '<div class="loading-spinner"></div>';
+    previewStatus.textContent = 'Creating your bee icon with AI...';
+
+    try {
+        const response = await fetch(`${API_BASE}/api/custom-hives/generate-icon`, {
+            method: 'POST',
+            headers: getAuthHeaders(),
+            body: JSON.stringify({
+                bee_name: name,
+                description: description
+            })
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.detail || 'Failed to generate icon');
+        }
+
+        const result = await response.json();
+        generatedIconBase64 = result.icon_base64;
+
+        // Show the generated icon
+        previewIcon.innerHTML = `<img src="data:image/png;base64,${generatedIconBase64}" alt="">`;
+        previewStatus.textContent = 'Icon generated! Click Confirm to add bee.';
+
+        // Show regenerate and confirm buttons
+        regenerateBtn.style.display = 'inline-block';
+        saveBtn.style.display = 'inline-block';
+        generateBtn.style.display = 'none';
+
+    } catch (error) {
+        console.error('Icon generation failed:', error);
+        previewIcon.innerHTML = '🐝';
+        previewStatus.textContent = error.message || 'Icon generation failed. You can still add the bee.';
+
+        // Allow adding without icon
+        generatedIconBase64 = null;
+        saveBtn.style.display = 'inline-block';
+        saveBtn.textContent = 'Add Without Icon';
+        generateBtn.textContent = 'Retry Generate';
+        generateBtn.disabled = false;
+    }
+}
+
+// Regenerate icon
+async function regeneratePreviewIcon() {
+    const regenerateBtn = document.getElementById('regenerate-icon-btn');
+    const saveBtn = document.getElementById('save-bee-btn');
+    const generateBtn = document.getElementById('generate-icon-btn');
+
+    // Hide confirm, show generate
+    regenerateBtn.style.display = 'none';
+    saveBtn.style.display = 'none';
+    generateBtn.style.display = 'inline-block';
+    generateBtn.disabled = false;
+    generateBtn.textContent = 'Generate Icon';
+
+    // Generate new icon
+    await generateBeeIcon();
 }
 
 // Save bee to slot
@@ -2796,16 +2906,13 @@ function saveBeeToSlot() {
         description: description,
         role: role,
         emoji: existingBee?.emoji || '🐝',
-        display_order: editingBeeIndex
+        display_order: editingBeeIndex,
+        icon_base64: generatedIconBase64 || existingBee?.icon_base64 || null,
+        icon_generation_status: generatedIconBase64 ? 'completed' : 'pending'
     };
 
-    // If editing and name/description changed, mark for icon regeneration
-    if (existingBee && (existingBee.name !== name || existingBee.description !== description)) {
-        bee.icon_base64 = null;
-        bee.icon_generation_status = 'pending';
-    }
-
     currentEditingBees[editingBeeIndex] = bee;
+    generatedIconBase64 = null; // Reset
 
     closeBeeCreator();
     renderBeeSlots();
@@ -2930,6 +3037,8 @@ window.saveBeeToSlot = saveBeeToSlot;
 window.saveCustomHive = saveCustomHive;
 window.deleteCustomHive = deleteCustomHive;
 window.removeBeeSlot = removeBeeSlot;
+window.generateBeeIcon = generateBeeIcon;
+window.regeneratePreviewIcon = regeneratePreviewIcon;
 
 // Close modals when clicking outside
 document.getElementById('hive-creator-modal')?.addEventListener('click', (e) => {

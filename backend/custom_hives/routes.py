@@ -1,6 +1,7 @@
 """Custom hives API routes."""
 import uuid
 from fastapi import APIRouter, HTTPException, status, Depends, BackgroundTasks
+from pydantic import BaseModel
 from typing import Optional
 
 from backend.auth.dependencies import get_current_user
@@ -13,6 +14,7 @@ from .schemas import (
     CustomBeeUpdate,
     CustomBeeResponse,
     CustomHiveLimits,
+    IconGenerationRequest,
 )
 from .dalle_service import generate_bee_icon
 
@@ -108,6 +110,46 @@ async def get_limits(current_user: User = Depends(get_current_user)):
         can_create=can_create,
         subscription_status=current_user.subscription_status
     )
+
+
+class GenerateIconRequest(BaseModel):
+    bee_name: str
+    description: str
+
+
+class GenerateIconResponse(BaseModel):
+    icon_base64: Optional[str]
+    success: bool
+    message: str
+
+
+@router.post("/generate-icon", response_model=GenerateIconResponse)
+async def generate_icon_endpoint(
+    request: GenerateIconRequest,
+    current_user: User = Depends(get_current_user)
+):
+    """Generate a bee icon using DALL-E."""
+    openai_key = await get_user_openai_key(current_user.id)
+
+    if not openai_key:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="OpenAI API key required for icon generation. Add your key in Settings."
+        )
+
+    icon_base64 = await generate_bee_icon(openai_key, request.bee_name, request.description)
+
+    if icon_base64:
+        return GenerateIconResponse(
+            icon_base64=icon_base64,
+            success=True,
+            message="Icon generated successfully"
+        )
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to generate icon. Check your OpenAI API key and try again."
+        )
 
 
 @router.get("", response_model=list[CustomHiveResponse])
