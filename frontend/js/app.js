@@ -2605,24 +2605,16 @@ function updateCreateHiveButton() {
 }
 
 // Open the hive creator modal
-async function openHiveCreator(hiveId = null) {
+function openHiveCreator(hiveId) {
+    console.log('openHiveCreator called', hiveId);
+
     const token = localStorage.getItem('token');
     if (!token) {
         alert('Please log in to create custom hives.');
         return;
     }
 
-    // Fetch limits if not loaded yet
-    if (!customHiveLimits) {
-        await fetchCustomHives();
-    }
-
-    if (!hiveId && !canCreateCustomHive()) {
-        alert('You have reached your custom hive limit. Upgrade to Pro for unlimited hives.');
-        return;
-    }
-
-    editingHiveId = hiveId;
+    editingHiveId = hiveId || null;
     currentEditingBees = [];
 
     const modal = document.getElementById('hive-creator-modal');
@@ -2630,6 +2622,8 @@ async function openHiveCreator(hiveId = null) {
     const nameInput = document.getElementById('hive-name-input');
     const descInput = document.getElementById('hive-desc-input');
     const saveBtn = document.getElementById('save-hive-btn');
+
+    console.log('Modal element:', modal);
 
     if (hiveId) {
         // Editing existing hive
@@ -2652,7 +2646,13 @@ async function openHiveCreator(hiveId = null) {
 
     renderBeeSlots();
     updateSaveHiveButton();
-    modal.classList.add('active');
+
+    if (modal) {
+        modal.classList.add('active');
+        console.log('Modal activated');
+    } else {
+        console.error('Modal not found!');
+    }
 }
 
 // Close hive creator modal
@@ -2946,3 +2946,10 @@ document.getElementById('bee-creator-modal')?.addEventListener('click', (e) => {
 
 // Update save button when name input changes
 document.getElementById('hive-name-input')?.addEventListener('input', updateSaveHiveButton);
+
+// Create hive button click handler
+document.getElementById('create-hive-btn')?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    console.log('Create hive button clicked');
+    openHiveCreator();
+});
