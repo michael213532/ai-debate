@@ -2545,18 +2545,32 @@ async function fetchCustomHives() {
 
         if (hivesRes.ok) {
             customHives = await hivesRes.json();
+            console.log('Loaded custom hives:', customHives.length);
+        } else {
+            console.log('Failed to load custom hives:', hivesRes.status);
+            customHives = [];
         }
         if (limitsRes.ok) {
             customHiveLimits = await limitsRes.json();
+            console.log('Custom hive limits:', customHiveLimits);
+        } else {
+            console.log('Failed to load limits:', limitsRes.status);
+            // Default to allowing creation so user can try
+            customHiveLimits = { max_hives: 1, current_count: 0, can_create: true, subscription_status: 'free' };
         }
     } catch (error) {
         console.error('Error fetching custom hives:', error);
+        customHives = [];
+        customHiveLimits = { max_hives: 1, current_count: 0, can_create: true, subscription_status: 'free' };
     }
 }
 
 // Check if user can create a new hive
 function canCreateCustomHive() {
-    if (!customHiveLimits) return false;
+    if (!customHiveLimits) {
+        console.log('customHiveLimits not loaded yet');
+        return true; // Allow attempt, backend will enforce
+    }
     return customHiveLimits.can_create;
 }
 
@@ -2591,11 +2605,16 @@ function updateCreateHiveButton() {
 }
 
 // Open the hive creator modal
-function openHiveCreator(hiveId = null) {
+async function openHiveCreator(hiveId = null) {
     const token = localStorage.getItem('token');
     if (!token) {
         alert('Please log in to create custom hives.');
         return;
+    }
+
+    // Fetch limits if not loaded yet
+    if (!customHiveLimits) {
+        await fetchCustomHives();
     }
 
     if (!hiveId && !canCreateCustomHive()) {

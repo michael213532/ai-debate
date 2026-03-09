@@ -2759,10 +2759,10 @@
             gap: 10px;
             width: 100%;
             padding: 16px 24px;
-            background: linear-gradient(135deg, #F5A623 0%, #F7B84B 100%);
+            background: var(--primary-color);
             border: none;
             border-radius: 12px;
-            color: #000;
+            color: white;
             font-size: 1rem;
             font-weight: 600;
             cursor: pointer;
@@ -2771,8 +2771,8 @@
         }
 
         .create-hive-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 20px rgba(245, 166, 35, 0.3);
+            background: var(--primary-hover);
+            transform: translateY(-1px);
         }
 
         .create-hive-btn:disabled {
@@ -2780,7 +2780,6 @@
             color: var(--text-secondary);
             cursor: not-allowed;
             transform: none;
-            box-shadow: none;
         }
 
         .create-hive-icon {
