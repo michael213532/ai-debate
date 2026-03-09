@@ -1,8 +1,35 @@
-"""Icon generation service for custom bees."""
+"""Icon generation service for custom bees using Stability AI img2img."""
 import base64
 import httpx
 from typing import Optional
 from pathlib import Path
+
+
+# Cache for reference image
+_REFERENCE_BEE_BYTES = None
+
+
+def get_reference_bee_bytes() -> Optional[bytes]:
+    """Load the reference bee image bytes from file."""
+    global _REFERENCE_BEE_BYTES
+    if _REFERENCE_BEE_BYTES:
+        return _REFERENCE_BEE_BYTES
+
+    possible_paths = [
+        Path(__file__).parent / "assets" / "reference_bee.png",
+        Path("C:/Users/micha/Downloads/bee icons/default bee icon.png"),
+    ]
+
+    for path in possible_paths:
+        if path.exists():
+            try:
+                with open(path, "rb") as f:
+                    _REFERENCE_BEE_BYTES = f.read()
+                    return _REFERENCE_BEE_BYTES
+            except Exception:
+                continue
+
+    return None
 
 
 # Super detailed style prompt based on the reference bee
@@ -71,35 +98,38 @@ async def generate_bee_icon_stability(
     bee_name: str,
     description: str,
 ) -> Optional[str]:
-    """Generate a bee icon using Stability AI text-to-image."""
+    """Generate a bee icon using Stability AI image-to-image."""
+
+    reference_bytes = get_reference_bee_bytes()
+    if not reference_bytes:
+        print("No reference bee image found, falling back to text-to-image")
+        return None
 
     accessory = get_accessory_for_personality(description)
 
-    prompt = STABILITY_PROMPT.format(
-        bee_name=bee_name,
-        description=description[:150],
-        accessory=accessory
-    )
+    # Simple prompt focusing on the accessory - let the reference image handle the style
+    prompt = f"Same cute bee but wearing a {accessory}. This bee is {bee_name}. Keep exact same art style, colors, white background."
 
     try:
         async with httpx.AsyncClient(timeout=60.0) as client:
             response = await client.post(
-                "https://api.stability.ai/v1/generation/stable-diffusion-xl-1024-v1-0/text-to-image",
+                "https://api.stability.ai/v1/generation/stable-diffusion-xl-1024-v1-0/image-to-image",
                 headers={
                     "Authorization": f"Bearer {stability_api_key}",
-                    "Content-Type": "application/json",
                     "Accept": "application/json",
                 },
-                json={
-                    "text_prompts": [
-                        {"text": prompt, "weight": 1},
-                        {"text": "realistic, 3D render, complex background, shadows, gradient background, text, watermark, multiple bees, human", "weight": -1}
-                    ],
-                    "cfg_scale": 7,
-                    "height": 1024,
-                    "width": 1024,
-                    "samples": 1,
-                    "steps": 30,
+                files={
+                    "init_image": ("bee.png", reference_bytes, "image/png"),
+                },
+                data={
+                    "text_prompts[0][text]": prompt,
+                    "text_prompts[0][weight]": "1",
+                    "text_prompts[1][text]": "realistic, 3D, different style, complex background, shadows",
+                    "text_prompts[1][weight]": "-1",
+                    "cfg_scale": "7",
+                    "samples": "1",
+                    "steps": "25",
+                    "image_strength": "0.5",  # Balanced - keep style but add accessory
                 }
             )
 
