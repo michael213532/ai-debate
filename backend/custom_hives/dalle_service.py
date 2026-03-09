@@ -4,25 +4,15 @@ import httpx
 from typing import Optional
 
 
-STYLE_PROMPT = """A single cute kawaii bee mascot character, exactly like a Japanese chibi bee sticker.
+STYLE_PROMPT = """Simple cute bee icon in LINE sticker or Sumikko Gurashi style.
 
-THE BEE MUST LOOK EXACTLY LIKE THIS:
-- Perfectly round head attached to oval/egg-shaped body
-- Head and body are BRIGHT LEMON YELLOW (#FFEB3B)
-- THREE thick horizontal DARK BROWN (#3E2723) stripes across the body
-- Face has TWO small black dot eyes, a tiny "u" shaped smile, and light pink circular blush marks on cheeks
-- TWO small off-white/cream colored wings on the back with thin dark brown outlines
-- TWO thin curved dark brown antennae sticking up from head
-- Small dark brown legs at bottom
-- THICK dark brown outline around entire bee
-- Style is COMPLETELY FLAT with solid colors, like a vinyl sticker or LINE emoji
-- WHITE background only, nothing else
+Style: Japanese kawaii, flat colors, thick dark outlines, minimal details, white background.
 
-This bee represents: {bee_name} - {description}
+Bee design: Round yellow body, brown stripes, dot eyes, small smile, pink cheeks, tiny cream wings, curved antennae.
 
-Add a tiny visual element that suggests the personality (like small glasses for smart, tiny crown for leader, etc) but keep the core bee design identical.
+This bee's personality is "{bee_name}" - {description}
 
-DO NOT add text, complex backgrounds, realistic shading, 3D effects, or change the basic bee shape."""
+Add ONE small accessory to show personality. Keep it simple like a sticker."""
 
 
 async def generate_bee_icon(
