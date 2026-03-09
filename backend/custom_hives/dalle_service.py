@@ -1,38 +1,69 @@
-"""Icon generation service for custom bees using Stability AI img2img."""
+"""Icon generation service for custom bees."""
 import base64
 import httpx
-import io
 from typing import Optional
 from pathlib import Path
 
 
-# Cache for reference image
-_REFERENCE_BEE_BYTES = None
+# Super detailed style prompt based on the reference bee
+STABILITY_PROMPT = """Cute kawaii cartoon bee character icon, chibi style illustration:
+
+- Round bright yellow head (#F7E14D) with two small black dot eyes
+- Tiny curved smile, two pink circular blush marks on cheeks
+- Two dark brown curved antennae on top
+- Oval yellow body with 3 thick dark brown (#5D4037) horizontal stripes
+- Two small cream-colored rounded wings
+- Four tiny dark brown stick limbs
+- Pure white background, no shadows
+- Flat 2D vector style like a LINE sticker or emoji
+- Thick dark outlines around all shapes
+- Simple minimal kawaii aesthetic
+
+This bee is "{bee_name}" - {description}
+
+IMPORTANT: Add a {accessory} to show this personality. The accessory should be clearly visible."""
+
+ACCESSORIES = [
+    "small top hat", "tiny reading glasses", "little crown", "mini headphones",
+    "small chef hat", "tiny bow tie", "little wizard hat", "small graduation cap",
+    "mini detective magnifying glass", "tiny artist beret", "small superhero cape",
+    "little pirate eyepatch", "mini scientist goggles", "small cowboy hat"
+]
 
 
-def get_reference_bee_bytes() -> Optional[bytes]:
-    """Load the reference bee image bytes from file."""
-    global _REFERENCE_BEE_BYTES
-    if _REFERENCE_BEE_BYTES:
-        return _REFERENCE_BEE_BYTES
+def get_accessory_for_personality(description: str) -> str:
+    """Pick an accessory that matches the personality description."""
+    desc_lower = description.lower()
 
-    # Try multiple possible locations
-    possible_paths = [
-        Path(__file__).parent / "assets" / "reference_bee.png",
-        Path(__file__).parent.parent.parent / "frontend" / "images" / "bee-icon.png",
-        Path("C:/Users/micha/Downloads/bee icons/default bee icon.png"),
-    ]
+    if any(w in desc_lower for w in ["smart", "think", "logic", "analy", "intel"]):
+        return "tiny reading glasses"
+    if any(w in desc_lower for w in ["leader", "boss", "king", "queen", "royal"]):
+        return "small crown"
+    if any(w in desc_lower for w in ["music", "creative", "art"]):
+        return "mini headphones"
+    if any(w in desc_lower for w in ["chef", "cook", "food"]):
+        return "small chef hat"
+    if any(w in desc_lower for w in ["magic", "mystic", "wizard"]):
+        return "little wizard hat"
+    if any(w in desc_lower for w in ["formal", "business", "professional"]):
+        return "tiny bow tie"
+    if any(w in desc_lower for w in ["detective", "investigate", "mystery"]):
+        return "mini detective magnifying glass"
+    if any(w in desc_lower for w in ["science", "research", "experiment"]):
+        return "mini scientist goggles"
+    if any(w in desc_lower for w in ["adventure", "explore", "brave"]):
+        return "small explorer hat"
+    if any(w in desc_lower for w in ["rebel", "wild", "chaos"]):
+        return "tiny punk mohawk"
+    if any(w in desc_lower for w in ["peace", "calm", "zen"]):
+        return "small flower on head"
+    if any(w in desc_lower for w in ["tech", "computer", "code"]):
+        return "mini VR headset"
 
-    for path in possible_paths:
-        if path.exists():
-            try:
-                with open(path, "rb") as f:
-                    _REFERENCE_BEE_BYTES = f.read()
-                    return _REFERENCE_BEE_BYTES
-            except Exception:
-                continue
-
-    return None
+    # Default: pick based on hash of description for consistency
+    import hashlib
+    h = int(hashlib.md5(description.encode()).hexdigest(), 16)
+    return ACCESSORIES[h % len(ACCESSORIES)]
 
 
 async def generate_bee_icon_stability(
@@ -40,44 +71,35 @@ async def generate_bee_icon_stability(
     bee_name: str,
     description: str,
 ) -> Optional[str]:
-    """
-    Generate a bee icon using Stability AI image-to-image.
+    """Generate a bee icon using Stability AI text-to-image."""
 
-    This takes the reference bee image and modifies it slightly to add
-    personality-specific accessories while keeping the same style.
-    """
-    reference_bytes = get_reference_bee_bytes()
-    if not reference_bytes:
-        print("No reference bee image found")
-        return None
+    accessory = get_accessory_for_personality(description)
 
-    prompt = f"""Transform this bee into "{bee_name}" personality: {description[:150]}.
-
-Add a PROMINENT accessory that defines this character - like a top hat, reading glasses, chef hat, headphones, crown, wizard hat, or tool they would use.
-
-The accessory should be the main visual difference. Keep the cute kawaii bee style with yellow body, brown stripes, and white background."""
+    prompt = STABILITY_PROMPT.format(
+        bee_name=bee_name,
+        description=description[:150],
+        accessory=accessory
+    )
 
     try:
         async with httpx.AsyncClient(timeout=60.0) as client:
-            # Stability AI image-to-image endpoint
             response = await client.post(
-                "https://api.stability.ai/v1/generation/stable-diffusion-xl-1024-v1-0/image-to-image",
+                "https://api.stability.ai/v1/generation/stable-diffusion-xl-1024-v1-0/text-to-image",
                 headers={
                     "Authorization": f"Bearer {stability_api_key}",
+                    "Content-Type": "application/json",
                     "Accept": "application/json",
                 },
-                files={
-                    "init_image": ("bee.png", reference_bytes, "image/png"),
-                },
-                data={
-                    "text_prompts[0][text]": prompt,
-                    "text_prompts[0][weight]": "1",
-                    "text_prompts[1][text]": "realistic, 3D, complex background, shadows, text, watermark",
-                    "text_prompts[1][weight]": "-1",
-                    "cfg_scale": "7",
-                    "samples": "1",
-                    "steps": "30",
-                    "image_strength": "0.75",  # More creativity to add accessories
+                json={
+                    "text_prompts": [
+                        {"text": prompt, "weight": 1},
+                        {"text": "realistic, 3D render, complex background, shadows, gradient background, text, watermark, multiple bees, human", "weight": -1}
+                    ],
+                    "cfg_scale": 7,
+                    "height": 1024,
+                    "width": 1024,
+                    "samples": 1,
+                    "steps": 30,
                 }
             )
 
@@ -99,32 +121,20 @@ The accessory should be the main visual difference. Keep the cute kawaii bee sty
         return None
 
 
-FALLBACK_STYLE_PROMPT = """Create a cute kawaii cartoon bee character icon, EXACTLY matching this specific style:
+DALLE_PROMPT = """Cute kawaii cartoon bee character icon:
 
-BODY SHAPE & PROPORTIONS:
-- Round yellow head (bright lemon yellow #F7E14D), perfectly circular
-- Oval body below head with 3 thick dark brown (#5D4037) horizontal stripes alternating with bright yellow
-- Chibi proportions: head is slightly larger than body
+- Round bright yellow head with two small black dot eyes
+- Tiny curved smile, two pink blush marks on cheeks
+- Two dark brown curved antennae
+- Oval yellow body with dark brown horizontal stripes
+- Two small cream-colored wings
+- Pure white background
+- Flat 2D vector style like a LINE sticker
+- Simple minimal kawaii aesthetic
 
-FACIAL FEATURES:
-- Two simple solid black dot eyes (small circles)
-- Tiny curved smile line below eyes
-- Two rosy pink circular blush marks on cheeks
-- Two dark brown curved antennae on top of head
+This bee is "{bee_name}" - {description}
 
-LIMBS & WINGS:
-- Four tiny dark brown stick limbs
-- Two small cream/off-white rounded wings
-
-STYLE:
-- PURE WHITE background, no shadows
-- Flat 2D illustration, like a LINE sticker
-- Thick dark brown outlines
-- No 3D effects, no textures
-
-This bee's personality is "{bee_name}" - {description}
-
-Add ONE small accessory to show personality. Keep the EXACT same style and colors."""
+Add a {accessory} to show this personality."""
 
 
 async def generate_bee_icon_dalle(
@@ -132,10 +142,14 @@ async def generate_bee_icon_dalle(
     bee_name: str,
     description: str,
 ) -> Optional[str]:
-    """Fallback: Generate bee icon using DALL-E 3 (text-only prompt)."""
-    prompt = FALLBACK_STYLE_PROMPT.format(
+    """Generate bee icon using DALL-E 3."""
+
+    accessory = get_accessory_for_personality(description)
+
+    prompt = DALLE_PROMPT.format(
         bee_name=bee_name,
-        description=description[:200]
+        description=description[:200],
+        accessory=accessory
     )
 
     try:
@@ -181,14 +195,11 @@ async def generate_bee_icon(
     size: str = "256x256",
     stability_api_key: Optional[str] = None
 ) -> Optional[str]:
-    """
-    Generate a bee icon matching the reference style.
+    """Generate a bee icon matching the reference style."""
 
-    Tries Stability AI img2img first (if key provided), falls back to DALL-E.
-    """
     # Try Stability AI first if we have a key
     if stability_api_key:
-        print("Trying Stability AI image-to-image...")
+        print("Using Stability AI text-to-image...")
         result = await generate_bee_icon_stability(stability_api_key, bee_name, description)
         if result:
             return result
