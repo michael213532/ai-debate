@@ -6,16 +6,28 @@ from typing import Optional
 
 STYLE_PROMPT = """Create a cute cartoon bee character icon for "{bee_name}".
 
-STYLE (match exactly):
-- Cute kawaii cartoon bee with round body
-- Honey-gold body (#F5A623) with black stripes
-- Big expressive eyes, friendly smile
-- Small translucent wings
-- Simple 2D flat design, soft edges
-- Pure white background
-- Character embodies: {description}
+STRICT STYLE REQUIREMENTS - MUST MATCH EXACTLY:
+- Cute kawaii/chibi style cartoon bee
+- Round/oval chunky body shape
+- Bright yellow body (#FFE135) with dark brown horizontal stripes
+- Simple cute face: small dot eyes, tiny curved smile, pink/rosy cheeks
+- Small cream/white colored wings with dark brown outline
+- Two thin curved antennae on top
+- Small simple legs at bottom
+- Clean dark brown outlines around everything
+- Completely flat 2D illustration style, NO gradients, NO shading, NO 3D effects
+- Pure white background, nothing else
+- Very simple minimal design like a cute sticker or emoji
+- Character personality: {description}
 
-DO NOT: Add any text, make 3D/realistic, complex backgrounds, multiple characters"""
+CRITICAL - DO NOT:
+- Add any text or words
+- Make it 3D or realistic
+- Add complex backgrounds or patterns
+- Add multiple characters
+- Add accessories unless essential to personality
+- Use gradients or complex shading
+- Change the basic bee body shape"""
 
 
 async def generate_bee_icon(
