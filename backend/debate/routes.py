@@ -329,6 +329,12 @@ async def test_api_key(
         )
 
     try:
+        # Special handling for image-only providers
+        if provider == "stability":
+            from backend.custom_hives.dalle_service import check_stability_key_valid
+            is_valid = await check_stability_key_valid(api_keys[provider])
+            return {"valid": is_valid, "provider": provider}
+
         provider_class = ProviderRegistry.get(provider)
         provider_instance = provider_class(api_keys[provider])
         result = await provider_instance.test_connection()
