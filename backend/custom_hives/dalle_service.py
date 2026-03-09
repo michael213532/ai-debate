@@ -51,10 +51,11 @@ async def generate_bee_icon_stability(
         print("No reference bee image found")
         return None
 
-    prompt = f"""Cute kawaii cartoon bee character named "{bee_name}" - {description[:150]}.
-MUST ADD a visible accessory or prop that shows this personality (hat, glasses, book, tool, etc).
-Keep the same art style: bright yellow body, brown stripes, dot eyes, pink cheeks, white background.
-Flat 2D illustration like a LINE sticker. The accessory should be clearly visible and match the personality."""
+    prompt = f"""Transform this bee into "{bee_name}" personality: {description[:150]}.
+
+Add a PROMINENT accessory that defines this character - like a top hat, reading glasses, chef hat, headphones, crown, wizard hat, or tool they would use.
+
+The accessory should be the main visual difference. Keep the cute kawaii bee style with yellow body, brown stripes, and white background."""
 
     try:
         async with httpx.AsyncClient(timeout=60.0) as client:
@@ -76,7 +77,7 @@ Flat 2D illustration like a LINE sticker. The accessory should be clearly visibl
                     "cfg_scale": "7",
                     "samples": "1",
                     "steps": "30",
-                    "image_strength": "0.55",  # Balance between keeping style and adding personality
+                    "image_strength": "0.75",  # More creativity to add accessories
                 }
             )
 
