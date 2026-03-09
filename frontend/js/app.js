@@ -2516,12 +2516,7 @@ async function initVoicesBar() {
 // Add hives button click listener
 document.getElementById('hives-btn')?.addEventListener('click', openHivesModal);
 
-// Close hives modal when clicking outside
-document.getElementById('hives-modal')?.addEventListener('click', (e) => {
-    if (e.target.id === 'hives-modal') {
-        closeHivesModal();
-    }
-});
+// Hives modal - only close via X button or selecting a hive
 
 // ============================================
 // CUSTOM HIVES FUNCTIONS
@@ -3040,18 +3035,7 @@ window.removeBeeSlot = removeBeeSlot;
 window.generateBeeIcon = generateBeeIcon;
 window.regeneratePreviewIcon = regeneratePreviewIcon;
 
-// Close modals when clicking outside
-document.getElementById('hive-creator-modal')?.addEventListener('click', (e) => {
-    if (e.target.id === 'hive-creator-modal') {
-        closeHiveCreator();
-    }
-});
-
-document.getElementById('bee-creator-modal')?.addEventListener('click', (e) => {
-    if (e.target.id === 'bee-creator-modal') {
-        closeBeeCreator();
-    }
-});
+// Modals only close via X button or Cancel - no click outside
 
 // Update save button when name input changes
 document.getElementById('hive-name-input')?.addEventListener('input', updateSaveHiveButton);
