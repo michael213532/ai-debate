@@ -1593,6 +1593,13 @@ let allHives = [];
 let allSpecialBees = [];
 let allPersonalities = [];  // All personalities from current hive + selected special bees
 let selectedHiveId = loadSelectedHive();
+
+// Custom hives state
+let customHives = [];
+let customHiveLimits = null;
+let currentEditingBees = [];  // Temp array for bees being created/edited
+let editingHiveId = null;  // null for new hive, ID for editing
+let editingBeeIndex = null;  // Index in currentEditingBees being edited
 let selectedSpecialBees = loadSelectedSpecialBees();
 let selectedPersonalities = loadSelectedBees();
 let currentQuestion = '';
@@ -1697,11 +1704,38 @@ async function fetchSpecialBees() {
 async function fetchPersonalities() {
     await fetchHives();
     await fetchSpecialBees();
+    await fetchCustomHives();
     updateAllPersonalities();
 }
 
 // Update allPersonalities based on selected hive + special bees
 function updateAllPersonalities() {
+    // First check if it's a custom hive
+    const customHive = customHives.find(h => h.id === selectedHiveId);
+    if (customHive) {
+        // Convert custom bees to personality format
+        allPersonalities = customHive.bees.map(bee => ({
+            id: bee.id,
+            name: bee.name,
+            human_name: bee.human_name,
+            emoji: bee.emoji || '🐝',
+            description: bee.description,
+            is_special: false,
+            is_custom: true,
+            icon_base64: bee.icon_base64
+        }));
+        // Add selected special bees
+        selectedSpecialBees.forEach(specialId => {
+            const specialBee = allSpecialBees.find(b => b.id === specialId);
+            if (specialBee && !allPersonalities.find(p => p.id === specialBee.id)) {
+                allPersonalities.push(specialBee);
+            }
+        });
+        window.allPersonalities = allPersonalities;
+        return;
+    }
+
+    // Built-in hive
     const hive = allHives.find(h => h.id === selectedHiveId);
     if (hive) {
         // Start with hive personalities
@@ -1734,9 +1768,10 @@ function selectHive(hiveId) {
     updateAllPersonalities();
 
     // Reset selected personalities to all bees in the hive
-    const hive = allHives.find(h => h.id === hiveId);
-    if (hive) {
-        selectedPersonalities = hive.personalities.map(p => p.id);
+    // First check if it's a custom hive
+    const customHive = customHives.find(h => h.id === hiveId);
+    if (customHive) {
+        selectedPersonalities = customHive.bees.map(p => p.id);
         // Add any selected special bees
         selectedSpecialBees.forEach(specialId => {
             if (!selectedPersonalities.includes(specialId)) {
@@ -1744,6 +1779,19 @@ function selectHive(hiveId) {
             }
         });
         saveSelectedBees();
+    } else {
+        // Built-in hive
+        const hive = allHives.find(h => h.id === hiveId);
+        if (hive) {
+            selectedPersonalities = hive.personalities.map(p => p.id);
+            // Add any selected special bees
+            selectedSpecialBees.forEach(specialId => {
+                if (!selectedPersonalities.includes(specialId)) {
+                    selectedPersonalities.push(specialId);
+                }
+            });
+            saveSelectedBees();
+        }
     }
 
     // Update UI
@@ -1780,6 +1828,13 @@ function toggleSpecialBee(beeId) {
 function updateCurrentHiveDisplay() {
     const nameEl = document.getElementById('current-hive-name');
     if (nameEl) {
+        // Check custom hives first
+        const customHive = customHives.find(h => h.id === selectedHiveId);
+        if (customHive) {
+            nameEl.textContent = customHive.name;
+            return;
+        }
+        // Then built-in hives
         const hive = allHives.find(h => h.id === selectedHiveId);
         nameEl.textContent = hive ? hive.name : 'Select Hive';
     }
@@ -1806,8 +1861,38 @@ function closeHivesModal() {
 function renderHivesModal() {
     const hivesGrid = document.getElementById('hives-grid');
 
+    // Update create hive button state
+    updateCreateHiveButton();
+
     if (hivesGrid) {
-        hivesGrid.innerHTML = allHives.map(hive => `
+        // Render custom hives first (if any)
+        let customHtml = '';
+        if (customHives && customHives.length > 0) {
+            customHtml = customHives.map(hive => `
+                <div class="hive-card ${hive.id === selectedHiveId ? 'selected' : ''}" onclick="selectHive('${hive.id}')">
+                    <div class="hive-card-header">
+                        <span class="hive-card-name">${hive.name}</span>
+                        <span class="custom-badge">Custom</span>
+                    </div>
+                    <div class="hive-card-desc">${hive.description || 'Your custom hive'}</div>
+                    <div class="hive-card-bees">
+                        ${hive.bees.map(p => `
+                            <span class="hive-bee-preview">
+                                ${p.icon_base64 ? `<img src="data:image/png;base64,${p.icon_base64}" style="width: 16px; height: 16px; border-radius: 50%;">` : `<span class="bee-emoji">${p.emoji || '🐝'}</span>`}
+                                <span>${p.human_name}</span>
+                            </span>
+                        `).join('')}
+                    </div>
+                    <div style="margin-top: 8px; display: flex; gap: 8px;">
+                        <button class="btn btn-secondary btn-small" onclick="event.stopPropagation(); openHiveCreator('${hive.id}')" style="font-size: 0.7rem; padding: 4px 8px;">Edit</button>
+                        <button class="btn btn-secondary btn-small" onclick="deleteCustomHive('${hive.id}', event)" style="font-size: 0.7rem; padding: 4px 8px; color: var(--error-color);">Delete</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Render built-in hives
+        const builtInHtml = allHives.map(hive => `
             <div class="hive-card ${hive.id === selectedHiveId ? 'selected' : ''}" onclick="selectHive('${hive.id}')">
                 <div class="hive-card-header">
                     <span class="hive-card-name">${hive.name}</span>
@@ -1823,6 +1908,8 @@ function renderHivesModal() {
                 </div>
             </div>
         `).join('');
+
+        hivesGrid.innerHTML = customHtml + builtInHtml;
     }
 }
 
@@ -2167,42 +2254,78 @@ function renderVoicesBar() {
     const container = document.getElementById('voices-chips');
     if (!container) return;
 
-    // Wait for hives to load
-    if (!allHives.length) return;
-
     container.innerHTML = '';
 
-    // Get current hive personalities
-    const hive = allHives.find(h => h.id === selectedHiveId);
-    if (!hive) return;
+    // Check if it's a custom hive
+    const customHive = customHives.find(h => h.id === selectedHiveId);
+    if (customHive) {
+        // Render custom hive bees
+        customHive.bees.forEach(personality => {
+            const isSelected = selectedPersonalities.includes(personality.id);
+            const chip = document.createElement('div');
+            chip.className = `voice-chip ${isSelected ? 'selected' : ''}`;
+            chip.dataset.personalityId = personality.id;
 
-    // Render hive bees first
-    hive.personalities.forEach(personality => {
-        const isSelected = selectedPersonalities.includes(personality.id);
-        const colors = getPersonalityColor(personality.id);
-        const chip = document.createElement('div');
-        chip.className = `voice-chip ${isSelected ? 'selected' : ''}`;
-        chip.dataset.personalityId = personality.id;
+            // Use custom golden color for custom bees
+            if (isSelected) {
+                chip.style.background = 'rgba(245, 166, 35, 0.1)';
+                chip.style.borderColor = '#F5A623';
+                chip.style.color = '#92400e';
+            }
 
-        // Apply hive color
-        if (isSelected) {
-            chip.style.background = colors.bg;
-            chip.style.borderColor = colors.border;
-            chip.style.color = colors.text;
-        }
+            // Show AI-generated icon if available
+            const iconHtml = personality.icon_base64
+                ? `<img src="data:image/png;base64,${personality.icon_base64}" style="width: 24px; height: 24px; border-radius: 50%;" alt="">`
+                : `<span class="voice-emoji">${personality.emoji || '🐝'}</span>`;
 
-        chip.innerHTML = `
-            <span class="voice-emoji">${personality.emoji}</span>
-            <div class="voice-info">
-                <span class="voice-name">${personality.human_name || personality.name}</span>
-                <span class="voice-role">${personality.name}</span>
-            </div>
-        `;
-        chip.addEventListener('click', () => {
-            toggleVoiceChip(personality.id);
+            chip.innerHTML = `
+                ${iconHtml}
+                <div class="voice-info">
+                    <span class="voice-name">${personality.human_name || personality.name}</span>
+                    <span class="voice-role">${personality.name}</span>
+                </div>
+            `;
+            chip.addEventListener('click', () => {
+                toggleVoiceChip(personality.id);
+            });
+            container.appendChild(chip);
         });
-        container.appendChild(chip);
-    });
+    } else {
+        // Wait for hives to load
+        if (!allHives.length) return;
+
+        // Get current built-in hive personalities
+        const hive = allHives.find(h => h.id === selectedHiveId);
+        if (!hive) return;
+
+        // Render hive bees first
+        hive.personalities.forEach(personality => {
+            const isSelected = selectedPersonalities.includes(personality.id);
+            const colors = getPersonalityColor(personality.id);
+            const chip = document.createElement('div');
+            chip.className = `voice-chip ${isSelected ? 'selected' : ''}`;
+            chip.dataset.personalityId = personality.id;
+
+            // Apply hive color
+            if (isSelected) {
+                chip.style.background = colors.bg;
+                chip.style.borderColor = colors.border;
+                chip.style.color = colors.text;
+            }
+
+            chip.innerHTML = `
+                <span class="voice-emoji">${personality.emoji}</span>
+                <div class="voice-info">
+                    <span class="voice-name">${personality.human_name || personality.name}</span>
+                    <span class="voice-role">${personality.name}</span>
+                </div>
+            `;
+            chip.addEventListener('click', () => {
+                toggleVoiceChip(personality.id);
+            });
+            container.appendChild(chip);
+        });
+    }
 
     // Render selected special bees
     selectedSpecialBees.forEach(specialId => {
@@ -2345,17 +2468,41 @@ function toggleVoiceChip(personalityId) {
 async function initVoicesBar() {
     await fetchPersonalities();
 
-    // Check if we need to migrate from old system (clear invalid selections)
-    const hive = allHives.find(h => h.id === selectedHiveId);
-    if (hive) {
-        const validIds = new Set(hive.personalities.map(p => p.id));
+    // Check if selected hive still exists
+    const customHive = customHives.find(h => h.id === selectedHiveId);
+    const builtInHive = allHives.find(h => h.id === selectedHiveId);
+
+    if (customHive) {
+        // Validate custom hive selection
+        const validIds = new Set(customHive.bees.map(p => p.id));
         allSpecialBees.forEach(b => validIds.add(b.id));
 
-        // Check if current selections contain any invalid IDs (from old system)
         const hasInvalidIds = selectedPersonalities.some(id => !validIds.has(id));
         if (hasInvalidIds || selectedPersonalities.length === 0) {
-            // Reset to current hive's bees
-            selectedPersonalities = hive.personalities.map(p => p.id);
+            selectedPersonalities = customHive.bees.map(p => p.id);
+            selectedSpecialBees = [];
+            saveSelectedBees();
+            saveSelectedSpecialBees();
+        }
+    } else if (builtInHive) {
+        // Validate built-in hive selection
+        const validIds = new Set(builtInHive.personalities.map(p => p.id));
+        allSpecialBees.forEach(b => validIds.add(b.id));
+
+        const hasInvalidIds = selectedPersonalities.some(id => !validIds.has(id));
+        if (hasInvalidIds || selectedPersonalities.length === 0) {
+            selectedPersonalities = builtInHive.personalities.map(p => p.id);
+            selectedSpecialBees = [];
+            saveSelectedBees();
+            saveSelectedSpecialBees();
+        }
+    } else {
+        // Selected hive doesn't exist, reset to default
+        selectedHiveId = 'chaos';
+        saveSelectedHive();
+        const defaultHive = allHives.find(h => h.id === 'chaos');
+        if (defaultHive) {
+            selectedPersonalities = defaultHive.personalities.map(p => p.id);
             selectedSpecialBees = [];
             saveSelectedBees();
             saveSelectedSpecialBees();
@@ -2375,3 +2522,408 @@ document.getElementById('hives-modal')?.addEventListener('click', (e) => {
         closeHivesModal();
     }
 });
+
+// ============================================
+// CUSTOM HIVES FUNCTIONS
+// ============================================
+
+// Fetch custom hives from API
+async function fetchCustomHives() {
+    const token = localStorage.getItem('token');
+    if (!token) {
+        customHives = [];
+        customHiveLimits = { max_hives: 0, current_count: 0, can_create: false, subscription_status: 'none' };
+        return;
+    }
+
+    try {
+        // Fetch hives and limits in parallel
+        const [hivesRes, limitsRes] = await Promise.all([
+            fetch(`${API_BASE}/api/custom-hives`, { headers: getAuthHeaders() }),
+            fetch(`${API_BASE}/api/custom-hives/limits`, { headers: getAuthHeaders() })
+        ]);
+
+        if (hivesRes.ok) {
+            customHives = await hivesRes.json();
+        }
+        if (limitsRes.ok) {
+            customHiveLimits = await limitsRes.json();
+        }
+    } catch (error) {
+        console.error('Error fetching custom hives:', error);
+    }
+}
+
+// Check if user can create a new hive
+function canCreateCustomHive() {
+    if (!customHiveLimits) return false;
+    return customHiveLimits.can_create;
+}
+
+// Update create hive button state
+function updateCreateHiveButton() {
+    const btn = document.getElementById('create-hive-btn');
+    const limitText = document.getElementById('create-hive-limit');
+    const token = localStorage.getItem('token');
+
+    if (!btn) return;
+
+    if (!token) {
+        // Not logged in
+        btn.disabled = true;
+        if (limitText) limitText.textContent = 'Log in to create custom hives';
+    } else if (!customHiveLimits) {
+        btn.disabled = true;
+        if (limitText) limitText.textContent = '';
+    } else if (customHiveLimits.can_create) {
+        btn.disabled = false;
+        if (customHiveLimits.max_hives === -1) {
+            if (limitText) limitText.textContent = 'Pro: Unlimited custom hives';
+        } else {
+            if (limitText) limitText.textContent = `${customHiveLimits.current_count}/${customHiveLimits.max_hives} custom hive used`;
+        }
+    } else {
+        btn.disabled = true;
+        if (limitText) {
+            limitText.innerHTML = `Limit reached (${customHiveLimits.current_count}/${customHiveLimits.max_hives}). <a href="/pricing" style="color: var(--primary-color);">Upgrade to Pro</a> for unlimited.`;
+        }
+    }
+}
+
+// Open the hive creator modal
+function openHiveCreator(hiveId = null) {
+    const token = localStorage.getItem('token');
+    if (!token) {
+        alert('Please log in to create custom hives.');
+        return;
+    }
+
+    if (!hiveId && !canCreateCustomHive()) {
+        alert('You have reached your custom hive limit. Upgrade to Pro for unlimited hives.');
+        return;
+    }
+
+    editingHiveId = hiveId;
+    currentEditingBees = [];
+
+    const modal = document.getElementById('hive-creator-modal');
+    const titleEl = document.getElementById('hive-creator-title');
+    const nameInput = document.getElementById('hive-name-input');
+    const descInput = document.getElementById('hive-desc-input');
+    const saveBtn = document.getElementById('save-hive-btn');
+
+    if (hiveId) {
+        // Editing existing hive
+        const hive = customHives.find(h => h.id === hiveId);
+        if (hive) {
+            titleEl.textContent = 'Edit Custom Hive';
+            nameInput.value = hive.name;
+            descInput.value = hive.description || '';
+            currentEditingBees = hive.bees.map(b => ({ ...b }));
+            saveBtn.textContent = 'Save Changes';
+        }
+    } else {
+        // Creating new hive
+        titleEl.textContent = 'Create Custom Hive';
+        nameInput.value = '';
+        descInput.value = '';
+        currentEditingBees = [];
+        saveBtn.textContent = 'Create Hive';
+    }
+
+    renderBeeSlots();
+    updateSaveHiveButton();
+    modal.classList.add('active');
+}
+
+// Close hive creator modal
+function closeHiveCreator() {
+    const modal = document.getElementById('hive-creator-modal');
+    modal.classList.remove('active');
+    editingHiveId = null;
+    currentEditingBees = [];
+}
+
+// Render bee slots in hive creator
+function renderBeeSlots() {
+    const container = document.getElementById('bee-slots');
+    const countEl = document.getElementById('bee-slots-count');
+    if (!container) return;
+
+    countEl.textContent = `${currentEditingBees.length}/5`;
+
+    let html = '';
+    for (let i = 0; i < 5; i++) {
+        const bee = currentEditingBees[i];
+        if (bee) {
+            // Filled slot
+            const iconContent = bee.icon_base64
+                ? `<img src="data:image/png;base64,${bee.icon_base64}" class="bee-slot-icon" alt="">`
+                : `<span class="bee-slot-emoji">${bee.emoji || '🐝'}</span>`;
+            html += `
+                <div class="bee-slot filled" onclick="openBeeCreator(${i})">
+                    ${iconContent}
+                    <span class="bee-slot-name">${bee.human_name || bee.name}</span>
+                    <button class="bee-slot-remove" onclick="event.stopPropagation(); removeBeeSlot(${i})">×</button>
+                </div>
+            `;
+        } else {
+            // Empty slot
+            const required = i < 2 ? ' (required)' : '';
+            html += `
+                <div class="bee-slot" onclick="openBeeCreator(${i})">
+                    <span class="bee-slot-add">+</span>
+                    <span class="bee-slot-label">Add bee${required}</span>
+                </div>
+            `;
+        }
+    }
+    container.innerHTML = html;
+}
+
+// Remove bee from slot
+function removeBeeSlot(index) {
+    currentEditingBees.splice(index, 1);
+    renderBeeSlots();
+    updateSaveHiveButton();
+}
+
+// Update save hive button state
+function updateSaveHiveButton() {
+    const btn = document.getElementById('save-hive-btn');
+    const nameInput = document.getElementById('hive-name-input');
+
+    if (!btn) return;
+
+    const hasName = nameInput.value.trim().length > 0;
+    const hasEnoughBees = currentEditingBees.length >= 2;
+
+    btn.disabled = !hasName || !hasEnoughBees;
+}
+
+// Open bee creator modal
+function openBeeCreator(index) {
+    editingBeeIndex = index;
+    const modal = document.getElementById('bee-creator-modal');
+    const titleEl = document.getElementById('bee-creator-title');
+    const saveBtn = document.getElementById('save-bee-btn');
+
+    const humanNameInput = document.getElementById('bee-human-name-input');
+    const nameInput = document.getElementById('bee-name-input');
+    const descInput = document.getElementById('bee-desc-input');
+    const roleInput = document.getElementById('bee-role-input');
+    const previewIcon = document.getElementById('bee-preview-icon');
+    const previewStatus = document.getElementById('bee-preview-status');
+
+    const existingBee = currentEditingBees[index];
+    if (existingBee) {
+        titleEl.textContent = 'Edit Bee';
+        saveBtn.textContent = 'Save Bee';
+        humanNameInput.value = existingBee.human_name || '';
+        nameInput.value = existingBee.name || '';
+        descInput.value = existingBee.description || '';
+        roleInput.value = existingBee.role || '';
+
+        if (existingBee.icon_base64) {
+            previewIcon.innerHTML = `<img src="data:image/png;base64,${existingBee.icon_base64}" alt="">`;
+            previewStatus.textContent = 'AI-generated icon';
+        } else {
+            previewIcon.innerHTML = existingBee.emoji || '🐝';
+            previewStatus.textContent = existingBee.icon_generation_status === 'pending' ? 'Icon generating...' : 'Icon will be AI-generated';
+        }
+    } else {
+        titleEl.textContent = 'Add Bee';
+        saveBtn.textContent = 'Add Bee';
+        humanNameInput.value = '';
+        nameInput.value = '';
+        descInput.value = '';
+        roleInput.value = '';
+        previewIcon.innerHTML = '🐝';
+        previewStatus.textContent = 'Icon will be AI-generated';
+    }
+
+    modal.classList.add('active');
+}
+
+// Close bee creator modal
+function closeBeeCreator() {
+    const modal = document.getElementById('bee-creator-modal');
+    modal.classList.remove('active');
+    editingBeeIndex = null;
+}
+
+// Save bee to slot
+function saveBeeToSlot() {
+    const humanName = document.getElementById('bee-human-name-input').value.trim();
+    const name = document.getElementById('bee-name-input').value.trim();
+    const description = document.getElementById('bee-desc-input').value.trim();
+    const role = document.getElementById('bee-role-input').value.trim();
+
+    if (!humanName || !name || !description || !role) {
+        alert('Please fill in all fields.');
+        return;
+    }
+
+    if (role.length < 10) {
+        alert('Personality prompt must be at least 10 characters.');
+        return;
+    }
+
+    const existingBee = currentEditingBees[editingBeeIndex];
+    const bee = {
+        ...(existingBee || {}),
+        human_name: humanName,
+        name: name,
+        description: description,
+        role: role,
+        emoji: existingBee?.emoji || '🐝',
+        display_order: editingBeeIndex
+    };
+
+    // If editing and name/description changed, mark for icon regeneration
+    if (existingBee && (existingBee.name !== name || existingBee.description !== description)) {
+        bee.icon_base64 = null;
+        bee.icon_generation_status = 'pending';
+    }
+
+    currentEditingBees[editingBeeIndex] = bee;
+
+    closeBeeCreator();
+    renderBeeSlots();
+    updateSaveHiveButton();
+}
+
+// Save custom hive to backend
+async function saveCustomHive() {
+    const name = document.getElementById('hive-name-input').value.trim();
+    const description = document.getElementById('hive-desc-input').value.trim();
+
+    if (!name) {
+        alert('Please enter a hive name.');
+        return;
+    }
+
+    if (currentEditingBees.length < 2) {
+        alert('A hive needs at least 2 bees to work.');
+        return;
+    }
+
+    const saveBtn = document.getElementById('save-hive-btn');
+    saveBtn.disabled = true;
+    saveBtn.textContent = 'Saving...';
+
+    try {
+        const bees = currentEditingBees.map((bee, i) => ({
+            name: bee.name,
+            human_name: bee.human_name,
+            emoji: bee.emoji || '🐝',
+            description: bee.description,
+            role: bee.role,
+            display_order: i
+        }));
+
+        let response;
+        if (editingHiveId) {
+            // Update existing hive
+            response = await fetch(`${API_BASE}/api/custom-hives/${editingHiveId}`, {
+                method: 'PUT',
+                headers: getAuthHeaders(),
+                body: JSON.stringify({ name, description })
+            });
+
+            // TODO: Handle bee updates separately if needed
+        } else {
+            // Create new hive
+            response = await fetch(`${API_BASE}/api/custom-hives`, {
+                method: 'POST',
+                headers: getAuthHeaders(),
+                body: JSON.stringify({ name, description, bees })
+            });
+        }
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.detail || 'Failed to save hive');
+        }
+
+        const savedHive = await response.json();
+
+        // Refresh custom hives
+        await fetchCustomHives();
+
+        // Close modal and refresh display
+        closeHiveCreator();
+        renderHivesModal();
+
+        // Auto-select the new hive
+        if (!editingHiveId) {
+            selectHive(savedHive.id);
+        }
+
+    } catch (error) {
+        console.error('Error saving custom hive:', error);
+        alert(error.message || 'Failed to save hive. Please try again.');
+    } finally {
+        saveBtn.disabled = false;
+        saveBtn.textContent = editingHiveId ? 'Save Changes' : 'Create Hive';
+    }
+}
+
+// Delete custom hive
+async function deleteCustomHive(hiveId, event) {
+    event.stopPropagation();
+
+    if (!confirm('Are you sure you want to delete this custom hive? This cannot be undone.')) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`${API_BASE}/api/custom-hives/${hiveId}`, {
+            method: 'DELETE',
+            headers: getAuthHeaders()
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to delete hive');
+        }
+
+        // If this was the selected hive, switch to default
+        if (selectedHiveId === hiveId) {
+            selectHive('chaos');
+        }
+
+        // Refresh custom hives
+        await fetchCustomHives();
+        renderHivesModal();
+
+    } catch (error) {
+        console.error('Error deleting custom hive:', error);
+        alert('Failed to delete hive. Please try again.');
+    }
+}
+
+// Make functions globally available
+window.openHiveCreator = openHiveCreator;
+window.closeHiveCreator = closeHiveCreator;
+window.openBeeCreator = openBeeCreator;
+window.closeBeeCreator = closeBeeCreator;
+window.saveBeeToSlot = saveBeeToSlot;
+window.saveCustomHive = saveCustomHive;
+window.deleteCustomHive = deleteCustomHive;
+window.removeBeeSlot = removeBeeSlot;
+
+// Close modals when clicking outside
+document.getElementById('hive-creator-modal')?.addEventListener('click', (e) => {
+    if (e.target.id === 'hive-creator-modal') {
+        closeHiveCreator();
+    }
+});
+
+document.getElementById('bee-creator-modal')?.addEventListener('click', (e) => {
+    if (e.target.id === 'bee-creator-modal') {
+        closeBeeCreator();
+    }
+});
+
+// Update save button when name input changes
+document.getElementById('hive-name-input')?.addEventListener('input', updateSaveHiveButton);

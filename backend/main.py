@@ -16,6 +16,7 @@ from backend.database import init_db, close_db
 from backend.auth import auth_router
 from backend.debate import debate_router
 from backend.billing import billing_router
+from backend.custom_hives import router as custom_hives_router
 
 
 @asynccontextmanager
@@ -48,6 +49,7 @@ app.add_middleware(
 app.include_router(auth_router)
 app.include_router(debate_router)
 app.include_router(billing_router)
+app.include_router(custom_hives_router)
 
 # Serve frontend static files
 frontend_path = Path(__file__).parent.parent / "frontend"

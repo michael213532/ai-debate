@@ -3,6 +3,9 @@ from dataclasses import dataclass, field
 from typing import Optional
 import re
 
+# For async custom bee lookup
+_custom_bee_cache = {}
+
 
 @dataclass
 class Personality:
@@ -1039,3 +1042,146 @@ def suggest_personalities(question: str, max_suggestions: int = 3) -> list[str]:
     """
     # Default to Chaos Hive
     return ["chaos-optimist", "chaos-pessimist", "chaos-realist"]
+
+
+# ============================================
+# CUSTOM BEE SUPPORT
+# ============================================
+
+async def get_custom_personality(user_id: str, personality_id: str) -> Optional[Personality]:
+    """
+    Fetch a custom bee from the database and return as a Personality object.
+
+    Args:
+        user_id: The user who owns the custom bee
+        personality_id: The custom bee ID (UUID)
+
+    Returns:
+        Personality object if found, None otherwise
+    """
+    from backend.database import get_db
+
+    async with get_db() as db:
+        cursor = await db.execute(
+            """SELECT cb.* FROM custom_bees cb
+               JOIN custom_hives ch ON cb.hive_id = ch.id
+               WHERE cb.id = ? AND ch.user_id = ?""",
+            (personality_id, user_id)
+        )
+        row = await cursor.fetchone()
+
+        if not row:
+            return None
+
+        return Personality(
+            id=row["id"],
+            name=row["name"],
+            human_name=row["human_name"],
+            emoji=row["emoji"] or "🐝",
+            description=row["description"],
+            role=row["role"],
+            is_special=False  # Custom bees are not special bees
+        )
+
+
+async def get_personality_async(user_id: str, personality_id: str) -> Optional[Personality]:
+    """
+    Get a personality by ID, checking both built-in and custom bees.
+
+    Args:
+        user_id: The user ID (needed for custom bee lookup)
+        personality_id: The personality/bee ID
+
+    Returns:
+        Personality object if found, None otherwise
+    """
+    # First check built-in personalities
+    builtin = ALL_PERSONALITIES.get(personality_id)
+    if builtin:
+        return builtin
+
+    # Then check custom bees
+    return await get_custom_personality(user_id, personality_id)
+
+
+async def get_personality_role_async(user_id: str, personality_id: str) -> str:
+    """
+    Get the role/system prompt for a personality (built-in or custom).
+
+    Args:
+        user_id: The user ID (needed for custom bee lookup)
+        personality_id: The personality/bee ID
+
+    Returns:
+        Role string if found, empty string otherwise
+    """
+    personality = await get_personality_async(user_id, personality_id)
+    if personality:
+        return personality.role
+    return ""
+
+
+async def is_custom_bee(user_id: str, personality_id: str) -> bool:
+    """Check if a personality ID is a custom bee."""
+    # If it's in built-in personalities, it's not custom
+    if personality_id in ALL_PERSONALITIES:
+        return False
+
+    # Check if it exists as a custom bee
+    custom = await get_custom_personality(user_id, personality_id)
+    return custom is not None
+
+
+async def get_custom_hive_as_dict(user_id: str, hive_id: str) -> Optional[dict]:
+    """
+    Get a custom hive with its bees as a dictionary (matching built-in hive format).
+
+    Args:
+        user_id: The user who owns the hive
+        hive_id: The custom hive ID
+
+    Returns:
+        Dict with hive info and personalities, or None if not found
+    """
+    from backend.database import get_db
+
+    async with get_db() as db:
+        # Get hive
+        cursor = await db.execute(
+            "SELECT * FROM custom_hives WHERE id = ? AND user_id = ?",
+            (hive_id, user_id)
+        )
+        hive_row = await cursor.fetchone()
+
+        if not hive_row:
+            return None
+
+        # Get bees
+        bee_cursor = await db.execute(
+            "SELECT * FROM custom_bees WHERE hive_id = ? ORDER BY display_order",
+            (hive_id,)
+        )
+        bee_rows = await bee_cursor.fetchall()
+
+        personalities = [
+            {
+                "id": bee["id"],
+                "name": bee["name"],
+                "human_name": bee["human_name"],
+                "emoji": bee["emoji"] or "🐝",
+                "description": bee["description"],
+                "is_special": False,
+                "is_custom": True,
+                "icon_base64": bee["icon_base64"],
+                "icon_generation_status": bee["icon_generation_status"]
+            }
+            for bee in bee_rows
+        ]
+
+        return {
+            "id": hive_row["id"],
+            "name": hive_row["name"],
+            "description": hive_row["description"] or "",
+            "personalities": personalities,
+            "is_custom": True
+        }

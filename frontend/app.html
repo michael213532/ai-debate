@@ -2746,6 +2746,408 @@
             color: var(--text-secondary);
             margin-bottom: 24px;
         }
+
+        /* ============================================
+           CUSTOM HIVE CREATOR STYLES
+           ============================================ */
+
+        /* Create Hive Button */
+        .create-hive-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            width: 100%;
+            padding: 16px 24px;
+            background: linear-gradient(135deg, #F5A623 0%, #F7B84B 100%);
+            border: none;
+            border-radius: 12px;
+            color: #000;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-bottom: 20px;
+        }
+
+        .create-hive-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(245, 166, 35, 0.3);
+        }
+
+        .create-hive-btn:disabled {
+            background: var(--surface-light);
+            color: var(--text-secondary);
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .create-hive-icon {
+            font-size: 1.5rem;
+            font-weight: 300;
+        }
+
+        .create-hive-limit {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            text-align: center;
+            margin-top: -12px;
+            margin-bottom: 16px;
+        }
+
+        /* Custom Badge */
+        .custom-badge {
+            background: linear-gradient(135deg, #F5A623 0%, #F7B84B 100%);
+            color: #000;
+            font-size: 0.65rem;
+            font-weight: 600;
+            padding: 2px 6px;
+            border-radius: 4px;
+            text-transform: uppercase;
+        }
+
+        /* Hive Creator Modal */
+        .hive-creator-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1100;
+            padding: 20px;
+        }
+
+        .hive-creator-modal.active {
+            display: flex;
+        }
+
+        .hive-creator-content {
+            background: var(--surface);
+            border-radius: 16px;
+            width: 100%;
+            max-width: 600px;
+            max-height: 85vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .hive-creator-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .hive-creator-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .hive-creator-close {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 8px;
+            display: flex;
+        }
+
+        .hive-creator-close:hover {
+            background: var(--surface-light);
+            color: var(--text-primary);
+        }
+
+        .hive-creator-body {
+            padding: 24px;
+            overflow-y: auto;
+            flex: 1;
+        }
+
+        .hive-creator-form {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .form-group label {
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: var(--text-primary);
+        }
+
+        .form-group input,
+        .form-group textarea {
+            background: var(--surface-light);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 12px;
+            color: var(--text-primary);
+            font-size: 0.95rem;
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: var(--primary-color);
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .form-hint {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        /* Bee Slots */
+        .bee-slots-section {
+            margin-top: 8px;
+        }
+
+        .bee-slots-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px;
+        }
+
+        .bee-slots-title {
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: var(--text-primary);
+        }
+
+        .bee-slots-count {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        .bee-slots {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 12px;
+        }
+
+        .bee-slot {
+            aspect-ratio: 1;
+            background: var(--surface-light);
+            border: 2px dashed var(--border-color);
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            cursor: pointer;
+            transition: all 0.15s;
+            padding: 8px;
+        }
+
+        .bee-slot:hover {
+            border-color: var(--primary-color);
+            background: rgba(99, 102, 241, 0.05);
+        }
+
+        .bee-slot.filled {
+            border-style: solid;
+            border-color: var(--primary-color);
+            background: rgba(99, 102, 241, 0.1);
+        }
+
+        .bee-slot-add {
+            font-size: 2rem;
+            color: var(--text-secondary);
+            line-height: 1;
+        }
+
+        .bee-slot-label {
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+        }
+
+        .bee-slot-emoji {
+            font-size: 1.5rem;
+        }
+
+        .bee-slot-name {
+            font-size: 0.7rem;
+            color: var(--text-primary);
+            text-align: center;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            max-width: 100%;
+        }
+
+        .bee-slot-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+
+        .bee-slot-remove {
+            position: absolute;
+            top: -6px;
+            right: -6px;
+            width: 20px;
+            height: 20px;
+            background: var(--error-color);
+            border: none;
+            border-radius: 50%;
+            color: white;
+            font-size: 12px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity 0.15s;
+        }
+
+        .bee-slot:hover .bee-slot-remove {
+            opacity: 1;
+        }
+
+        .bee-slot {
+            position: relative;
+        }
+
+        /* Hive Creator Footer */
+        .hive-creator-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+            padding: 16px 24px;
+            border-top: 1px solid var(--border-color);
+        }
+
+        /* Bee Creator Modal */
+        .bee-creator-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1200;
+            padding: 20px;
+        }
+
+        .bee-creator-modal.active {
+            display: flex;
+        }
+
+        .bee-creator-content {
+            background: var(--surface);
+            border-radius: 16px;
+            width: 100%;
+            max-width: 500px;
+            max-height: 85vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .bee-creator-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .bee-creator-title {
+            font-size: 1.15rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .bee-creator-body {
+            padding: 24px;
+            overflow-y: auto;
+            flex: 1;
+        }
+
+        .bee-creator-preview {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+
+        .bee-preview-icon {
+            width: 80px;
+            height: 80px;
+            background: var(--surface-light);
+            border: 2px solid var(--border-color);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
+        }
+
+        .bee-preview-icon img {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+
+        .bee-preview-status {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            text-align: center;
+            margin-top: 8px;
+        }
+
+        .bee-creator-form {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .bee-creator-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+            padding: 16px 24px;
+            border-top: 1px solid var(--border-color);
+        }
+
+        /* Responsive adjustments for bee slots */
+        @media (max-width: 500px) {
+            .bee-slots {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
     </style>
 </head>
 <body>
@@ -3023,9 +3425,107 @@
                 </button>
             </div>
             <div class="hives-modal-body">
+                <!-- Create Custom Hive Button -->
+                <button id="create-hive-btn" class="create-hive-btn" onclick="openHiveCreator()">
+                    <span class="create-hive-icon">+</span>
+                    <span>Create Custom Hive</span>
+                </button>
+                <div id="create-hive-limit" class="create-hive-limit"></div>
+
                 <div id="hives-grid" class="hives-grid">
                     <!-- Hive cards populated by JS -->
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hive Creator Modal -->
+    <div id="hive-creator-modal" class="hive-creator-modal">
+        <div class="hive-creator-content">
+            <div class="hive-creator-header">
+                <span class="hive-creator-title" id="hive-creator-title">Create Custom Hive</span>
+                <button class="hive-creator-close" onclick="closeHiveCreator()">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"/>
+                        <line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="hive-creator-body">
+                <div class="hive-creator-form">
+                    <div class="form-group">
+                        <label for="hive-name-input">Hive Name</label>
+                        <input type="text" id="hive-name-input" placeholder="e.g., My Expert Panel" maxlength="50">
+                    </div>
+                    <div class="form-group">
+                        <label for="hive-desc-input">Description (optional)</label>
+                        <input type="text" id="hive-desc-input" placeholder="e.g., Specialized advisors for tech decisions" maxlength="200">
+                    </div>
+
+                    <div class="bee-slots-section">
+                        <div class="bee-slots-header">
+                            <span class="bee-slots-title">Bees (2-5 required)</span>
+                            <span class="bee-slots-count" id="bee-slots-count">0/5</span>
+                        </div>
+                        <div class="bee-slots" id="bee-slots">
+                            <!-- 5 slots populated by JS -->
+                        </div>
+                        <p class="form-hint" style="margin-top: 8px;">Click a slot to add or edit a bee. Each bee needs a unique personality.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="hive-creator-footer">
+                <button class="btn btn-secondary" onclick="closeHiveCreator()">Cancel</button>
+                <button class="btn btn-primary" id="save-hive-btn" onclick="saveCustomHive()" disabled>Create Hive</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bee Creator Modal -->
+    <div id="bee-creator-modal" class="bee-creator-modal">
+        <div class="bee-creator-content">
+            <div class="bee-creator-header">
+                <span class="bee-creator-title" id="bee-creator-title">Add Bee</span>
+                <button class="hive-creator-close" onclick="closeBeeCreator()">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"/>
+                        <line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="bee-creator-body">
+                <div class="bee-creator-preview">
+                    <div>
+                        <div class="bee-preview-icon" id="bee-preview-icon">🐝</div>
+                        <div class="bee-preview-status" id="bee-preview-status">Icon will be AI-generated</div>
+                    </div>
+                </div>
+                <div class="bee-creator-form">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="bee-human-name-input">Display Name</label>
+                            <input type="text" id="bee-human-name-input" placeholder="e.g., Alex" maxlength="30">
+                        </div>
+                        <div class="form-group">
+                            <label for="bee-name-input">Role Title</label>
+                            <input type="text" id="bee-name-input" placeholder="e.g., The Strategist" maxlength="50">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="bee-desc-input">Short Description</label>
+                        <input type="text" id="bee-desc-input" placeholder="e.g., Thinks long-term, analyzes strategy" maxlength="200">
+                        <span class="form-hint">Shown in the UI and used for AI icon generation</span>
+                    </div>
+                    <div class="form-group">
+                        <label for="bee-role-input">Personality Prompt</label>
+                        <textarea id="bee-role-input" placeholder="Describe how this bee should think and respond. This becomes the AI's system prompt..." maxlength="2000" rows="5"></textarea>
+                        <span class="form-hint">The AI will adopt this personality when debating</span>
+                    </div>
+                </div>
+            </div>
+            <div class="bee-creator-footer">
+                <button class="btn btn-secondary" onclick="closeBeeCreator()">Cancel</button>
+                <button class="btn btn-primary" id="save-bee-btn" onclick="saveBeeToSlot()">Add Bee</button>
             </div>
         </div>
     </div>

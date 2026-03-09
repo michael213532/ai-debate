@@ -4,7 +4,7 @@ import json
 from typing import AsyncGenerator, Callable, Optional
 from backend.providers import ProviderRegistry
 from backend.database import get_db
-from backend.personalities import get_personality, is_special_bee, PERSONALITIES
+from backend.personalities import get_personality, is_special_bee, PERSONALITIES, get_personality_async
 
 
 class DebateOrchestrator:
@@ -262,7 +262,11 @@ class DebateOrchestrator:
             display_name = model_name
             role_name = None
             if personality_id:
-                personality = get_personality(personality_id)
+                # Use async version to support custom bees
+                if self.user_id:
+                    personality = await get_personality_async(self.user_id, personality_id)
+                else:
+                    personality = get_personality(personality_id)
                 if personality:
                     display_name = personality.human_name
                     role_name = personality.name
@@ -337,7 +341,7 @@ class DebateOrchestrator:
         provider = provider_class(self.api_keys[provider_name])
 
         # Build system prompt
-        system_prompt = self._build_system_prompt(model_name, role, round_num, personality_id)
+        system_prompt = await self._build_system_prompt(model_name, role, round_num, personality_id)
 
         # Build messages
         messages = [{"role": "user", "content": context}]
@@ -345,7 +349,11 @@ class DebateOrchestrator:
         # Get display name with personality if set
         display_name = model_name
         if personality_id:
-            personality = get_personality(personality_id)
+            # Use async version to support custom bees
+            if self.user_id:
+                personality = await get_personality_async(self.user_id, personality_id)
+            else:
+                personality = get_personality(personality_id)
             if personality:
                 display_name = personality.human_name
 
@@ -373,14 +381,18 @@ class DebateOrchestrator:
 
         return full_response
 
-    def _build_system_prompt(self, model_name: str, role: str, round_num: int, personality_id: str = None) -> str:
+    async def _build_system_prompt(self, model_name: str, role: str, round_num: int, personality_id: str = None) -> str:
         """Build system prompt for a model, optionally with personality."""
 
         # Get personality role if specified
         personality_role = ""
         display_name = model_name
         if personality_id:
-            personality = get_personality(personality_id)
+            # Use async version to support custom bees
+            if self.user_id:
+                personality = await get_personality_async(self.user_id, personality_id)
+            else:
+                personality = get_personality(personality_id)
             if personality:
                 personality_role = personality.role
                 display_name = personality.human_name

@@ -122,6 +122,35 @@ async def init_postgres():
                 )
             """)
             print("Created debate_summaries table")
+
+            await conn.execute("""
+                CREATE TABLE IF NOT EXISTS custom_hives (
+                    id TEXT PRIMARY KEY,
+                    user_id TEXT NOT NULL REFERENCES users(id),
+                    name TEXT NOT NULL,
+                    description TEXT,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+            print("Created custom_hives table")
+
+            await conn.execute("""
+                CREATE TABLE IF NOT EXISTS custom_bees (
+                    id TEXT PRIMARY KEY,
+                    hive_id TEXT NOT NULL REFERENCES custom_hives(id) ON DELETE CASCADE,
+                    user_id TEXT NOT NULL REFERENCES users(id),
+                    name TEXT NOT NULL,
+                    human_name TEXT NOT NULL,
+                    emoji TEXT DEFAULT '🐝',
+                    description TEXT NOT NULL,
+                    role TEXT NOT NULL,
+                    icon_base64 TEXT,
+                    icon_generation_status TEXT DEFAULT 'pending',
+                    display_order INTEGER DEFAULT 0,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+            print("Created custom_bees table")
             print("PostgreSQL initialization complete!")
         except Exception as e:
             print(f"Error creating tables: {e}")
@@ -200,8 +229,40 @@ async def init_sqlite():
                 FOREIGN KEY (user_id) REFERENCES users(id)
             );
 
+            CREATE TABLE IF NOT EXISTS custom_hives (
+                id TEXT PRIMARY KEY,
+                user_id TEXT NOT NULL,
+                name TEXT NOT NULL,
+                description TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users(id)
+            );
+
+            CREATE TABLE IF NOT EXISTS custom_bees (
+                id TEXT PRIMARY KEY,
+                hive_id TEXT NOT NULL,
+                user_id TEXT NOT NULL,
+                name TEXT NOT NULL,
+                human_name TEXT NOT NULL,
+                emoji TEXT DEFAULT '🐝',
+                description TEXT NOT NULL,
+                role TEXT NOT NULL,
+                icon_base64 TEXT,
+                icon_generation_status TEXT DEFAULT 'pending',
+                display_order INTEGER DEFAULT 0,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (hive_id) REFERENCES custom_hives(id) ON DELETE CASCADE,
+                FOREIGN KEY (user_id) REFERENCES users(id)
+            );
+
             CREATE INDEX IF NOT EXISTS idx_debates_user_created
                 ON debates(user_id, created_at DESC);
+
+            CREATE INDEX IF NOT EXISTS idx_custom_hives_user
+                ON custom_hives(user_id);
+
+            CREATE INDEX IF NOT EXISTS idx_custom_bees_hive
+                ON custom_bees(hive_id);
         """)
         await db.commit()
 
