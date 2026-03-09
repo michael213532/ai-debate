@@ -151,20 +151,18 @@ async def generate_bee_icon_stability(
         return None
 
 
-DALLE_PROMPT = """Cute kawaii cartoon bee character icon:
+DALLE_PROMPT = """A single cute kawaii bee character wearing {accessory}, in Japanese LINE sticker style.
 
-- Round bright yellow head with two small black dot eyes
-- Tiny curved smile, two pink blush marks on cheeks
-- Two dark brown curved antennae
-- Oval yellow body with dark brown horizontal stripes
-- Two small cream-colored wings
-- Pure white background
-- Flat 2D vector style like a LINE sticker
-- Simple minimal kawaii aesthetic
+The bee has:
+- Bright yellow round head and striped body
+- Simple black dot eyes, tiny smile, pink blush circles
+- Dark brown antennae, stripes, and tiny limbs
+- Small cream wings
+- THE {accessory} IS THE MAIN FEATURE - make it prominent and cute
 
-This bee is "{bee_name}" - {description}
+Style: Flat 2D, thick outlines, no shadows, pure white background, chibi proportions.
 
-Add a {accessory} to show this personality."""
+Character name: "{bee_name}" - {description}"""
 
 
 async def generate_bee_icon_dalle(
@@ -227,18 +225,18 @@ async def generate_bee_icon(
 ) -> Optional[str]:
     """Generate a bee icon matching the reference style."""
 
-    # Try Stability AI first if we have a key
-    if stability_api_key:
-        print("Using Stability AI text-to-image...")
-        result = await generate_bee_icon_stability(stability_api_key, bee_name, description)
-        if result:
-            return result
-        print("Stability AI failed, falling back to DALL-E")
-
-    # Fallback to DALL-E
+    # Try DALL-E first - better at following detailed style prompts
     if openai_api_key:
         print("Using DALL-E 3...")
-        return await generate_bee_icon_dalle(openai_api_key, bee_name, description)
+        result = await generate_bee_icon_dalle(openai_api_key, bee_name, description)
+        if result:
+            return result
+        print("DALL-E failed, trying Stability AI...")
+
+    # Fallback to Stability AI
+    if stability_api_key:
+        print("Using Stability AI...")
+        return await generate_bee_icon_stability(stability_api_key, bee_name, description)
 
     return None
 
