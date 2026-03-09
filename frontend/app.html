@@ -4354,29 +4354,29 @@
         }
 
         function collapseModels() {
-            setupSection.classList.add('collapsed');
-            dropdownTrigger.classList.remove('expanded');
-            mobileModelsTrigger.classList.remove('expanded');
+            setupSection?.classList.add('collapsed');
+            dropdownTrigger?.classList.remove('expanded');
+            mobileModelsTrigger?.classList.remove('expanded');
             updateHeaderModelsCount();
             localStorage.setItem('modelsCollapsed', 'true');
         }
 
         function expandModels() {
-            setupSection.classList.remove('collapsed');
-            dropdownTrigger.classList.add('expanded');
-            mobileModelsTrigger.classList.add('expanded');
+            setupSection?.classList.remove('collapsed');
+            dropdownTrigger?.classList.add('expanded');
+            mobileModelsTrigger?.classList.add('expanded');
             localStorage.setItem('modelsCollapsed', 'false');
         }
 
-        dropdownTrigger.addEventListener('click', toggleModels);
-        mobileModelsTrigger.addEventListener('click', toggleModels);
+        dropdownTrigger?.addEventListener('click', toggleModels);
+        mobileModelsTrigger?.addEventListener('click', toggleModels);
 
         // Restore state on load
         if (localStorage.getItem('modelsCollapsed') === 'true') {
             collapseModels();
         } else {
-            dropdownTrigger.classList.add('expanded');
-            mobileModelsTrigger.classList.add('expanded');
+            dropdownTrigger?.classList.add('expanded');
+            mobileModelsTrigger?.classList.add('expanded');
         }
 
         // Make updateHeaderModelsCount globally accessible
