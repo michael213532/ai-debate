@@ -4,30 +4,25 @@ import httpx
 from typing import Optional
 
 
-STYLE_PROMPT = """Create a cute cartoon bee character icon for "{bee_name}".
+STYLE_PROMPT = """A single cute kawaii bee mascot character, exactly like a Japanese chibi bee sticker.
 
-STRICT STYLE REQUIREMENTS - MUST MATCH EXACTLY:
-- Cute kawaii/chibi style cartoon bee
-- Round/oval chunky body shape
-- Bright yellow body (#FFE135) with dark brown horizontal stripes
-- Simple cute face: small dot eyes, tiny curved smile, pink/rosy cheeks
-- Small cream/white colored wings with dark brown outline
-- Two thin curved antennae on top
-- Small simple legs at bottom
-- Clean dark brown outlines around everything
-- Completely flat 2D illustration style, NO gradients, NO shading, NO 3D effects
-- Pure white background, nothing else
-- Very simple minimal design like a cute sticker or emoji
-- Character personality: {description}
+THE BEE MUST LOOK EXACTLY LIKE THIS:
+- Perfectly round head attached to oval/egg-shaped body
+- Head and body are BRIGHT LEMON YELLOW (#FFEB3B)
+- THREE thick horizontal DARK BROWN (#3E2723) stripes across the body
+- Face has TWO small black dot eyes, a tiny "u" shaped smile, and light pink circular blush marks on cheeks
+- TWO small off-white/cream colored wings on the back with thin dark brown outlines
+- TWO thin curved dark brown antennae sticking up from head
+- Small dark brown legs at bottom
+- THICK dark brown outline around entire bee
+- Style is COMPLETELY FLAT with solid colors, like a vinyl sticker or LINE emoji
+- WHITE background only, nothing else
 
-CRITICAL - DO NOT:
-- Add any text or words
-- Make it 3D or realistic
-- Add complex backgrounds or patterns
-- Add multiple characters
-- Add accessories unless essential to personality
-- Use gradients or complex shading
-- Change the basic bee body shape"""
+This bee represents: {bee_name} - {description}
+
+Add a tiny visual element that suggests the personality (like small glasses for smart, tiny crown for leader, etc) but keep the core bee design identical.
+
+DO NOT add text, complex backgrounds, realistic shading, 3D effects, or change the basic bee shape."""
 
 
 async def generate_bee_icon(
