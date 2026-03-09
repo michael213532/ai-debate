@@ -32,6 +32,12 @@ const PROVIDER_INFO = {
         description: 'Grok models',
         keyUrl: 'https://console.x.ai',
         keyHelp: 'Create account → API Keys → Create'
+    },
+    stability: {
+        name: 'Stability AI',
+        description: 'Custom bee icon generation (best results)',
+        keyUrl: 'https://platform.stability.ai/account/keys',
+        keyHelp: 'Create account → API Keys → Create'
     }
 };
 

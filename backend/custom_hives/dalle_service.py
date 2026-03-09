@@ -1,24 +1,25 @@
-"""DALL-E icon generation service for custom bees."""
+"""Icon generation service for custom bees using Stability AI img2img."""
 import base64
 import httpx
+import io
 from typing import Optional
 from pathlib import Path
 
 
-# Load reference bee image as base64 (embedded for reliability)
-REFERENCE_BEE_BASE64 = None
+# Cache for reference image
+_REFERENCE_BEE_BYTES = None
 
-def get_reference_bee_base64() -> Optional[str]:
-    """Load the reference bee image from file."""
-    global REFERENCE_BEE_BASE64
-    if REFERENCE_BEE_BASE64:
-        return REFERENCE_BEE_BASE64
+
+def get_reference_bee_bytes() -> Optional[bytes]:
+    """Load the reference bee image bytes from file."""
+    global _REFERENCE_BEE_BYTES
+    if _REFERENCE_BEE_BYTES:
+        return _REFERENCE_BEE_BYTES
 
     # Try multiple possible locations
     possible_paths = [
-        Path(__file__).parent / "assets" / "reference_bee.png",  # In the module folder
+        Path(__file__).parent / "assets" / "reference_bee.png",
         Path(__file__).parent.parent.parent / "frontend" / "images" / "bee-icon.png",
-        Path(__file__).parent.parent.parent / "frontend" / "images" / "bees" / "default.png",
         Path("C:/Users/micha/Downloads/bee icons/default bee icon.png"),
     ]
 
@@ -26,12 +27,75 @@ def get_reference_bee_base64() -> Optional[str]:
         if path.exists():
             try:
                 with open(path, "rb") as f:
-                    REFERENCE_BEE_BASE64 = base64.b64encode(f.read()).decode("utf-8")
-                    return REFERENCE_BEE_BASE64
+                    _REFERENCE_BEE_BYTES = f.read()
+                    return _REFERENCE_BEE_BYTES
             except Exception:
                 continue
 
     return None
+
+
+async def generate_bee_icon_stability(
+    stability_api_key: str,
+    bee_name: str,
+    description: str,
+) -> Optional[str]:
+    """
+    Generate a bee icon using Stability AI image-to-image.
+
+    This takes the reference bee image and modifies it slightly to add
+    personality-specific accessories while keeping the same style.
+    """
+    reference_bytes = get_reference_bee_bytes()
+    if not reference_bytes:
+        print("No reference bee image found")
+        return None
+
+    prompt = f"""Same cute kawaii cartoon bee, but this one is "{bee_name}" - {description[:150]}.
+Add a small accessory or expression that fits this personality.
+Keep the EXACT same art style: bright yellow body, brown stripes, simple dot eyes, pink cheeks, white background.
+Simple 2D flat illustration style like a LINE sticker."""
+
+    try:
+        async with httpx.AsyncClient(timeout=60.0) as client:
+            # Stability AI image-to-image endpoint
+            response = await client.post(
+                "https://api.stability.ai/v1/generation/stable-diffusion-xl-1024-v1-0/image-to-image",
+                headers={
+                    "Authorization": f"Bearer {stability_api_key}",
+                    "Accept": "application/json",
+                },
+                files={
+                    "init_image": ("bee.png", reference_bytes, "image/png"),
+                },
+                data={
+                    "text_prompts[0][text]": prompt,
+                    "text_prompts[0][weight]": "1",
+                    "text_prompts[1][text]": "realistic, 3D, complex background, shadows, text, watermark",
+                    "text_prompts[1][weight]": "-1",
+                    "cfg_scale": "7",
+                    "samples": "1",
+                    "steps": "30",
+                    "image_strength": "0.35",  # Keep most of original, just modify slightly
+                }
+            )
+
+            if response.status_code != 200:
+                print(f"Stability API error: {response.status_code} - {response.text}")
+                return None
+
+            data = response.json()
+            if "artifacts" in data and len(data["artifacts"]) > 0:
+                return data["artifacts"][0].get("base64")
+
+            return None
+
+    except httpx.TimeoutException:
+        print("Stability API timeout")
+        return None
+    except Exception as e:
+        print(f"Stability generation error: {e}")
+        return None
 
 
 FALLBACK_STYLE_PROMPT = """Create a cute kawaii cartoon bee character icon, EXACTLY matching this specific style:
@@ -40,146 +104,38 @@ BODY SHAPE & PROPORTIONS:
 - Round yellow head (bright lemon yellow #F7E14D), perfectly circular
 - Oval body below head with 3 thick dark brown (#5D4037) horizontal stripes alternating with bright yellow
 - Chibi proportions: head is slightly larger than body
-- Total character is compact and round
 
 FACIAL FEATURES:
 - Two simple solid black dot eyes (small circles)
 - Tiny curved smile line below eyes
 - Two rosy pink circular blush marks on cheeks
-- Two dark brown curved antennae on top of head, curving outward
+- Two dark brown curved antennae on top of head
 
 LIMBS & WINGS:
-- Four tiny dark brown stick limbs (simple lines with small oval ends)
-- Two small cream/off-white rounded wings on the back
+- Four tiny dark brown stick limbs
+- Two small cream/off-white rounded wings
 
-STYLE REQUIREMENTS:
-- PURE WHITE background, absolutely no shadows or gradients
-- Flat 2D illustration, like a LINE sticker or emoji
-- Thick dark brown outlines around all shapes
-- No 3D effects, no textures, no realistic details
-- Simple, minimal, cute aesthetic
+STYLE:
+- PURE WHITE background, no shadows
+- Flat 2D illustration, like a LINE sticker
+- Thick dark brown outlines
+- No 3D effects, no textures
 
 This bee's personality is "{bee_name}" - {description}
 
-Add ONE small simple accessory or visual element to show this personality (like a tiny hat, glasses, or held item). Keep the EXACT same art style, colors (#F7E14D yellow, #5D4037 brown), and proportions as described above."""
+Add ONE small accessory to show personality. Keep the EXACT same style and colors."""
 
 
-async def generate_dalle_prompt_from_reference(
+async def generate_bee_icon_dalle(
     openai_api_key: str,
     bee_name: str,
     description: str,
-    reference_image_b64: str
 ) -> Optional[str]:
-    """
-    Use GPT-4 Vision to analyze reference image and create a DALL-E prompt.
-    """
-    try:
-        async with httpx.AsyncClient(timeout=30.0) as client:
-            response = await client.post(
-                "https://api.openai.com/v1/chat/completions",
-                headers={
-                    "Authorization": f"Bearer {openai_api_key}",
-                    "Content-Type": "application/json"
-                },
-                json={
-                    "model": "gpt-4o",
-                    "messages": [
-                        {
-                            "role": "user",
-                            "content": [
-                                {
-                                    "type": "text",
-                                    "text": f"""Look at this bee character image carefully. I need you to create a DALL-E prompt that will generate a bee in the EXACT SAME art style, but representing this personality:
-
-Bee Name: {bee_name}
-Personality: {description}
-
-Your DALL-E prompt must:
-1. Describe the EXACT art style, colors, proportions, and features of the bee in the reference image
-2. Keep the same kawaii/chibi style with simple shapes, thick outlines, flat colors
-3. Keep the same yellow (#F7E14D) and brown (#5D4037) color scheme
-4. Add ONE small accessory that represents the personality (like a tiny hat, glasses, book, etc.)
-5. Specify pure white background, no shadows, flat 2D illustration style
-
-Output ONLY the DALL-E prompt, nothing else. Make it detailed enough to recreate this exact bee style."""
-                                },
-                                {
-                                    "type": "image_url",
-                                    "image_url": {
-                                        "url": f"data:image/png;base64,{reference_image_b64}",
-                                        "detail": "high"
-                                    }
-                                }
-                            ]
-                        }
-                    ],
-                    "max_tokens": 500
-                }
-            )
-
-            if response.status_code != 200:
-                print(f"GPT-4V API error: {response.status_code} - {response.text}")
-                return None
-
-            data = response.json()
-            if "choices" in data and len(data["choices"]) > 0:
-                return data["choices"][0]["message"]["content"].strip()
-
-            return None
-
-    except Exception as e:
-        print(f"GPT-4V error: {e}")
-        return None
-
-
-async def generate_bee_icon(
-    openai_api_key: str,
-    bee_name: str,
-    description: str,
-    size: str = "256x256"
-) -> Optional[str]:
-    """
-    Generate a bee icon using GPT-4V + DALL-E 3.
-
-    Two-step process:
-    1. GPT-4V analyzes reference image and creates a perfect DALL-E prompt
-    2. DALL-E 3 generates the bee icon matching the style
-
-    Args:
-        openai_api_key: User's OpenAI API key
-        bee_name: Name of the bee (e.g., "The Strategist")
-        description: Description of the bee's personality
-        size: Image size (unused, DALL-E 3 uses 1024x1024)
-
-    Returns:
-        Base64-encoded PNG image, or None if generation failed
-    """
-    if not openai_api_key:
-        return None
-
-    # Try to get reference image and use GPT-4V approach
-    reference_b64 = get_reference_bee_base64()
-
-    if reference_b64:
-        print("Using GPT-4V + DALL-E approach with reference image")
-        prompt = await generate_dalle_prompt_from_reference(
-            openai_api_key,
-            bee_name,
-            description[:200],
-            reference_b64
-        )
-        if not prompt:
-            print("GPT-4V failed, falling back to static prompt")
-            prompt = FALLBACK_STYLE_PROMPT.format(
-                bee_name=bee_name,
-                description=description[:200]
-            )
-    else:
-        print("No reference image found, using fallback prompt")
-        prompt = FALLBACK_STYLE_PROMPT.format(
-            bee_name=bee_name,
-            description=description[:200]
-        )
+    """Fallback: Generate bee icon using DALL-E 3 (text-only prompt)."""
+    prompt = FALLBACK_STYLE_PROMPT.format(
+        bee_name=bee_name,
+        description=description[:200]
+    )
 
     try:
         async with httpx.AsyncClient(timeout=60.0) as client:
@@ -193,7 +149,7 @@ async def generate_bee_icon(
                     "model": "dall-e-3",
                     "prompt": prompt,
                     "n": 1,
-                    "size": "1024x1024",  # DALL-E 3 minimum size
+                    "size": "1024x1024",
                     "response_format": "b64_json",
                     "quality": "standard"
                 }
@@ -217,8 +173,36 @@ async def generate_bee_icon(
         return None
 
 
+async def generate_bee_icon(
+    openai_api_key: str,
+    bee_name: str,
+    description: str,
+    size: str = "256x256",
+    stability_api_key: Optional[str] = None
+) -> Optional[str]:
+    """
+    Generate a bee icon matching the reference style.
+
+    Tries Stability AI img2img first (if key provided), falls back to DALL-E.
+    """
+    # Try Stability AI first if we have a key
+    if stability_api_key:
+        print("Trying Stability AI image-to-image...")
+        result = await generate_bee_icon_stability(stability_api_key, bee_name, description)
+        if result:
+            return result
+        print("Stability AI failed, falling back to DALL-E")
+
+    # Fallback to DALL-E
+    if openai_api_key:
+        print("Using DALL-E 3...")
+        return await generate_bee_icon_dalle(openai_api_key, bee_name, description)
+
+    return None
+
+
 async def check_openai_key_valid(api_key: str) -> bool:
-    """Check if an OpenAI API key is valid by making a simple API call."""
+    """Check if an OpenAI API key is valid."""
     if not api_key:
         return False
 
@@ -226,6 +210,22 @@ async def check_openai_key_valid(api_key: str) -> bool:
         async with httpx.AsyncClient(timeout=10.0) as client:
             response = await client.get(
                 "https://api.openai.com/v1/models",
+                headers={"Authorization": f"Bearer {api_key}"}
+            )
+            return response.status_code == 200
+    except Exception:
+        return False
+
+
+async def check_stability_key_valid(api_key: str) -> bool:
+    """Check if a Stability AI API key is valid."""
+    if not api_key:
+        return False
+
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            response = await client.get(
+                "https://api.stability.ai/v1/user/account",
                 headers={"Authorization": f"Bearer {api_key}"}
             )
             return response.status_code == 200

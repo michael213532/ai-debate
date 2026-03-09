@@ -80,6 +80,12 @@ AI_MODELS = {
             {"id": "grok-4-fast-non-reasoning", "name": "Grok 4"},
             {"id": "grok-3-mini", "name": "Grok 3 Mini"},
         ]
+    },
+    "stability": {
+        "name": "Stability AI",
+        "models": [],  # No chat models, used for image generation only
+        "description": "Used for generating custom bee icons",
+        "image_only": True
     }
 }
 

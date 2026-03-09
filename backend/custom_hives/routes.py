@@ -43,14 +43,14 @@ async def get_custom_hive_count(user_id: str) -> int:
         return row["count"] if row else 0
 
 
-async def get_user_openai_key(user_id: str) -> Optional[str]:
-    """Get user's OpenAI API key for DALL-E generation."""
+async def get_user_api_key(user_id: str, provider: str) -> Optional[str]:
+    """Get user's API key for a specific provider."""
     from backend.debate.routes import decrypt_api_key
 
     async with get_db() as db:
         cursor = await db.execute(
-            "SELECT api_key_encrypted FROM user_api_keys WHERE user_id = ? AND provider = 'openai'",
-            (user_id,)
+            "SELECT api_key_encrypted FROM user_api_keys WHERE user_id = ? AND provider = ?",
+            (user_id, provider)
         )
         row = await cursor.fetchone()
         if row:
@@ -61,6 +61,16 @@ async def get_user_openai_key(user_id: str) -> Optional[str]:
         return None
 
 
+async def get_user_openai_key(user_id: str) -> Optional[str]:
+    """Get user's OpenAI API key for DALL-E generation."""
+    return await get_user_api_key(user_id, "openai")
+
+
+async def get_user_stability_key(user_id: str) -> Optional[str]:
+    """Get user's Stability AI API key for image generation."""
+    return await get_user_api_key(user_id, "stability")
+
+
 async def generate_icon_background(
     user_id: str,
     bee_id: str,
@@ -69,8 +79,10 @@ async def generate_icon_background(
 ):
     """Background task to generate bee icon."""
     openai_key = await get_user_openai_key(user_id)
-    if not openai_key:
-        # No OpenAI key, mark as failed
+    stability_key = await get_user_stability_key(user_id)
+
+    if not openai_key and not stability_key:
+        # No API keys available
         async with get_db() as db:
             await db.execute(
                 "UPDATE custom_bees SET icon_generation_status = 'no_key' WHERE id = ?",
@@ -79,8 +91,13 @@ async def generate_icon_background(
             await db.commit()
         return
 
-    # Generate icon
-    icon_base64 = await generate_bee_icon(openai_key, bee_name, description)
+    # Generate icon (tries Stability AI first, then DALL-E)
+    icon_base64 = await generate_bee_icon(
+        openai_key or "",
+        bee_name,
+        description,
+        stability_api_key=stability_key
+    )
 
     async with get_db() as db:
         if icon_base64:
@@ -128,16 +145,22 @@ async def generate_icon_endpoint(
     request: GenerateIconRequest,
     current_user: User = Depends(get_current_user)
 ):
-    """Generate a bee icon using DALL-E."""
+    """Generate a bee icon using Stability AI or DALL-E."""
     openai_key = await get_user_openai_key(current_user.id)
+    stability_key = await get_user_stability_key(current_user.id)
 
-    if not openai_key:
+    if not openai_key and not stability_key:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="OpenAI API key required for icon generation. Add your key in Settings."
+            detail="Stability AI or OpenAI API key required for icon generation. Add your key in Settings."
         )
 
-    icon_base64 = await generate_bee_icon(openai_key, request.bee_name, request.description)
+    icon_base64 = await generate_bee_icon(
+        openai_key or "",
+        request.bee_name,
+        request.description,
+        stability_api_key=stability_key
+    )
 
     if icon_base64:
         return GenerateIconResponse(
