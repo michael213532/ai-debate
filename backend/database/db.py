@@ -123,6 +123,16 @@ async def init_postgres():
             """)
             print("Created debate_summaries table")
 
+            # Add password reset columns if missing
+            try:
+                await conn.execute("ALTER TABLE users ADD COLUMN reset_code TEXT")
+            except Exception:
+                pass
+            try:
+                await conn.execute("ALTER TABLE users ADD COLUMN reset_code_expires TIMESTAMP")
+            except Exception:
+                pass
+
             await conn.execute("""
                 CREATE TABLE IF NOT EXISTS custom_hives (
                     id TEXT PRIMARY KEY,
@@ -264,6 +274,15 @@ async def init_sqlite():
             CREATE INDEX IF NOT EXISTS idx_custom_bees_hive
                 ON custom_bees(hive_id);
         """)
+        # Add password reset columns if missing
+        try:
+            await db.execute("ALTER TABLE users ADD COLUMN reset_code TEXT")
+        except Exception:
+            pass
+        try:
+            await db.execute("ALTER TABLE users ADD COLUMN reset_code_expires TIMESTAMP")
+        except Exception:
+            pass
         await db.commit()
 
 

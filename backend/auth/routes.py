@@ -1,13 +1,18 @@
 """Authentication routes."""
 import uuid
+import random
 import bcrypt
-from datetime import datetime
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+from datetime import datetime, timedelta
 from fastapi import APIRouter, HTTPException, status, Depends
 from pydantic import BaseModel, EmailStr
 from typing import Optional
 from .jwt import create_access_token
 from .dependencies import get_current_user
 from backend.database import get_db, User
+from backend.config import SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASSWORD, SMTP_FROM
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
@@ -140,4 +145,132 @@ async def accept_privacy(current_user: User = Depends(get_current_user)):
             (now, current_user.id)
         )
         await db.commit()
+    return {"success": True}
+
+
+# --- Password Reset ---
+
+class ForgotPasswordRequest(BaseModel):
+    email: EmailStr
+
+
+class ResetPasswordRequest(BaseModel):
+    email: EmailStr
+    code: str
+    new_password: str
+
+
+def send_reset_email(to_email: str, code: str):
+    """Send a password reset code via SMTP."""
+    if not SMTP_USER or not SMTP_PASSWORD:
+        print(f"[SMTP] Not configured. Reset code for {to_email}: {code}")
+        return
+
+    msg = MIMEMultipart("alternative")
+    msg["Subject"] = "Beecision - Password Reset Code"
+    msg["From"] = SMTP_FROM
+    msg["To"] = to_email
+
+    html = f"""\
+    <div style="font-family: -apple-system, sans-serif; max-width: 400px; margin: 0 auto; padding: 32px;">
+        <h2 style="color: #333; margin-bottom: 8px;">Reset your password</h2>
+        <p style="color: #666; font-size: 15px;">Enter this code on Beecision to reset your password:</p>
+        <div style="background: #f5f5f5; border-radius: 12px; padding: 20px; text-align: center; margin: 24px 0;">
+            <span style="font-size: 32px; font-weight: 700; letter-spacing: 8px; color: #333;">{code}</span>
+        </div>
+        <p style="color: #999; font-size: 13px;">This code expires in 15 minutes. If you didn't request this, ignore this email.</p>
+    </div>
+    """
+    msg.attach(MIMEText(html, "html"))
+
+    with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as server:
+        server.starttls()
+        server.login(SMTP_USER, SMTP_PASSWORD)
+        server.sendmail(SMTP_FROM, to_email, msg.as_string())
+
+
+@router.post("/forgot-password")
+async def forgot_password(request: ForgotPasswordRequest):
+    """Send a 6-digit reset code to the user's email."""
+    async with get_db() as db:
+        cursor = await db.execute(
+            "SELECT id FROM users WHERE email = ?",
+            (request.email,)
+        )
+        row = await cursor.fetchone()
+
+        if not row:
+            # Don't reveal if email exists or not
+            return {"success": True}
+
+        code = f"{random.randint(0, 999999):06d}"
+        expires = datetime.utcnow() + timedelta(minutes=15)
+
+        await db.execute(
+            "UPDATE users SET reset_code = ?, reset_code_expires = ? WHERE email = ?",
+            (code, expires, request.email)
+        )
+        await db.commit()
+
+    try:
+        send_reset_email(request.email, code)
+    except Exception as e:
+        print(f"Failed to send reset email: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to send email. Please try again later."
+        )
+
+    return {"success": True}
+
+
+@router.post("/reset-password")
+async def reset_password(request: ResetPasswordRequest):
+    """Verify the reset code and set a new password."""
+    if len(request.new_password) < 6:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Password must be at least 6 characters"
+        )
+
+    async with get_db() as db:
+        cursor = await db.execute(
+            "SELECT id, reset_code, reset_code_expires FROM users WHERE email = ?",
+            (request.email,)
+        )
+        row = await cursor.fetchone()
+
+        if not row:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid code"
+            )
+
+        stored_code = row["reset_code"]
+        expires = row["reset_code_expires"]
+
+        if not stored_code or stored_code != request.code:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid code"
+            )
+
+        # Check expiration
+        if expires:
+            if isinstance(expires, str):
+                expires = datetime.fromisoformat(expires)
+            if datetime.utcnow() > expires:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Code has expired. Please request a new one."
+                )
+
+        # Update password and clear reset code
+        new_hash = hash_password(request.new_password)
+        await db.execute(
+            "UPDATE users SET password_hash = ?, reset_code = NULL, reset_code_expires = NULL WHERE email = ?",
+            (new_hash, request.email)
+        )
+        await db.commit()
+
     return {"success": True}

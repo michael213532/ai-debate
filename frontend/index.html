@@ -99,10 +99,53 @@
                 <span class="spinner" style="display: none;"></span>
             </button>
             <div class="auth-footer">
+                <a href="#" id="forgot-password-link" style="display: block; margin-bottom: 8px;">Forgot password?</a>
                 <span>Don't have an account?</span>
                 <a href="#" id="show-register-link">Sign up</a>
             </div>
         </form>
+
+        <!-- Forgot Password: Enter Email -->
+        <div id="forgot-step" style="display: none;">
+            <h3 style="margin: 0 0 4px; color: var(--text-primary);">Reset password</h3>
+            <p style="color: var(--text-secondary); font-size: 0.9rem; margin: 0 0 16px;">We'll send a code to your email</p>
+            <div class="form-group">
+                <label class="form-label" for="forgot-email">Email</label>
+                <input type="email" id="forgot-email" class="form-input" placeholder="you@example.com" required>
+            </div>
+            <button type="button" id="send-code-btn" class="btn btn-primary" style="width: 100%; margin-top: 8px;">
+                <span class="btn-text">Send code</span>
+                <span class="spinner" style="display: none;"></span>
+            </button>
+            <div class="auth-footer">
+                <a href="#" id="back-to-login-link">Back to login</a>
+            </div>
+        </div>
+
+        <!-- Forgot Password: Enter Code + New Password -->
+        <div id="reset-step" style="display: none;">
+            <h3 style="margin: 0 0 4px; color: var(--text-primary);">Check your email</h3>
+            <p id="reset-email-hint" style="color: var(--text-secondary); font-size: 0.9rem; margin: 0 0 16px;">Enter the 6-digit code we sent</p>
+            <div class="form-group">
+                <label class="form-label" for="reset-code">Code</label>
+                <input type="text" id="reset-code" class="form-input" placeholder="000000" maxlength="6" style="text-align: center; font-size: 1.3rem; letter-spacing: 6px;" required>
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="new-password">New password</label>
+                <input type="password" id="new-password" class="form-input" placeholder="Min 6 characters" required minlength="6">
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="new-password-confirm">Confirm password</label>
+                <input type="password" id="new-password-confirm" class="form-input" placeholder="Confirm new password" required>
+            </div>
+            <button type="button" id="reset-btn" class="btn btn-primary" style="width: 100%; margin-top: 8px;">
+                <span class="btn-text">Reset password</span>
+                <span class="spinner" style="display: none;"></span>
+            </button>
+            <div class="auth-footer">
+                <a href="#" id="resend-code-link">Resend code</a>
+            </div>
+        </div>
     </div>
 
     <script src="/js/auth.js"></script>
@@ -190,6 +233,103 @@
 
             registerBtn.querySelector('.btn-text').style.display = 'inline';
             registerBtn.querySelector('.spinner').style.display = 'none';
+        });
+
+        // --- Forgot Password Flow ---
+        const forgotStep = document.getElementById('forgot-step');
+        const resetStep = document.getElementById('reset-step');
+        let resetEmail = '';
+
+        function showStep(step) {
+            hideAlert();
+            [emailStep, passwordStep, loginForm, forgotStep, resetStep].forEach(s => s.style.display = 'none');
+            step.style.display = 'block';
+        }
+
+        document.getElementById('forgot-password-link').addEventListener('click', (e) => {
+            e.preventDefault();
+            document.getElementById('forgot-email').value = document.getElementById('login-email').value || '';
+            showStep(forgotStep);
+        });
+
+        document.getElementById('back-to-login-link').addEventListener('click', (e) => {
+            e.preventDefault();
+            showStep(loginForm);
+        });
+
+        document.getElementById('send-code-btn').addEventListener('click', async () => {
+            const emailInput = document.getElementById('forgot-email');
+            if (!emailInput.value || !emailInput.checkValidity()) {
+                emailInput.reportValidity();
+                return;
+            }
+            resetEmail = emailInput.value;
+            const btn = document.getElementById('send-code-btn');
+            setLoading(btn, true);
+
+            try {
+                const res = await fetch('/api/auth/forgot-password', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email: resetEmail })
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.detail || 'Failed to send code');
+                document.getElementById('reset-email-hint').textContent = `Enter the 6-digit code sent to ${resetEmail}`;
+                showStep(resetStep);
+            } catch (err) {
+                showAlert(err.message, 'error');
+            } finally {
+                setLoading(btn, false);
+            }
+        });
+
+        document.getElementById('forgot-email').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') { e.preventDefault(); document.getElementById('send-code-btn').click(); }
+        });
+
+        document.getElementById('resend-code-link').addEventListener('click', async (e) => {
+            e.preventDefault();
+            try {
+                await fetch('/api/auth/forgot-password', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email: resetEmail })
+                });
+                showAlert('New code sent!', 'success');
+            } catch (err) {
+                showAlert('Failed to resend code', 'error');
+            }
+        });
+
+        document.getElementById('reset-btn').addEventListener('click', async () => {
+            const code = document.getElementById('reset-code').value.trim();
+            const pw = document.getElementById('new-password').value;
+            const pw2 = document.getElementById('new-password-confirm').value;
+
+            if (code.length !== 6) { showAlert('Enter the 6-digit code', 'error'); return; }
+            if (pw.length < 6) { showAlert('Password must be at least 6 characters', 'error'); return; }
+            if (pw !== pw2) { showAlert('Passwords do not match', 'error'); return; }
+
+            const btn = document.getElementById('reset-btn');
+            setLoading(btn, true);
+
+            try {
+                const res = await fetch('/api/auth/reset-password', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email: resetEmail, code, new_password: pw })
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.detail || 'Reset failed');
+                showStep(loginForm);
+                document.getElementById('login-email').value = resetEmail;
+                showAlert('Password reset! You can now sign in.', 'success');
+            } catch (err) {
+                showAlert(err.message, 'error');
+            } finally {
+                setLoading(btn, false);
+            }
         });
     </script>
 </body>
