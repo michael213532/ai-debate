@@ -782,50 +782,23 @@ function setInputLocked(locked) {
     const chatInputContainer = document.querySelector('.chat-input-container');
     const chatButtonsRow = document.querySelector('.chat-buttons-row');
 
-    if (locked) {
-        // Switch to stop mode - hide everything except pause button
-        sendBtn.classList.add('stop-mode');
-        sendBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>`;
-        sendBtn.disabled = false;
+    const floatingStopBtn = document.getElementById('floating-stop-btn');
+    const chatMessages = document.getElementById('chat-messages');
 
-        // Hide voices bar and input elements during debate
-        if (voicesBar) voicesBar.style.display = 'none';
-        if (quickTemplates) quickTemplates.style.display = 'none';
-        if (input) input.style.display = 'none';
-        if (chatButtonsRow) {
-            // Hide everything in buttons row except the send/stop button
-            chatButtonsRow.querySelectorAll(':scope > *:not(#send-btn)').forEach(el => {
-                el.style.display = 'none';
-            });
-        }
-        // Simplify the input container during debate
-        if (chatInputContainer) {
-            chatInputContainer.style.padding = '8px';
-            chatInputContainer.style.justifyContent = 'center';
-        }
+    if (locked) {
+        // Hide entire input area and show floating stop button
+        sendBtn.classList.add('stop-mode');
+        if (inputArea) inputArea.classList.add('debate-active');
+        if (floatingStopBtn) floatingStopBtn.classList.add('visible');
+        if (chatMessages) chatMessages.style.paddingBottom = '80px';
     } else {
-        // Switch to send mode - show everything again
+        // Show input area and hide floating stop button
         sendBtn.classList.remove('stop-mode');
         sendBtn.innerHTML = 'Start Debate';
         input.placeholder = 'Ask your question';
-
-        // Show voices bar and input elements after debate
-        if (voicesBar) voicesBar.style.display = '';
-        if (quickTemplates) quickTemplates.style.display = '';
-        if (input) input.style.display = '';
-        if (chatButtonsRow) {
-            // Show everything in buttons row EXCEPT the hidden file input
-            chatButtonsRow.querySelectorAll(':scope > *').forEach(el => {
-                if (el.id !== 'image-input') {
-                    el.style.display = '';
-                }
-            });
-        }
-        // Restore input container styling
-        if (chatInputContainer) {
-            chatInputContainer.style.padding = '';
-            chatInputContainer.style.justifyContent = '';
-        }
+        if (inputArea) inputArea.classList.remove('debate-active');
+        if (floatingStopBtn) floatingStopBtn.classList.remove('visible');
+        if (chatMessages) chatMessages.style.paddingBottom = '';
 
         updateSendButton();
         console.log('[setInputLocked] after updateSendButton, btn.disabled:', sendBtn.disabled);

@@ -1401,28 +1401,50 @@
         }
 
         #send-btn.stop-mode {
+            display: none !important;
+        }
+
+        /* Floating stop button that replaces the entire input area during debate */
+        .floating-stop-btn {
+            display: none;
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            z-index: 60;
             background: #ef4444;
-            border-color: #ef4444;
+            border: none;
             color: white;
-            width: 40px;
-            height: 40px;
+            width: 48px;
+            height: 48px;
             padding: 0;
             border-radius: 50%;
-            display: flex;
             align-items: center;
             justify-content: center;
-            min-width: 40px;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
+            transition: all 0.15s;
         }
 
-        #send-btn.stop-mode:hover {
+        .floating-stop-btn:hover {
             background: #dc2626;
-            border-color: #dc2626;
+            transform: scale(1.1);
+            box-shadow: 0 6px 16px rgba(239, 68, 68, 0.5);
         }
 
-        #send-btn.stop-mode svg {
-            width: 16px;
-            height: 16px;
+        .floating-stop-btn svg {
+            width: 20px;
+            height: 20px;
         }
+
+        .floating-stop-btn.visible {
+            display: flex;
+        }
+
+        /* Hide input area during debate */
+        .chat-input-area.debate-active {
+            display: none !important;
+        }
+
 
         /* Individual AI Response in Main Chat */
         .message.ai-individual {
@@ -3455,6 +3477,11 @@
 
         </div>
     </div>
+
+    <!-- Floating stop/pause button during debate -->
+    <button id="floating-stop-btn" class="floating-stop-btn" onclick="stopDiscussion()">
+        <svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+    </button>
 
     <!-- Hives Selection Modal -->
     <div id="hives-modal" class="hives-modal">
