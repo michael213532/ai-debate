@@ -19,34 +19,86 @@ const VISION_MODELS = new Set([
 ]);
 const VISION_PROVIDERS = new Set(['anthropic', 'google']);  // All models from these providers support vision
 
-// Map human names to personality IDs for bee icons
-const HUMAN_NAME_TO_PERSONALITY = {
-    'alex': 'analyst',
-    'sam': 'skeptic',
-    'olivia': 'optimist',
-    'max': 'expert',
-    'riley': 'realist'
+// Map personality IDs to bee icon filenames in /images/bee-icons/
+const PERSONALITY_ICON_MAP = {
+    // Chaos Hive
+    'chaos-optimist':    'optimist bee icon',
+    'chaos-pessimist':   'pessimist bee icon',
+    'chaos-realist':     'Realist bee icon',
+    'chaos-contrarian':  'contrarion bee icon',
+    'chaos-cynic':       'cynic bee icon',
+    // Friend Group Hive
+    'friend-bestie':     'bestie bee icon',
+    'friend-honest':     'honest friend bee icon',
+    'friend-funny':      'funny friend bee icon',
+    'friend-wise':       'wise friend bee icon',
+    'friend-practical':  'practical friend bee icon',
+    // Billionaire Hive
+    'billionaire-builder':    'builder bee icon',
+    'billionaire-investor':   'investor bee icon',
+    'billionaire-strategist': 'stratagist bee icon',
+    'billionaire-disruptor':  'disrupter bee icon',
+    'billionaire-visionary':  'optimist bee icon',
+    // Internet Hive
+    'internet-redditor':    'redditor bee icon',
+    'internet-influencer':  'Influencer bee icon',
+    'internet-coder':       'coder bee icon',
+    'internet-gamer':       'gamer bee icon',
+    'internet-troll':       'troll bee icon',
+    // Generations Hive
+    'gen-z':          'gen z bee icon',
+    'gen-millennial': 'millenial bee icon',
+    'gen-x':          'gen x bee icon',
+    'gen-boomer':     'boomer bee icon',
+    'gen-future':     'future kid bee icon',
+    // Courtroom Hive
+    'court-judge':      'Judge bee icon',
+    'court-prosecutor': 'prosecuter bee icon',
+    'court-defense':    'honest friend bee icon',
+    'court-witness':    'Realist bee icon',
+    'court-jury':       'wise friend bee icon',
+    // Special Bees
+    'special-devils-advocate': 'contrarion bee icon',
+    'special-wild-card':       'troll bee icon',
 };
 
-// Map personality IDs to human names
-const PERSONALITY_TO_HUMAN_NAME = {
-    'analyst': 'Alex',
-    'skeptic': 'Sam',
-    'optimist': 'Olivia',
-    'expert': 'Max',
-    'realist': 'Riley'
+// Get bee icon path for a personality ID or model name
+function getBeeIconPath(personalityId) {
+    const iconName = PERSONALITY_ICON_MAP[personalityId] || 'default bee icon';
+    return `/images/bee-icons/${iconName}.png`;
+}
+
+// Map human names to personality IDs (for history loading where we only have names)
+const HUMAN_NAME_TO_PERSONALITY = {
+    'sunny': 'chaos-optimist', 'murphy': 'chaos-pessimist', 'jordan': 'chaos-realist',
+    'rebel': 'chaos-contrarian', 'cyndi': 'chaos-cynic',
+    'bff': 'friend-bestie', 'truth': 'friend-honest', 'giggles': 'friend-funny',
+    'sage': 'friend-wise', 'fixer': 'friend-practical',
+    'brick': 'billionaire-builder', 'money': 'billionaire-investor',
+    'chess': 'billionaire-strategist', 'blitz': 'billionaire-disruptor',
+    'dream': 'billionaire-visionary',
+    'anon': 'internet-redditor', 'clout': 'internet-influencer',
+    'dev': 'internet-coder', 'pixel': 'internet-gamer', 'flame': 'internet-troll',
+    'zoey': 'gen-z', 'avery': 'gen-millennial', 'dale': 'gen-x',
+    'walt': 'gen-boomer', 'neo': 'gen-future',
+    'honor': 'court-judge', 'blade': 'court-prosecutor', 'haven': 'court-defense',
+    'echo': 'court-witness', 'will': 'court-jury',
+    'lucifer': 'special-devils-advocate', 'joker': 'special-wild-card',
 };
 
 // Get personality ID from display name (human name or role name)
 function getPersonalityFromName(name) {
     const nameLower = name.toLowerCase();
-    // Check human names first
+    // Check human names
     if (HUMAN_NAME_TO_PERSONALITY[nameLower]) {
         return HUMAN_NAME_TO_PERSONALITY[nameLower];
     }
-    // Fall back to checking role names (analyst, skeptic, etc.)
-    const beeTypes = ['expert', 'optimist', 'analyst', 'skeptic', 'realist'];
-    return beeTypes.find(b => nameLower.includes(b)) || null;
+    // Check if the name contains a known personality keyword
+    for (const [key, pid] of Object.entries(PERSONALITY_ICON_MAP)) {
+        const shortName = key.split('-').pop();
+        if (nameLower.includes(shortName)) return key;
+    }
+    return null;
 }
 
 // Check if a model supports vision
@@ -655,8 +707,9 @@ function addAiDiscussionMessage(modelName, provider, content, personalityId, rol
         msg.style.borderLeftColor = colors.border;
     }
 
-    // Use emoji from personality data
-    const emojiHtml = personalityId ? `<span style="font-size: 1.5rem; margin-right: 4px;">${getPersonalityEmoji(personalityId)}</span>` : '';
+    // Use bee icon image from /images/bee-icons/
+    const iconPath = personalityId ? getBeeIconPath(personalityId) : '/images/bee-icons/default bee icon.png';
+    const beeImgHtml = `<img class="bee-avatar" src="${iconPath}" alt="" onerror="this.src='/images/bee-icons/default bee icon.png'">`;
 
     const roleNameHtml = roleName ? `<span class="ai-role-name">${escapeHtml(roleName)}</span>` : '';
 
@@ -665,7 +718,7 @@ function addAiDiscussionMessage(modelName, provider, content, personalityId, rol
 
     msg.innerHTML = `
         <div class="ai-model-header">
-            ${emojiHtml}
+            ${beeImgHtml}
             <div class="ai-name-info">
                 <span class="ai-model-name" style="${headerStyle}">${escapeHtml(modelName)}</span>
                 ${roleNameHtml}
@@ -1474,20 +1527,20 @@ function addHistoryAiMessage(modelName, provider, content) {
     msg.dataset.model = modelName;
     msg.dataset.provider = provider;
 
-    // Check if this is a personality name and add bee icon
-    const beeType = getPersonalityFromName(modelName);
+    // Check if this is a personality name and get the icon
+    const personalityId = getPersonalityFromName(modelName);
 
     // Set data-personality for CSS colors (colored border + name)
-    if (beeType) {
-        msg.dataset.personality = beeType;
+    if (personalityId) {
+        msg.dataset.personality = personalityId;
     }
 
-    const beeImg = beeType
-        ? `<img src="/bee-${beeType}.png" alt="" style="width: 50px; height: 50px; margin: -15px -2px -15px -8px; image-rendering: -webkit-optimize-contrast;">`
-        : '';
+    // Use bee icon image
+    const iconPath = personalityId ? getBeeIconPath(personalityId) : '/images/bee-icons/default bee icon.png';
+    const beeImg = `<img class="bee-avatar" src="${iconPath}" alt="" onerror="this.src='/images/bee-icons/default bee icon.png'">`;
 
-    // Get role name for personality (capitalize first letter)
-    const roleName = beeType ? beeType.charAt(0).toUpperCase() + beeType.slice(1) : null;
+    // Get role name for personality
+    const roleName = personalityId ? personalityId.split('-').pop().charAt(0).toUpperCase() + personalityId.split('-').pop().slice(1) : null;
     const roleNameHtml = roleName ? `<span class="ai-role-name">${escapeHtml(roleName)}</span>` : '';
 
     // Clean content of markdown
@@ -1529,10 +1582,9 @@ function renderHiveVerdict(verdict) {
     if (verdict.votes && verdict.votes.length > 0) {
         votesHtml = '<div class="verdict-votes">';
         for (const vote of verdict.votes) {
-            const beeType = getPersonalityFromName(vote.name || '');
-            const beeImg = beeType
-                ? `<img src="/bee-${beeType}.png" alt="" style="width: 24px; height: 24px; vertical-align: middle; margin-right: -4px; image-rendering: -webkit-optimize-contrast;">`
-                : '';
+            const pid = getPersonalityFromName(vote.name || '');
+            const iconPath = pid ? getBeeIconPath(pid) : '/images/bee-icons/default bee icon.png';
+            const beeImg = `<img class="bee-avatar-sm" src="${iconPath}" alt="" onerror="this.src='/images/bee-icons/default bee icon.png'">`;
             votesHtml += `<div class="verdict-vote">${beeImg}<span class="name">${escapeHtml(vote.name || '')}</span><span class="arrow">→</span><span class="choice">${escapeHtml(vote.choice || '-')}</span></div>`;
         }
         votesHtml += '</div>';
@@ -1550,7 +1602,7 @@ function renderHiveVerdict(verdict) {
 
     verdictEl.innerHTML = `
         <div class="verdict-decision">
-            <img src="/bee-icon.png" alt="" class="verdict-bee" style="width: 36px; height: 36px; image-rendering: -webkit-optimize-contrast;">
+            <img src="/images/bee-icons/default bee icon.png" alt="" class="verdict-bee" style="width: 36px; height: 36px; border-radius: 50%;">
             <div class="verdict-main">
                 <div class="verdict-label">Hive Decision</div>
                 <div class="verdict-answer">${escapeHtml(verdict.hive_decision || 'No consensus')}</div>
@@ -1560,7 +1612,7 @@ function renderHiveVerdict(verdict) {
         ${votesHtml}
         <div class="verdict-actions">
             <button class="verdict-action-btn try-another-hive" onclick="openHivesModalForRetry()">
-                <img src="/bee-icon.png" alt="" style="width: 42px; height: 42px; vertical-align: middle; margin-right: 6px; image-rendering: -webkit-optimize-contrast;"> Try Another Hive
+                <img src="/images/bee-icons/default bee icon.png" alt="" style="width: 42px; height: 42px; vertical-align: middle; margin-right: 6px; border-radius: 50%;"> Try Another Hive
             </button>
         </div>
         ${followUpHint}

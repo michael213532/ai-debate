@@ -1899,12 +1899,13 @@ function renderHivesModal() {
                 </div>
                 <div class="hive-card-desc">${hive.description}</div>
                 <div class="hive-card-bees">
-                    ${hive.personalities.map(p => `
-                        <span class="hive-bee-preview">
-                            <span class="bee-emoji">${p.emoji}</span>
+                    ${hive.personalities.map(p => {
+                        const iPath = typeof getBeeIconPath === 'function' ? getBeeIconPath(p.id) : '/images/bee-icons/default bee icon.png';
+                        return `<span class="hive-bee-preview">
+                            <img src="${iPath}" alt="" style="width: 18px; height: 18px; border-radius: 50%; object-fit: cover;" onerror="this.src='/images/bee-icons/default bee icon.png'">
                             <span>${p.human_name}</span>
-                        </span>
-                    `).join('')}
+                        </span>`;
+                    }).join('')}
                 </div>
             </div>
         `).join('');
@@ -1918,16 +1919,17 @@ function renderSpecialBeesDropdown() {
     const dropdown = document.getElementById('special-bees-dropdown');
     if (!dropdown) return;
 
-    const optionsHtml = allSpecialBees.map(bee => `
-        <button class="special-bee-option ${selectedSpecialBees.includes(bee.id) ? 'selected' : ''}" onclick="toggleSpecialBeeFromDropdown('${bee.id}')">
-            <span class="bee-emoji">${bee.emoji}</span>
+    const optionsHtml = allSpecialBees.map(bee => {
+        const iPath = typeof getBeeIconPath === 'function' ? getBeeIconPath(bee.id) : '/images/bee-icons/default bee icon.png';
+        return `<button class="special-bee-option ${selectedSpecialBees.includes(bee.id) ? 'selected' : ''}" onclick="toggleSpecialBeeFromDropdown('${bee.id}')">
+            <img src="${iPath}" alt="" style="width: 28px; height: 28px; border-radius: 50%; object-fit: cover;" onerror="this.src='/images/bee-icons/default bee icon.png'">
             <div class="bee-info">
                 <div class="bee-name">${bee.human_name}</div>
                 <div class="bee-desc">${bee.description}</div>
             </div>
             <span class="bee-check">${selectedSpecialBees.includes(bee.id) ? '✓' : ''}</span>
-        </button>
-    `).join('');
+        </button>`;
+    }).join('');
 
     dropdown.innerHTML = `
         <div class="special-bees-dropdown-title">Add-on Bees</div>
@@ -1996,14 +1998,11 @@ function renderPersonalitySelector(suggestedIds = []) {
         card.dataset.personalityId = personality.id;
         card.style.position = 'relative';
 
-        const beePersonalities = ['expert', 'optimist', 'analyst', 'skeptic', 'realist'];
-        const emojiHtml = beePersonalities.includes(personality.id)
-            ? `<img src="/bee-${personality.id}.png" alt="" class="emoji" style="width: 50px; height: 50px; image-rendering: -webkit-optimize-contrast;">`
-            : `<span class="emoji">${personality.emoji}</span>`;
+        const iconPath = typeof getBeeIconPath === 'function' ? getBeeIconPath(personality.id) : '/images/bee-icons/default bee icon.png';
 
         card.innerHTML = `
             <span class="checkmark">✓</span>
-            ${emojiHtml}
+            <img src="${iconPath}" alt="" class="emoji" style="width: 50px; height: 50px; border-radius: 50%; object-fit: cover;" onerror="this.src='/images/bee-icons/default bee icon.png'">
             <span class="name">${personality.human_name || personality.name}</span>
             <span class="role-subtitle">${personality.name}</span>
             ${assignedModel ? `<span class="model">powered by ${assignedModel}</span>` : ''}
@@ -2313,8 +2312,9 @@ function renderVoicesBar() {
                 chip.style.color = colors.text;
             }
 
+            const iconPath = typeof getBeeIconPath === 'function' ? getBeeIconPath(personality.id) : '/images/bee-icons/default bee icon.png';
             chip.innerHTML = `
-                <span class="voice-emoji">${personality.emoji}</span>
+                <img class="voice-bee-icon" src="${iconPath}" alt="" onerror="this.src='/images/bee-icons/default bee icon.png'">
                 <div class="voice-info">
                     <span class="voice-name">${personality.human_name || personality.name}</span>
                     <span class="voice-role">${personality.name}</span>

@@ -59,6 +59,8 @@ if (frontend_path / "css").exists():
     app.mount("/css", StaticFiles(directory=frontend_path / "css"), name="css")
 if (frontend_path / "js").exists():
     app.mount("/js", StaticFiles(directory=frontend_path / "js"), name="js")
+if (frontend_path / "images").exists():
+    app.mount("/images", StaticFiles(directory=frontend_path / "images"), name="images")
 
 
 @app.get("/")
