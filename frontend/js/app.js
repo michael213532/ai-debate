@@ -2380,8 +2380,9 @@ function renderVoicesBar() {
             chip.style.color = colors.text;
         }
 
+        const specialIconPath = getBeeIconPath(specialBee.id);
         chip.innerHTML = `
-            <span class="voice-emoji">${specialBee.emoji}</span>
+            <img class="voice-bee-icon" src="${specialIconPath}" alt="" onerror="this.src='/images/bee-icons/default bee icon.png'">
             <div class="voice-info">
                 <span class="voice-name">${specialBee.human_name || specialBee.name}</span>
                 <span class="voice-role">${specialBee.name}</span>
