@@ -2,6 +2,41 @@
  * Main application logic
  */
 
+// Bee icon mapping - personality IDs to icon filenames in /images/bee-icons/
+const PERSONALITY_ICON_MAP = {
+    // Chaos Hive
+    'chaos-optimist': 'optimist bee icon', 'chaos-pessimist': 'pessimist bee icon',
+    'chaos-realist': 'Realist bee icon', 'chaos-contrarian': 'contrarion bee icon',
+    'chaos-cynic': 'cynic bee icon',
+    // Friend Group Hive
+    'friend-bestie': 'bestie bee icon', 'friend-honest': 'honest friend bee icon',
+    'friend-funny': 'funny friend bee icon', 'friend-wise': 'wise friend bee icon',
+    'friend-practical': 'practical friend bee icon',
+    // Billionaire Hive
+    'billionaire-builder': 'builder bee icon', 'billionaire-investor': 'investor bee icon',
+    'billionaire-strategist': 'stratagist bee icon', 'billionaire-disruptor': 'disrupter bee icon',
+    'billionaire-visionary': 'optimist bee icon',
+    // Internet Hive
+    'internet-redditor': 'redditor bee icon', 'internet-influencer': 'Influencer bee icon',
+    'internet-coder': 'coder bee icon', 'internet-gamer': 'gamer bee icon',
+    'internet-troll': 'troll bee icon',
+    // Generations Hive
+    'gen-z': 'gen z bee icon', 'gen-millennial': 'millenial bee icon',
+    'gen-x': 'gen x bee icon', 'gen-boomer': 'boomer bee icon',
+    'gen-future': 'future kid bee icon',
+    // Courtroom Hive
+    'court-judge': 'Judge bee icon', 'court-prosecutor': 'prosecuter bee icon',
+    'court-defense': 'honest friend bee icon', 'court-witness': 'Realist bee icon',
+    'court-jury': 'wise friend bee icon',
+    // Special Bees
+    'special-devils-advocate': 'contrarion bee icon', 'special-wild-card': 'troll bee icon',
+};
+
+function getBeeIconPath(personalityId) {
+    const iconName = PERSONALITY_ICON_MAP[personalityId] || 'default bee icon';
+    return `/images/bee-icons/${iconName}.png`;
+}
+
 // Provider billing URLs
 const PROVIDER_BILLING_URLS = {
     'openai': 'https://platform.openai.com/account/billing',
@@ -1900,7 +1935,7 @@ function renderHivesModal() {
                 <div class="hive-card-desc">${hive.description}</div>
                 <div class="hive-card-bees">
                     ${hive.personalities.map(p => {
-                        const iPath = typeof getBeeIconPath === 'function' ? getBeeIconPath(p.id) : '/images/bee-icons/default bee icon.png';
+                        const iPath = getBeeIconPath(p.id);
                         return `<span class="hive-bee-preview">
                             <img src="${iPath}" alt="" style="width: 18px; height: 18px; border-radius: 50%; object-fit: cover;" onerror="this.src='/images/bee-icons/default bee icon.png'">
                             <span>${p.human_name}</span>
@@ -1920,7 +1955,7 @@ function renderSpecialBeesDropdown() {
     if (!dropdown) return;
 
     const optionsHtml = allSpecialBees.map(bee => {
-        const iPath = typeof getBeeIconPath === 'function' ? getBeeIconPath(bee.id) : '/images/bee-icons/default bee icon.png';
+        const iPath = getBeeIconPath(bee.id);
         return `<button class="special-bee-option ${selectedSpecialBees.includes(bee.id) ? 'selected' : ''}" onclick="toggleSpecialBeeFromDropdown('${bee.id}')">
             <img src="${iPath}" alt="" style="width: 28px; height: 28px; border-radius: 50%; object-fit: cover;" onerror="this.src='/images/bee-icons/default bee icon.png'">
             <div class="bee-info">
@@ -1998,7 +2033,7 @@ function renderPersonalitySelector(suggestedIds = []) {
         card.dataset.personalityId = personality.id;
         card.style.position = 'relative';
 
-        const iconPath = typeof getBeeIconPath === 'function' ? getBeeIconPath(personality.id) : '/images/bee-icons/default bee icon.png';
+        const iconPath = getBeeIconPath(personality.id);
 
         card.innerHTML = `
             <span class="checkmark">✓</span>
@@ -2312,7 +2347,7 @@ function renderVoicesBar() {
                 chip.style.color = colors.text;
             }
 
-            const iconPath = typeof getBeeIconPath === 'function' ? getBeeIconPath(personality.id) : '/images/bee-icons/default bee icon.png';
+            const iconPath = getBeeIconPath(personality.id);
             chip.innerHTML = `
                 <img class="voice-bee-icon" src="${iconPath}" alt="" onerror="this.src='/images/bee-icons/default bee icon.png'">
                 <div class="voice-info">

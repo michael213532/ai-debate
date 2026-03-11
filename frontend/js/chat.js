@@ -19,55 +19,6 @@ const VISION_MODELS = new Set([
 ]);
 const VISION_PROVIDERS = new Set(['anthropic', 'google']);  // All models from these providers support vision
 
-// Map personality IDs to bee icon filenames in /images/bee-icons/
-const PERSONALITY_ICON_MAP = {
-    // Chaos Hive
-    'chaos-optimist':    'optimist bee icon',
-    'chaos-pessimist':   'pessimist bee icon',
-    'chaos-realist':     'Realist bee icon',
-    'chaos-contrarian':  'contrarion bee icon',
-    'chaos-cynic':       'cynic bee icon',
-    // Friend Group Hive
-    'friend-bestie':     'bestie bee icon',
-    'friend-honest':     'honest friend bee icon',
-    'friend-funny':      'funny friend bee icon',
-    'friend-wise':       'wise friend bee icon',
-    'friend-practical':  'practical friend bee icon',
-    // Billionaire Hive
-    'billionaire-builder':    'builder bee icon',
-    'billionaire-investor':   'investor bee icon',
-    'billionaire-strategist': 'stratagist bee icon',
-    'billionaire-disruptor':  'disrupter bee icon',
-    'billionaire-visionary':  'optimist bee icon',
-    // Internet Hive
-    'internet-redditor':    'redditor bee icon',
-    'internet-influencer':  'Influencer bee icon',
-    'internet-coder':       'coder bee icon',
-    'internet-gamer':       'gamer bee icon',
-    'internet-troll':       'troll bee icon',
-    // Generations Hive
-    'gen-z':          'gen z bee icon',
-    'gen-millennial': 'millenial bee icon',
-    'gen-x':          'gen x bee icon',
-    'gen-boomer':     'boomer bee icon',
-    'gen-future':     'future kid bee icon',
-    // Courtroom Hive
-    'court-judge':      'Judge bee icon',
-    'court-prosecutor': 'prosecuter bee icon',
-    'court-defense':    'honest friend bee icon',
-    'court-witness':    'Realist bee icon',
-    'court-jury':       'wise friend bee icon',
-    // Special Bees
-    'special-devils-advocate': 'contrarion bee icon',
-    'special-wild-card':       'troll bee icon',
-};
-
-// Get bee icon path for a personality ID or model name
-function getBeeIconPath(personalityId) {
-    const iconName = PERSONALITY_ICON_MAP[personalityId] || 'default bee icon';
-    return `/images/bee-icons/${iconName}.png`;
-}
-
 // Map human names to personality IDs (for history loading where we only have names)
 const HUMAN_NAME_TO_PERSONALITY = {
     'sunny': 'chaos-optimist', 'murphy': 'chaos-pessimist', 'jordan': 'chaos-realist',
