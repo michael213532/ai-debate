@@ -1937,7 +1937,7 @@ function renderHivesModal() {
                     ${hive.personalities.map(p => {
                         const iPath = getBeeIconPath(p.id);
                         return `<span class="hive-bee-preview">
-                            <img src="${iPath}" alt="" style="width: 40px; height: 40px; border-radius: 8px; object-fit: contain;" onerror="this.src='/images/bee-icons/default bee icon.png'">
+                            <img src="${iPath}" alt="" style="width: 50px; height: 50px; border-radius: 8px; object-fit: contain;" onerror="this.src='/images/bee-icons/default bee icon.png'">
                             <span>${p.human_name}</span>
                         </span>`;
                     }).join('')}
@@ -1957,7 +1957,7 @@ function renderSpecialBeesDropdown() {
     const optionsHtml = allSpecialBees.map(bee => {
         const iPath = getBeeIconPath(bee.id);
         return `<button class="special-bee-option ${selectedSpecialBees.includes(bee.id) ? 'selected' : ''}" onclick="toggleSpecialBeeFromDropdown('${bee.id}')">
-            <img src="${iPath}" alt="" style="width: 40px; height: 40px; border-radius: 8px; object-fit: contain;" onerror="this.src='/images/bee-icons/default bee icon.png'">
+            <img src="${iPath}" alt="" style="width: 50px; height: 50px; border-radius: 8px; object-fit: contain;" onerror="this.src='/images/bee-icons/default bee icon.png'">
             <div class="bee-info">
                 <div class="bee-name">${bee.human_name}</div>
                 <div class="bee-desc">${bee.description}</div>
