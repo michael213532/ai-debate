@@ -54,9 +54,9 @@ class AnthropicProvider(BaseProvider):
     async def test_connection(self) -> tuple[bool, str]:
         """Test Anthropic API connection. Returns (success, error_message)."""
         try:
-            # Use claude-3-haiku as it's cheapest and most available
+            # Use claude-haiku-4-5 as it's cheapest current model
             await self.client.messages.create(
-                model="claude-3-haiku-20240307",
+                model="claude-haiku-4-5-20251001",
                 max_tokens=10,
                 messages=[{"role": "user", "content": "Hi"}]
             )
