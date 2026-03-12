@@ -34,7 +34,7 @@ const PERSONALITY_ICON_MAP = {
 
 function getBeeIconPath(personalityId) {
     const iconName = PERSONALITY_ICON_MAP[personalityId] || 'default bee icon';
-    return `/images/bee-icons/${iconName}.png`;
+    return `/images/bee-icons/${iconName}.png?v=2`;
 }
 
 // Provider billing URLs
