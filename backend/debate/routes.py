@@ -813,8 +813,8 @@ async def debate_websocket(websocket: WebSocket, debate_id: str):
                         content = data.get("content", "")
                         target_bee = data.get("target_bee", "")
                         if content and target_bee:
-                            active_debates[debate_id].resume()  # Unpause first
                             await active_debates[debate_id].add_targeted_reply(content, target_bee)
+                            active_debates[debate_id].resume()  # Unpause AFTER queuing reply
                 elif data.get("type") == "intervention":
                     # Handle user intervention during discussion
                     if debate_id in active_debates:

@@ -401,6 +401,15 @@ function connectWebSocket(sessionId) {
     chatWebSocket.onclose = (event) => {
         console.log('[WebSocket] Closed - code:', event.code, 'reason:', event.reason);
         chatWebSocket = null;
+        // Clean up reply state if active
+        if (debatePausedForReply) {
+            replyTargetBee = null;
+            debatePausedForReply = false;
+            const indicator = document.getElementById('reply-indicator');
+            if (indicator) indicator.classList.remove('visible');
+            const inputArea = document.getElementById('chat-input-area');
+            if (inputArea) inputArea.classList.remove('replying');
+        }
         // Always unlock input when connection closes to prevent softlock
         if (isProcessing) {
             updateChatStatus('Connection closed');
@@ -464,6 +473,15 @@ function handleWebSocketMessage(message) {
             updateChatStatus('');
             finishFinalResponse();
             showExportButton();
+            // Clean up reply state if active
+            if (debatePausedForReply) {
+                replyTargetBee = null;
+                debatePausedForReply = false;
+                const indicator = document.getElementById('reply-indicator');
+                if (indicator) indicator.classList.remove('visible');
+                const inputArea = document.getElementById('chat-input-area');
+                if (inputArea) inputArea.classList.remove('replying');
+            }
             // Enable continuing this conversation with follow-up messages
             // MUST be set before setInputLocked so updateSendButton sees it
             window.continuingDebateId = currentSessionId;
@@ -687,12 +705,19 @@ function addAiDiscussionMessage(modelName, provider, content, personalityId, rol
             <span class="ai-provider-tag">${escapeHtml(provider)}</span>
         </div>
         <div class="message-content"></div>
-        <button class="reply-to-bee-btn" onclick="startReplyToBee('${escapeHtml(modelName)}', '${escapeHtml(personalityId || '')}')">
+        <button class="reply-to-bee-btn" data-bee-name="${escapeHtml(modelName)}" data-personality="${escapeHtml(personalityId || '')}">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 17 4 12 9 7"/><path d="M20 18v-2a4 4 0 0 0-4-4H4"/></svg>
             Reply
         </button>
     `;
     container.appendChild(msg);
+    // Attach reply click handler via event listener (safer than inline onclick)
+    const replyBtn = msg.querySelector('.reply-to-bee-btn');
+    if (replyBtn) {
+        replyBtn.addEventListener('click', () => {
+            startReplyToBee(replyBtn.dataset.beeName, replyBtn.dataset.personality);
+        });
+    }
     scrollToBottom(container);
 }
 
@@ -825,6 +850,7 @@ window.setInputLocked = setInputLocked;
 // --- Reply-to-bee feature ---
 
 function startReplyToBee(beeName, personalityId) {
+    if (debatePausedForReply) return; // Already in reply mode
     replyTargetBee = { name: beeName, personalityId: personalityId };
     debatePausedForReply = true;
 
@@ -852,6 +878,8 @@ function startReplyToBee(beeName, personalityId) {
     if (input) {
         input.placeholder = `Reply to ${beeName}...`;
         input.focus();
+        // Scroll input into view on mobile (keyboard may cover it)
+        setTimeout(() => input.scrollIntoView({ behavior: 'smooth', block: 'end' }), 300);
     }
 
     // Update send button
@@ -932,9 +960,9 @@ function sendReplyToBee() {
     const inputArea = document.getElementById('chat-input-area');
     if (inputArea) inputArea.classList.remove('replying');
 
-    // Show floating stop button again
+    // Show floating stop button again (only if debate is still running)
     const floatingStopBtn = document.getElementById('floating-stop-btn');
-    if (floatingStopBtn) floatingStopBtn.classList.add('visible');
+    if (floatingStopBtn && isProcessing) floatingStopBtn.classList.add('visible');
 
     updateChatStatus(`${beeName} is reading your reply...`);
 }

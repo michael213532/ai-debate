@@ -235,9 +235,13 @@ class DebateOrchestrator:
             if self._stopped:
                 break
 
-            # Wait while paused (user is composing a reply)
+            # Wait while paused (user is composing a reply), auto-resume after 5 min
+            pause_start = asyncio.get_event_loop().time()
             while self._paused and not self._stopped:
                 await asyncio.sleep(0.2)
+                if asyncio.get_event_loop().time() - pause_start > 300:
+                    self._paused = False
+                    break
 
             if self._stopped:
                 break
@@ -330,7 +334,7 @@ class DebateOrchestrator:
 
             try:
                 # Build context fresh for each model so it includes previous responses
-                context = self._build_context(round_num, model_index)
+                context = self._build_context(round_num, model_index, display_name)
 
                 content = await self._get_model_response(
                     provider_name=provider_name,
@@ -506,7 +510,7 @@ RULES:
 
         return base_prompt
 
-    def _build_context(self, round_num: int, model_index: int) -> str:
+    def _build_context(self, round_num: int, model_index: int, current_display_name: str = "") -> str:
         """Build context string from previous messages.
 
         Round 1: Each AI responds independently (doesn't see other round 1 responses)
@@ -524,8 +528,8 @@ RULES:
 
         context += f"USER'S CURRENT MESSAGE: {self.topic}\n\n"
 
-        # Get the current model's name to check if it's a reply target
-        current_model_name = self.models[model_index]["model_name"] if model_index < len(self.models) else ""
+        # Use display name (personality human_name) for reply targeting — this matches what the frontend sends
+        current_model_name = current_display_name or (self.models[model_index]["model_name"] if model_index < len(self.models) else "")
 
         if round_num == 1:
             # Round 1: Each AI responds independently - don't show other round 1 responses

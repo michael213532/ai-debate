@@ -1452,6 +1452,7 @@
             gap: 4px;
             background: none;
             border: 1px solid var(--border-color);
+            touch-action: manipulation;
             color: var(--text-secondary);
             font-size: 0.75rem;
             padding: 3px 10px;
@@ -1495,8 +1496,8 @@
             background: rgba(255,255,255,0.2);
             border: none;
             color: white;
-            width: 24px;
-            height: 24px;
+            width: 36px;
+            height: 36px;
             border-radius: 50%;
             cursor: pointer;
             display: flex;
@@ -1732,7 +1733,7 @@
             margin-top: 4px;
         }
 
-        .verdict-label {
+        .summary-verdict .verdict-label {
             font-weight: 600;
             font-size: 0.75rem;
             color: var(--primary-color);
@@ -1792,6 +1793,7 @@
 
         /* Personality cards */
         .personality-card {
+            position: relative;
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -1882,7 +1884,7 @@
             flex: 1;
         }
 
-        .verdict-label {
+        .hive-verdict .verdict-label {
             font-size: 0.65rem;
             font-weight: 600;
             color: var(--text-secondary);
@@ -2852,6 +2854,45 @@
 
             .message.ai-individual .ai-model-header {
                 flex-wrap: wrap;
+            }
+
+            /* Hives modal - mobile fullscreen */
+            .hives-modal {
+                padding: 0;
+            }
+            .hives-modal-content {
+                max-width: 100%;
+                max-height: 100vh;
+                height: 100vh;
+                border-radius: 0;
+            }
+            .hives-grid {
+                grid-template-columns: 1fr;
+            }
+
+            /* Hive/Bee creator modals - mobile fullscreen */
+            .hive-creator-modal {
+                padding: 0;
+            }
+            .hive-creator-content {
+                max-width: 100%;
+                max-height: 100vh;
+                height: 100vh;
+                border-radius: 0;
+            }
+            .bee-creator-modal {
+                padding: 0;
+            }
+            .bee-creator-content {
+                max-width: 100%;
+                max-height: 100vh;
+                height: 100vh;
+                border-radius: 0;
+            }
+
+            /* Reply button bigger touch target on mobile */
+            .reply-to-bee-btn {
+                padding: 6px 12px;
             }
         }
 
