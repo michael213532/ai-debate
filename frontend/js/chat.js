@@ -974,7 +974,13 @@ function addUserReplyBubble(text, beeName) {
     bubble.innerHTML = `<div class="user-reply-bubble-inner">
         <span class="user-reply-bubble-target">↩ To ${escapeHtml(beeName)}:</span> ${escapeHtml(text)}
     </div>`;
-    container.appendChild(bubble);
+    // Append inside the sticky question-header so it scrolls with it
+    const questionHeader = container.querySelector('.question-header');
+    if (questionHeader) {
+        questionHeader.appendChild(bubble);
+    } else {
+        container.appendChild(bubble);
+    }
     scrollToBottom(container);
 }
 
