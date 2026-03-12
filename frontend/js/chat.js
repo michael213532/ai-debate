@@ -12,6 +12,10 @@ let selectedImages = []; // Array of { base64: string, media_type: string, dataU
 let lastSentMessage = null; // Track last message for retry functionality
 const MAX_IMAGES = 10;
 
+// Reply-to-bee state
+let replyTargetBee = null;       // { name, personalityId }
+let debatePausedForReply = false; // Whether debate is paused waiting for reply
+
 // Vision-capable models (all others cannot see images)
 const VISION_MODELS = new Set([
     'gpt-5.2', 'gpt-5', 'gpt-5-mini', 'gpt-4o', 'gpt-4o-mini',  // OpenAI
@@ -103,6 +107,12 @@ document.getElementById('send-btn').addEventListener('click', () => {
     const question = input.value.trim();
 
     console.log('[send-btn click] stopMode:', btn.classList.contains('stop-mode'), 'currentSessionId:', currentSessionId, 'question:', question, 'continuingDebateId:', window.continuingDebateId, 'btn.disabled:', btn.disabled);
+
+    // Reply-to-bee mode takes priority
+    if (debatePausedForReply && replyTargetBee) {
+        if (question) sendReplyToBee();
+        return;
+    }
 
     if (btn.classList.contains('stop-mode')) {
         // Stop the discussion
@@ -677,6 +687,10 @@ function addAiDiscussionMessage(modelName, provider, content, personalityId, rol
             <span class="ai-provider-tag">${escapeHtml(provider)}</span>
         </div>
         <div class="message-content"></div>
+        <button class="reply-to-bee-btn" onclick="startReplyToBee('${escapeHtml(modelName)}', '${escapeHtml(personalityId || '')}')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 17 4 12 9 7"/><path d="M20 18v-2a4 4 0 0 0-4-4H4"/></svg>
+            Reply
+        </button>
     `;
     container.appendChild(msg);
     scrollToBottom(container);
@@ -808,8 +822,150 @@ function setInputLocked(locked) {
 // Expose setInputLocked globally for app.js
 window.setInputLocked = setInputLocked;
 
+// --- Reply-to-bee feature ---
+
+function startReplyToBee(beeName, personalityId) {
+    replyTargetBee = { name: beeName, personalityId: personalityId };
+    debatePausedForReply = true;
+
+    // Pause the debate
+    if (chatWebSocket && chatWebSocket.readyState === WebSocket.OPEN) {
+        chatWebSocket.send(JSON.stringify({ type: 'pause' }));
+    }
+
+    // Show reply indicator
+    const indicator = document.getElementById('reply-indicator');
+    const indicatorText = document.getElementById('reply-indicator-text');
+    if (indicator) indicator.classList.add('visible');
+    if (indicatorText) indicatorText.textContent = `Replying to ${beeName}`;
+
+    // Show input area even during debate
+    const inputArea = document.getElementById('chat-input-area');
+    if (inputArea) inputArea.classList.add('replying');
+
+    // Hide floating stop button while replying
+    const floatingStopBtn = document.getElementById('floating-stop-btn');
+    if (floatingStopBtn) floatingStopBtn.classList.remove('visible');
+
+    // Focus input and update placeholder
+    const input = document.getElementById('chat-input');
+    if (input) {
+        input.placeholder = `Reply to ${beeName}...`;
+        input.focus();
+    }
+
+    // Update send button
+    const sendBtn = document.getElementById('send-btn');
+    if (sendBtn) {
+        sendBtn.classList.remove('stop-mode');
+        sendBtn.innerHTML = 'Reply';
+        sendBtn.disabled = false;
+    }
+}
+
+function cancelReplyToBee() {
+    if (!debatePausedForReply) return;
+
+    replyTargetBee = null;
+    debatePausedForReply = false;
+
+    // Hide reply indicator
+    const indicator = document.getElementById('reply-indicator');
+    if (indicator) indicator.classList.remove('visible');
+
+    // Remove replying class so debate-active hides input again
+    const inputArea = document.getElementById('chat-input-area');
+    if (inputArea) inputArea.classList.remove('replying');
+
+    // Show floating stop button again
+    const floatingStopBtn = document.getElementById('floating-stop-btn');
+    if (floatingStopBtn && isProcessing) floatingStopBtn.classList.add('visible');
+
+    // Clear input
+    const input = document.getElementById('chat-input');
+    if (input) {
+        input.value = '';
+        input.placeholder = 'Ask your question';
+    }
+
+    // Resume the debate
+    if (chatWebSocket && chatWebSocket.readyState === WebSocket.OPEN) {
+        chatWebSocket.send(JSON.stringify({ type: 'resume' }));
+    }
+}
+
+function sendReplyToBee() {
+    const input = document.getElementById('chat-input');
+    const message = input.value.trim();
+
+    if (!message || !replyTargetBee || !chatWebSocket || chatWebSocket.readyState !== WebSocket.OPEN) {
+        return;
+    }
+
+    const beeName = replyTargetBee.name;
+    const personalityId = replyTargetBee.personalityId;
+
+    // Add reply bubble to chat (smaller, under topic)
+    addUserReplyBubble(message, beeName);
+
+    // Clear input
+    input.value = '';
+    input.style.height = 'auto';
+
+    // Send targeted reply via WebSocket
+    chatWebSocket.send(JSON.stringify({
+        type: 'reply_to_bee',
+        content: message,
+        target_bee: beeName,
+        target_personality_id: personalityId
+    }));
+
+    // Clean up reply state
+    replyTargetBee = null;
+    debatePausedForReply = false;
+
+    // Hide reply indicator
+    const indicator = document.getElementById('reply-indicator');
+    if (indicator) indicator.classList.remove('visible');
+
+    // Remove replying class
+    const inputArea = document.getElementById('chat-input-area');
+    if (inputArea) inputArea.classList.remove('replying');
+
+    // Show floating stop button again
+    const floatingStopBtn = document.getElementById('floating-stop-btn');
+    if (floatingStopBtn) floatingStopBtn.classList.add('visible');
+
+    updateChatStatus(`${beeName} is reading your reply...`);
+}
+
+function addUserReplyBubble(text, beeName) {
+    const container = document.getElementById('chat-messages');
+    const bubble = document.createElement('div');
+    bubble.className = 'user-reply-bubble';
+    bubble.innerHTML = `<div class="user-reply-bubble-inner">
+        <span class="user-reply-bubble-target">↩ To ${escapeHtml(beeName)}:</span> ${escapeHtml(text)}
+    </div>`;
+    container.appendChild(bubble);
+    scrollToBottom(container);
+}
+
+// Wire up cancel button and Escape key
+document.getElementById('reply-cancel-btn')?.addEventListener('click', cancelReplyToBee);
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && debatePausedForReply) {
+        cancelReplyToBee();
+    }
+});
+
 // Send an intervention message during discussion
 async function sendIntervention() {
+    // If we're in reply-to-bee mode, use that instead
+    if (debatePausedForReply && replyTargetBee) {
+        sendReplyToBee();
+        return;
+    }
+
     const input = document.getElementById('chat-input');
     const message = input.value.trim();
 

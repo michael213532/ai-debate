@@ -35,6 +35,7 @@ class DebateOrchestrator:
         self.start_round = config.get("start_round", 1)  # Starting round for continuations
         self.messages: list[dict] = []
         self._stopped = False
+        self._paused = False
         self.images = images or []  # Optional images for vision models
         self._intervention_queue = asyncio.Queue()  # Queue for user interventions
         self.user_id = user_id  # For memory extraction
@@ -122,8 +123,24 @@ class DebateOrchestrator:
             "content": content
         })
 
+    async def add_targeted_reply(self, content: str, target_bee: str):
+        """Add a targeted reply to a specific bee."""
+        await self._intervention_queue.put({
+            "type": "reply_to_bee",
+            "content": content,
+            "target_bee": target_bee
+        })
+
+    def pause(self):
+        """Pause the debate (waiting for user reply)."""
+        self._paused = True
+
+    def resume(self):
+        """Resume the debate after user cancelled reply."""
+        self._paused = False
+
     async def _check_for_intervention(self) -> str | None:
-        """Check if there's a pending intervention."""
+        """Check if there's a pending intervention (plain text or targeted reply dict)."""
         try:
             return self._intervention_queue.get_nowait()
         except asyncio.QueueEmpty:
@@ -218,29 +235,60 @@ class DebateOrchestrator:
             if self._stopped:
                 break
 
+            # Wait while paused (user is composing a reply)
+            while self._paused and not self._stopped:
+                await asyncio.sleep(0.2)
+
+            if self._stopped:
+                break
+
             # Check for user intervention before each model
             intervention = await self._check_for_intervention()
             if intervention:
-                # Add intervention to messages so subsequent models see it
-                self.messages.append({
-                    "round": round_num,
-                    "model_name": "User",
-                    "provider": "user",
-                    "content": intervention
-                })
-                # Save user message to database
-                await self._save_message(
-                    round_num=round_num,
-                    model_name="User",
-                    provider="user",
-                    content=intervention
-                )
-                # Broadcast the user intervention as a message
-                await self._broadcast({
-                    "type": "user_intervention",
-                    "content": intervention,
-                    "round": round_num
-                })
+                # Handle targeted reply vs generic intervention
+                if isinstance(intervention, dict) and intervention.get("type") == "reply_to_bee":
+                    reply_content = intervention["content"]
+                    target_bee = intervention["target_bee"]
+                    # Add targeted reply to messages with target info
+                    self.messages.append({
+                        "round": round_num,
+                        "model_name": "User",
+                        "provider": "user",
+                        "content": reply_content,
+                        "target_bee": target_bee
+                    })
+                    await self._save_message(
+                        round_num=round_num,
+                        model_name="User",
+                        provider="user",
+                        content=f"[Reply to {target_bee}]: {reply_content}"
+                    )
+                    await self._broadcast({
+                        "type": "user_intervention",
+                        "content": reply_content,
+                        "round": round_num,
+                        "target_bee": target_bee
+                    })
+                else:
+                    # Generic intervention (original behavior)
+                    content = intervention if isinstance(intervention, str) else intervention.get("content", "")
+                    self.messages.append({
+                        "round": round_num,
+                        "model_name": "User",
+                        "provider": "user",
+                        "content": content
+                    })
+                    await self._save_message(
+                        round_num=round_num,
+                        model_name="User",
+                        provider="user",
+                        content=content
+                    )
+                    await self._broadcast({
+                        "type": "user_intervention",
+                        "content": content,
+                        "round": round_num
+                    })
 
             provider_name = model_config["provider"]
             model_id = model_config["model_id"]
@@ -476,6 +524,9 @@ RULES:
 
         context += f"USER'S CURRENT MESSAGE: {self.topic}\n\n"
 
+        # Get the current model's name to check if it's a reply target
+        current_model_name = self.models[model_index]["model_name"] if model_index < len(self.models) else ""
+
         if round_num == 1:
             # Round 1: Each AI responds independently - don't show other round 1 responses
             # This ensures each AI forms their own genuine opinion first
@@ -487,7 +538,18 @@ RULES:
             # Round 2+: Show all previous responses, let them naturally debate
             context += "DISCUSSION SO FAR:\n\n"
             for msg in self.messages:
-                context += f"**{msg['model_name']}**: {msg['content']}\n\n"
+                target = msg.get("target_bee")
+                if target and msg["model_name"] == "User":
+                    # Targeted reply - format differently based on who's reading
+                    if current_model_name == target:
+                        # This bee is the target - emphasize the feedback strongly
+                        context += f"**⚠ USER REPLIED DIRECTLY TO YOU**: \"{msg['content']}\"\n"
+                        context += f"(The user specifically addressed YOU about your response. Take this feedback seriously - reconsider your position based on what they said. Adjust your thinking if their point is valid.)\n\n"
+                    else:
+                        # Other bees see it as context but less urgently
+                        context += f"**User** (replying to {target}): {msg['content']}\n\n"
+                else:
+                    context += f"**{msg['model_name']}**: {msg['content']}\n\n"
             context += "---\nRespond to the discussion. You can agree, disagree, or partially agree - whatever feels natural based on the arguments."
 
         return context

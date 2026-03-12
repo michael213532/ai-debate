@@ -802,6 +802,19 @@ async def debate_websocket(websocket: WebSocket, debate_id: str):
                 if data.get("type") == "stop":
                     if debate_id in active_debates:
                         active_debates[debate_id].stop()
+                elif data.get("type") == "pause":
+                    if debate_id in active_debates:
+                        active_debates[debate_id].pause()
+                elif data.get("type") == "resume":
+                    if debate_id in active_debates:
+                        active_debates[debate_id].resume()
+                elif data.get("type") == "reply_to_bee":
+                    if debate_id in active_debates:
+                        content = data.get("content", "")
+                        target_bee = data.get("target_bee", "")
+                        if content and target_bee:
+                            active_debates[debate_id].resume()  # Unpause first
+                            await active_debates[debate_id].add_targeted_reply(content, target_bee)
                 elif data.get("type") == "intervention":
                     # Handle user intervention during discussion
                     if debate_id in active_debates:

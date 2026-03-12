@@ -1440,9 +1440,95 @@
             display: flex;
         }
 
-        /* Hide input area during debate */
-        .chat-input-area.debate-active {
+        /* Hide input area during debate (but not when replying) */
+        .chat-input-area.debate-active:not(.replying) {
             display: none !important;
+        }
+
+        /* Reply button on each bee message */
+        .reply-to-bee-btn {
+            display: none;
+            align-items: center;
+            gap: 4px;
+            background: none;
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            font-size: 0.75rem;
+            padding: 3px 10px;
+            border-radius: 12px;
+            cursor: pointer;
+            margin-top: 8px;
+            transition: all 0.15s;
+        }
+        .reply-to-bee-btn:hover {
+            background: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+        }
+        .reply-to-bee-btn svg {
+            width: 13px;
+            height: 13px;
+        }
+        .message.ai-individual:not(.streaming) .reply-to-bee-btn {
+            display: inline-flex;
+        }
+
+        /* Reply indicator banner above input */
+        .reply-indicator {
+            display: none;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 14px;
+            background: linear-gradient(135deg, var(--primary-color), #8b5cf6);
+            color: white;
+            border-radius: 14px 14px 0 0;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+        .reply-indicator.visible {
+            display: flex;
+        }
+        .reply-indicator-text {
+            flex: 1;
+        }
+        .reply-indicator-cancel {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            transition: background 0.15s;
+        }
+        .reply-indicator-cancel:hover {
+            background: rgba(255,255,255,0.35);
+        }
+        /* When reply indicator is visible, remove top border-radius from input container */
+        .reply-indicator.visible + .chat-input-container {
+            border-radius: 0 0 16px 16px;
+        }
+
+        /* User reply bubble shown under the topic header */
+        .user-reply-bubble {
+            text-align: center;
+            margin: -10px 0 16px 0;
+        }
+        .user-reply-bubble-inner {
+            display: inline-block;
+            font-size: 0.85rem;
+            color: white;
+            background: linear-gradient(135deg, #8b5cf6, #a78bfa);
+            padding: 8px 20px;
+            border-radius: 16px;
+            opacity: 0.9;
+        }
+        .user-reply-bubble-target {
+            font-weight: 700;
         }
 
 
@@ -3424,6 +3510,12 @@
                     </div>
                     <!-- Images Preview -->
                     <div id="images-preview-container" class="images-preview-container"></div>
+                    <!-- Reply indicator -->
+                    <div class="reply-indicator" id="reply-indicator">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 17 4 12 9 7"/><path d="M20 18v-2a4 4 0 0 0-4-4H4"/></svg>
+                        <span class="reply-indicator-text" id="reply-indicator-text">Replying to ...</span>
+                        <button class="reply-indicator-cancel" id="reply-cancel-btn" title="Cancel reply">&times;</button>
+                    </div>
                     <!-- Unified input container -->
                     <div class="chat-input-container">
                         <textarea id="chat-input" class="chat-input" placeholder="Ask your question" rows="1"></textarea>

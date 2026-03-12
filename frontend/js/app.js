@@ -29,7 +29,7 @@ const PERSONALITY_ICON_MAP = {
     'court-defense': 'honest friend bee icon', 'court-witness': 'Realist bee icon',
     'court-jury': 'wise friend bee icon',
     // Special Bees
-    'special-devils-advocate': 'contrarion bee icon', 'special-wild-card': 'troll bee icon',
+    'special-devils-advocate': 'devils advocate bee icon', 'special-wild-card': 'wild card bee icon',
 };
 
 function getBeeIconPath(personalityId) {
