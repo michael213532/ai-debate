@@ -2412,15 +2412,16 @@ function renderVoicesBar() {
         dropdown.className = 'special-bees-dropdown';
 
         // Pre-populate dropdown content
-        const optionsHtml = unselectedSpecialBees.map(bee => `
-            <button class="special-bee-option" data-bee-id="${bee.id}">
-                <span class="bee-emoji">${bee.emoji}</span>
+        const optionsHtml = unselectedSpecialBees.map(bee => {
+            const iconPath = getBeeIconPath(bee.id);
+            return `<button class="special-bee-option" data-bee-id="${bee.id}">
+                <img src="${iconPath}" alt="" style="width: 36px; height: 36px; border-radius: 6px; object-fit: contain;" onerror="this.src='/images/bee-icons/default bee icon.png'">
                 <div class="bee-info">
                     <div class="bee-name">${bee.human_name}</div>
                     <div class="bee-desc">${bee.description}</div>
                 </div>
-            </button>
-        `).join('');
+            </button>`;
+        }).join('');
         dropdown.innerHTML = `<div class="special-bees-dropdown-title">Add-on Bees</div>${optionsHtml}`;
 
         // Add click handler for button
