@@ -2550,8 +2550,9 @@ async function initVoicesBar() {
     renderVoicesBar();
 }
 
-// Add hives button click listener
+// Add hives button click listeners (desktop + mobile)
 document.getElementById('hives-btn')?.addEventListener('click', openHivesModal);
+document.getElementById('mobile-hives-btn')?.addEventListener('click', openHivesModal);
 
 // Hives modal - only close via X button or selecting a hive
 
