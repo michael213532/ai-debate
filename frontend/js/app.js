@@ -1923,7 +1923,9 @@ function renderHivesModal() {
         // Render custom hives first (if any)
         let customHtml = '';
         if (customHives && customHives.length > 0) {
-            customHtml = customHives.map(hive => `
+            customHtml = customHives.map(hive => {
+                const isSelected = hive.id === selectedHiveId;
+                return `
                 <div class="hive-card ${hive.id === (pendingHiveId || selectedHiveId) ? 'selected' : ''}" onclick="previewHive('${hive.id}')">
                     <div class="hive-card-header">
                         <span class="hive-card-name">${hive.name}</span>
@@ -1942,12 +1944,15 @@ function renderHivesModal() {
                         <button class="btn btn-secondary btn-small" onclick="event.stopPropagation(); openHiveCreator('${hive.id}')" style="font-size: 0.7rem; padding: 4px 8px;">Edit</button>
                         <button class="btn btn-secondary btn-small" onclick="deleteCustomHive('${hive.id}', event)" style="font-size: 0.7rem; padding: 4px 8px; color: var(--error-color);">Delete</button>
                     </div>
+                    <button class="hive-card-choose" onclick="event.stopPropagation(); selectHive('${hive.id}')">${isSelected ? 'Selected' : 'Choose Hive'}</button>
                 </div>
-            `).join('');
+            `}).join('');
         }
 
         // Render built-in hives
-        const builtInHtml = allHives.map(hive => `
+        const builtInHtml = allHives.map(hive => {
+            const isSelected = hive.id === selectedHiveId;
+            return `
             <div class="hive-card ${hive.id === (pendingHiveId || selectedHiveId) ? 'selected' : ''}" onclick="previewHive('${hive.id}')">
                 <div class="hive-card-header">
                     <span class="hive-card-name">${hive.name}</span>
@@ -1962,8 +1967,9 @@ function renderHivesModal() {
                         </span>`;
                     }).join('')}
                 </div>
+                <button class="hive-card-choose" onclick="event.stopPropagation(); selectHive('${hive.id}')">${isSelected ? 'Selected' : 'Choose Hive'}</button>
             </div>
-        `).join('');
+        `}).join('');
 
         hivesGrid.innerHTML = customHtml + builtInHtml;
     }
