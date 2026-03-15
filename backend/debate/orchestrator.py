@@ -841,6 +841,17 @@ Generate verdict JSON (votes and hive_decision only):"""
                     confidence = round((winner_votes / total_votes) * 100)
                     verdict["confidence"] = confidence
 
+                # Enrich votes with bee personality description
+                for vote in votes:
+                    vote_name = vote.get("name", "").lower()
+                    # Match by human_name across all models in this debate
+                    for model in self.models:
+                        pid = model.get("personality_id", "")
+                        p = get_personality(pid)
+                        if p and p.human_name.lower() == vote_name:
+                            vote["description"] = p.description
+                            break
+
             return verdict
 
         except Exception as e:

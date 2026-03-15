@@ -749,6 +749,26 @@ function finishAiDiscussion(modelName) {
         const content = msg.querySelector('.message-content');
         if (content) {
             content.textContent = content.textContent.replace(/\*\*/g, '');
+
+            // Clamp to 3 lines with "Show more" toggle
+            content.classList.add('clamped');
+            requestAnimationFrame(() => {
+                if (content.scrollHeight > content.clientHeight + 1) {
+                    const btn = document.createElement('button');
+                    btn.className = 'show-more-btn';
+                    btn.textContent = 'Show more';
+                    btn.onclick = () => {
+                        if (content.classList.contains('clamped')) {
+                            content.classList.remove('clamped');
+                            btn.textContent = 'Show less';
+                        } else {
+                            content.classList.add('clamped');
+                            btn.textContent = 'Show more';
+                        }
+                    };
+                    msg.appendChild(btn);
+                }
+            });
         }
     }
 }
@@ -1691,17 +1711,19 @@ function renderHiveVerdict(verdict) {
     const verdictEl = document.createElement('div');
     verdictEl.className = 'hive-verdict';
 
-    // Build compact votes HTML with bee images
+    // Build compact votes HTML with bee images, descriptions, and staggered animation
     let votesHtml = '';
     if (verdict.votes && verdict.votes.length > 0) {
         votesHtml = '<div class="verdict-votes">';
-        for (const vote of verdict.votes) {
+        verdict.votes.forEach((vote, i) => {
             const pid = getPersonalityFromName(vote.name || '');
             const iconPath = pid ? getBeeIconPath(pid) : '/images/bee-icons/default bee icon.png';
             const beeImg = `<img class="bee-avatar-sm" src="${iconPath}" alt="" onerror="this.src='/images/bee-icons/default bee icon.png'">`;
             const reasonHtml = vote.reason ? `<span class="vote-reason">${escapeHtml(vote.reason)}</span>` : '';
-            votesHtml += `<div class="verdict-vote">${beeImg}<span class="name">${escapeHtml(vote.name || '')}</span><span class="arrow">→</span><span class="choice">${escapeHtml(vote.choice || '-')}</span>${reasonHtml}</div>`;
-        }
+            const descHtml = vote.description ? `<span class="vote-description">${escapeHtml(vote.description)}</span>` : '';
+            const delay = i * 150;
+            votesHtml += `<div class="verdict-vote" style="animation-delay: ${delay}ms;">${beeImg}<span class="name">${escapeHtml(vote.name || '')}</span><span class="arrow">→</span><span class="choice">${escapeHtml(vote.choice || '-')}</span>${reasonHtml}${descHtml}</div>`;
+        });
         votesHtml += '</div>';
     }
 
