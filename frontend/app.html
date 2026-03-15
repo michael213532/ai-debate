@@ -644,6 +644,18 @@
             overflow-y: auto;
         }
 
+        .hives-modal-footer {
+            padding: 16px 24px;
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            justify-content: flex-end;
+        }
+
+        .choose-hive-btn {
+            padding: 10px 28px;
+            font-size: 0.95rem;
+        }
+
         .hives-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
@@ -3680,6 +3692,9 @@
 
                 <div id="hives-grid" class="hives-grid">
                     <!-- Hive cards populated by JS -->
+                </div>
+                <div class="hives-modal-footer">
+                    <button id="choose-hive-btn" class="btn btn-primary choose-hive-btn" onclick="confirmHiveSelection()">Choose Hive</button>
                 </div>
             </div>
         </div>

@@ -1797,6 +1797,21 @@ async function fetchPersonalitySuggestions(question) {
 }
 
 // Select a hive
+// Track pending hive selection in modal (not yet confirmed)
+let pendingHiveId = null;
+
+function previewHive(hiveId) {
+    pendingHiveId = hiveId;
+    renderHivesModal();
+}
+
+function confirmHiveSelection() {
+    if (pendingHiveId) {
+        selectHive(pendingHiveId);
+        pendingHiveId = null;
+    }
+}
+
 function selectHive(hiveId) {
     selectedHiveId = hiveId;
     saveSelectedHive();
@@ -1883,6 +1898,7 @@ function updateCurrentHiveDisplay() {
 function openHivesModal() {
     const modal = document.getElementById('hives-modal');
     if (modal) {
+        pendingHiveId = null;
         modal.classList.add('active');
         renderHivesModal();
     }
@@ -1908,7 +1924,7 @@ function renderHivesModal() {
         let customHtml = '';
         if (customHives && customHives.length > 0) {
             customHtml = customHives.map(hive => `
-                <div class="hive-card ${hive.id === selectedHiveId ? 'selected' : ''}" onclick="selectHive('${hive.id}')">
+                <div class="hive-card ${hive.id === (pendingHiveId || selectedHiveId) ? 'selected' : ''}" onclick="previewHive('${hive.id}')">
                     <div class="hive-card-header">
                         <span class="hive-card-name">${hive.name}</span>
                         <span class="custom-badge">Custom</span>
@@ -1932,7 +1948,7 @@ function renderHivesModal() {
 
         // Render built-in hives
         const builtInHtml = allHives.map(hive => `
-            <div class="hive-card ${hive.id === selectedHiveId ? 'selected' : ''}" onclick="selectHive('${hive.id}')">
+            <div class="hive-card ${hive.id === (pendingHiveId || selectedHiveId) ? 'selected' : ''}" onclick="previewHive('${hive.id}')">
                 <div class="hive-card-header">
                     <span class="hive-card-name">${hive.name}</span>
                 </div>
@@ -2014,6 +2030,8 @@ window.toggleSpecialBeeFromDropdown = toggleSpecialBeeFromDropdown;
 window.openHivesModal = openHivesModal;
 window.closeHivesModal = closeHivesModal;
 window.selectHive = selectHive;
+window.previewHive = previewHive;
+window.confirmHiveSelection = confirmHiveSelection;
 window.toggleSpecialBee = toggleSpecialBee;
 
 // Render personality selector cards
