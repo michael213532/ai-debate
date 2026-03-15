@@ -784,13 +784,14 @@ Do all AIs agree? Reply ONLY with AGREE or DISAGREE."""
             # Count total AIs for confidence calculation
             total_ais = len(final_responses)
 
-            system_prompt = f"""Output ONLY valid JSON. Extract each AI's FINAL choice from their response.
+            system_prompt = f"""Output ONLY valid JSON. Extract each AI's FINAL choice and reason from their response.
 
 Example format:
-{{"votes":[{{"name":"Analyst","choice":"Pizza"}},{{"name":"Skeptic","choice":"Burger"}}],"hive_decision":"Pizza"}}
+{{"votes":[{{"name":"Analyst","choice":"Pizza","reason":"Better value and more variety"}},{{"name":"Skeptic","choice":"Burger","reason":"Higher quality ingredients"}}],"hive_decision":"Pizza"}}
 
 Rules:
 - Extract the ACTUAL final answer each AI chose (e.g., "Pizza", "Option A", "Yes", "iPhone 15")
+- "reason" = 1 short sentence explaining WHY they chose it (max 12 words)
 - Use their personality name (Analyst, Expert, Optimist, Skeptic, Realist)
 - Each AI appears ONLY ONCE (their FINAL position after debate)
 - hive_decision = the answer with most votes

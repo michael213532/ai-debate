@@ -1862,17 +1862,21 @@ function toggleSpecialBee(beeId) {
 // Update the current hive display in header
 function updateCurrentHiveDisplay() {
     const nameEl = document.getElementById('current-hive-name');
-    if (nameEl) {
-        // Check custom hives first
-        const customHive = customHives.find(h => h.id === selectedHiveId);
-        if (customHive) {
-            nameEl.textContent = customHive.name;
-            return;
-        }
+    const mobileNameEl = document.getElementById('mobile-hive-name');
+    let hiveName = 'Choose Hive';
+
+    // Check custom hives first
+    const customHive = customHives.find(h => h.id === selectedHiveId);
+    if (customHive) {
+        hiveName = customHive.name;
+    } else {
         // Then built-in hives
         const hive = allHives.find(h => h.id === selectedHiveId);
-        nameEl.textContent = hive ? hive.name : 'Select Hive';
+        if (hive) hiveName = hive.name;
     }
+
+    if (nameEl) nameEl.textContent = hiveName;
+    if (mobileNameEl) mobileNameEl.textContent = hiveName;
 }
 
 // Open hives modal

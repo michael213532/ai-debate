@@ -1923,6 +1923,18 @@
             background: var(--surface-light);
             border-radius: 14px;
             font-size: 0.75rem;
+            flex-wrap: wrap;
+        }
+
+        .verdict-vote .vote-reason {
+            width: 100%;
+            display: block;
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+            font-style: italic;
+            margin-top: 2px;
+            padding-left: 28px;
+            padding-bottom: 2px;
         }
 
         .verdict-vote .arrow {
@@ -3387,7 +3399,7 @@
                 </div>
                 <button id="mobile-hives-btn" class="mobile-hives-btn" title="Select a Hive">
                     <img src="/bee-icon.png" alt="" style="width: 28px; height: 28px; image-rendering: -webkit-optimize-contrast;">
-                    <span>Hives</span>
+                    <span id="mobile-hive-name">Choose Hive</span>
                 </button>
                 <div class="header-actions">
                     <span id="subscription-status" class="subscription-badge"></span>
@@ -3477,7 +3489,7 @@
                 <!-- Hives Button -->
                 <button id="hives-btn" class="hives-btn" title="Select a Hive">
                     <img src="/bee-icon.png" alt="" style="width: 48px; height: 48px; image-rendering: -webkit-optimize-contrast;">
-                    <span>Hives</span>
+                    <span id="current-hive-name" class="hive-name">Choose Hive</span>
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <polyline points="6 9 12 15 18 9"/>
                     </svg>

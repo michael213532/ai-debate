@@ -1699,7 +1699,8 @@ function renderHiveVerdict(verdict) {
             const pid = getPersonalityFromName(vote.name || '');
             const iconPath = pid ? getBeeIconPath(pid) : '/images/bee-icons/default bee icon.png';
             const beeImg = `<img class="bee-avatar-sm" src="${iconPath}" alt="" onerror="this.src='/images/bee-icons/default bee icon.png'">`;
-            votesHtml += `<div class="verdict-vote">${beeImg}<span class="name">${escapeHtml(vote.name || '')}</span><span class="arrow">→</span><span class="choice">${escapeHtml(vote.choice || '-')}</span></div>`;
+            const reasonHtml = vote.reason ? `<span class="vote-reason">${escapeHtml(vote.reason)}</span>` : '';
+            votesHtml += `<div class="verdict-vote">${beeImg}<span class="name">${escapeHtml(vote.name || '')}</span><span class="arrow">→</span><span class="choice">${escapeHtml(vote.choice || '-')}</span>${reasonHtml}</div>`;
         }
         votesHtml += '</div>';
     }
