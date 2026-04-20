@@ -727,6 +727,25 @@ class DebateOrchestrator:
                         side_tag = f" [{m.get('side', '?')}]" if m.get("side") else ""
                         context += f"  {m.get('model_name')}{side_tag}: {m.get('content', '')}\n"
 
+                # Mention budget: target 2-3 @-mentions total per debate.
+                # Tell each bee how many have happened so they can calibrate.
+                _bee_msgs = [m for m in self.messages if m.get("personality_id")]
+                _mention_count = sum(
+                    1 for m in _bee_msgs if "@" in (m.get("content") or "")
+                )
+                if _mention_count == 0 and len(_bee_msgs) >= 3:
+                    context += f"\n📣 MENTION BUDGET: zero @-mentions so far in this chat. Target is 2-3 total. Consider using ONE @BeeName if you genuinely want another bee to weigh in.\n\n"
+                elif _mention_count >= 3:
+                    context += f"\n📣 MENTION BUDGET: {_mention_count} @-mentions already this chat. DO NOT use another @. Just drop your take.\n\n"
+                elif _mention_count >= 1:
+                    context += f"\n📣 MENTION BUDGET: {_mention_count}/3 @-mentions used. Default: no @ on your turn. Only @ if you genuinely want that bee to answer next.\n\n"
+
+                context += (
+                    "🚫 ANTI-REPETITION: Read the RECENT CHAT above. Do NOT just rephrase a point another bee already made. "
+                    "Bring a NEW angle from YOUR specific expertise/lens (different facet, concrete fact, counter-consideration, specific example). "
+                    "If you have nothing new to add, output a very short SHORT or skip the point entirely.\n\n"
+                )
+
                 # Check how recently the user jumped in — if within last 3 messages,
                 # bees should still be acknowledging them (not just the very next one)
                 last_user_offset = None
@@ -1162,11 +1181,15 @@ If they asked "Cola vs Pepsi", SIDE is "Cola" or "Pepsi". Never "coconut water" 
 - NO em-dashes, NO semicolons, NO "I think"/"In my opinion"/"honestly,"/"fair but"/"you've got a point"/"Well,"/"Actually,".
 - NO LinkedIn voice, NO ChatGPT voice.
 
-🚫 DON'T NAME-DROP OTHER BEES. Avoid phrases like "Sunny was spot on" / "Jordan's right" / "agreeing with Murphy" / "BFF nailed it". If you want to acknowledge another bee, either use REPLY_TO (the quote tool) or just drop your own take. Naming them in prose sounds forced. Default: don't reference other bees at all. Just say what YOU think.
+🚫 DON'T REPEAT WHAT OTHERS ALREADY SAID.
+Read the recent chat. If another bee already made the point you were going to make, do NOT just rephrase it in your own slang/personality. Bring a NEW angle from YOUR specific expertise. If you agree broadly, your take needs to add something they missed (a concrete fact, a counter-consideration, a specific example, an angle from your domain). If you've got nothing new, stay quiet — empty SHORT is better than echoing someone.
+
+🚫 DON'T NAME-DROP OTHER BEES. Avoid phrases like "Sunny was spot on" / "Jordan's right" / "agreeing with Murphy" / "BFF nailed it". Naming them in prose sounds forced. Just say what YOU think.
 
 🔁 REPLY_TO: quote-reply tool. Fill with another bee's name ONLY if your message is a direct reaction to ONE of their earlier messages. Use sparingly. Otherwise leave blank.
 
-@ MENTION: pass-the-mic tool. Use @BeeName in SHORT only when you want that specific bee to answer next. RARE — most messages have no @. Default: no @.
+@ MENTION: pass-the-mic tool. Use @BeeName in SHORT when you want that specific bee to answer next.
+Target: 2-3 @-mentions TOTAL across the whole debate. Not per message. See the mention-counter below for current state.
 
 Stay in character as {display_name}. Pick ONE side from the user's EXACT options. Never "both" or "it depends"."""
 
