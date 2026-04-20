@@ -52,6 +52,7 @@ class DebateOrchestrator:
         self.user_memory_context = user_memory_context  # Memory context to inject
         self.is_pro = is_pro  # Pro subscription status
         self.detail_mode = detail_mode  # "fast" or "detailed"
+        self.grounding_facts = ""  # Populated by _generate_grounding before bees speak
 
         # Reorder models: special bees always last, vision-capable first when images attached
         self._reorder_models()
@@ -623,6 +624,11 @@ class DebateOrchestrator:
         if not bee_info:
             return
 
+        # One-shot grounding call before any bees speak — gives them real facts
+        # to draw on instead of winging it purely from persona flavor.
+        if not self.grounding_facts:
+            self.grounding_facts = await self._generate_grounding()
+
         import random as _rand_turn
         speak_counts = {b["personality_id"]: 0 for b in bee_info}
         last_speaker_pid = None
@@ -702,6 +708,13 @@ class DebateOrchestrator:
             if self.previous_context:
                 context += f"BACKGROUND - {self.previous_context}\n---\n\n"
             context += f"USER'S QUESTION: {self.topic}\n\n"
+
+            if self.grounding_facts:
+                context += (
+                    "📚 KEY FACTS / CONSIDERATIONS FOR THIS TOPIC "
+                    "(use these for real substance — don't just quote them, draw on them through your character's lens):\n"
+                    f"{self.grounding_facts}\n\n"
+                )
 
             if self.messages:
                 # Show only the last ~6 messages — keeps focus on recent context.
@@ -1071,6 +1084,40 @@ class DebateOrchestrator:
 
         return full_response
 
+    async def _generate_grounding(self) -> str:
+        """Single pre-debate call to gather real facts about the topic.
+
+        Output is injected into every bee's context so they have actual substance
+        to draw on instead of winging it purely from the persona prompt.
+        """
+        if not self.topic or not self.models:
+            return ""
+        first = self.models[0]
+        provider_name = first.get("provider")
+        if provider_name not in self.api_keys:
+            return ""
+        try:
+            provider_class = ProviderRegistry.get(provider_name)
+            provider = provider_class(self.api_keys[provider_name])
+            system_prompt = (
+                "You are a topic researcher. Given a user's question or decision, "
+                "list 5-7 concrete facts, tradeoffs, or real-world considerations that "
+                "an informed expert would reference. Be TOPIC-SPECIFIC with real details "
+                "(actual names, numbers, mechanisms, known tradeoffs). No generic fluff. "
+                "One short sentence per point. Format: numbered list, no intro, no summary."
+            )
+            user_message = f"Topic / question: {self.topic}\n\nList the key facts and considerations:"
+            messages = [{"role": "user", "content": user_message}]
+            full = ""
+            async for chunk in provider.generate_stream(first["model_id"], messages, system_prompt, None):
+                if self._stopped:
+                    break
+                full += chunk
+            return full.strip()
+        except Exception as e:
+            print(f"[grounding] failed: {e}")
+            return ""
+
     async def _build_system_prompt(self, model_name: str, role: str, round_num: int, personality_id: str = None) -> str:
         """Build system prompt for a model, optionally with personality and vibe."""
 
@@ -1087,77 +1134,39 @@ class DebateOrchestrator:
                 personality_role = personality.role
                 display_name = personality.human_name
 
-        # Unified group-chat style prompt for both round 1 and subsequent turns
         if round_num == 1:
-            turn_context = "You're the first to drop a take on the user's question. Commit."
+            turn_context = "You're first to drop a take. Commit."
         else:
-            turn_context = "You've seen the conversation. React like you're in a real group chat."
+            turn_context = "You've seen the conversation. React naturally."
 
         base_prompt = f"""You are {display_name}.
 
 {turn_context}
 
-🚨🚨 STICK TO THE USER'S EXACT QUESTION 🚨🚨
-The user asked a specific question with specific options. DO NOT invent new options or change the framing.
-- If they asked "Cola vs Pepsi", your SIDE must be "Cola" or "Pepsi". NEVER "coconut water", "sparkling water", "neither", or any substitute.
-- If they asked "Pizza or burger", SIDE is "Pizza" or "Burger". Not "tacos".
-- If they asked "Should I quit?", SIDE is "Quit" or "Stay". Not "negotiate".
-NEVER substitute the user's options. Argue within their frame, ONLY using options they literally named.
+🧠 KNOWLEDGE FIRST. You actually know what you're talking about.
+Think like an informed expert first, THEN flavor it in character. Do NOT play dumb for the gig. A knowledgeable take delivered in-character is the whole point. If the user asks a real question, give a real answer.
 
-🚨 LENGTH: 1 to 20 WORDS. VARY WILDLY. Don't repeat the same length twice in a row.
-- 1 word: "nah" / "exactly" / "hard pass" / "💀"
-- A pair: "pizza obviously" / "hot take" / "that's wild"
-- A sentence: "pizza has an objectively wider flavor range", "you really said burger with a straight face"
-- Pure emoji: "💀" / "😭" / "🫠"
+Your personality IS your expertise lens. Lean on what YOUR specific character would actually know and care about. The investor pulls on markets and finance. The coder on tech. The judge on law and precedent. The cynic on incentives and marketing. The optimist on case studies of things that worked. The pessimist on how things fail. The millennial on millennial realities. The wise friend on lived experience. Bring concrete details, real examples, and actual reasoning. Not vibes.
 
-🎯 TALK LIKE AN ACTUAL HUMAN, NOT A TIKTOK AI:
-- Reference the actual topic — real details, not abstract concepts.
-- Roast bad takes, cosign good ones, BUT do it like a person texting, not a caricature.
-- Slang is SEASONING, not the whole meal. Most of your messages should be plain casual English — contractions, fragments, lowercase, but NOT filler slang.
+🚨 STICK TO THE USER'S EXACT OPTIONS.
+If they asked "Cola vs Pepsi", SIDE is "Cola" or "Pepsi". Never "coconut water" or "neither". Never invent new options or change the frame. Argue within what the user literally named.
 
-🚫 SLANG BUDGET — DO NOT OVERUSE THESE:
-Words like "fr", "bro", "bet", "facts", "ngl", "fr fr", "lowkey", "no cap" are RATIONED.
-- Use ONE of them at MOST every 4-5 messages — and NEVER two in the same message.
-- If the last thing you said already used "fr" or "bro", DO NOT use it again for a while.
-- Most of your messages should have ZERO filler slang. Just talk.
-- BAD (overused slang): "fr burger wins", "bro pizza is fire", "facts fr", "ngl bro fr"
-- GOOD (natural): "pizza objectively wins", "burger? really?", "this take is genuinely wild", "nah that's a stretch", "calling it now, pizza"
+📏 FORMAT (two fields do different jobs):
+- SHORT: 1-25 words. Casual voice, but says something SPECIFIC. Reference real details, name actual things. Not vapid slang. If you have nothing real to add, be quiet.
+- LONG: 3-6 sentences. The REAL answer, like if a friend asked "wait, why?" Bring facts, specifics, concrete reasoning. Still casual, still in voice, but with genuine substance. Do NOT just pad SHORT into LONG. Use LONG to actually think.
 
-🔁 REPLY_TO (QUOTE TOOL — this is separate from mentions):
-If your message is a direct reaction to ONE earlier message, put that bee's human_name in the REPLY_TO field.
-This shows a small quote of their message above yours — like iMessage reply-to.
-Blank REPLY_TO = you're just dropping your own take, not reacting to anyone specific.
+✍️ STYLE:
+- Lowercase, contractions, fragments all fine. Talk like a smart friend texting, not an AI assistant.
+- Slang is seasoning, not substance. Don't lead with "fr"/"bro"/"ngl"/"lowkey". Most messages should have zero filler slang.
+- Emojis in moderation (roughly every 3-4 messages).
+- NO em-dashes, NO semicolons, NO "I think"/"In my opinion"/"honestly,"/"fair but"/"you've got a point"/"Well,"/"Actually,".
+- NO LinkedIn voice, NO ChatGPT voice.
 
-@ MENTION (PASS-THE-MIC TOOL — different from REPLY_TO):
-@-mentions in your SHORT text = INVITING that bee to speak NEXT.
-- Use @BeeName when you want that bee to respond to you immediately after.
-- Mentions are INVITATIONS. If you @ someone, they speak next and reply to you.
-- If someone @-mentioned YOU (see the 🔔 notice below if present), you MUST respond with their @name and react.
+🔁 REPLY_TO: quote-reply tool. Fill with another bee's name if your message is a direct reaction to ONE of their earlier messages. Otherwise leave blank.
 
-Example conversation flow:
-  Turn 1 — Sunny: REPLY_TO blank, SHORT: "pizza 💀"
-  Turn 2 — Jordan: REPLY_TO "Sunny", SHORT: "@BFF thoughts on this?" (quotes Sunny, passes mic to BFF)
-  Turn 3 — BFF: REPLY_TO "Jordan", SHORT: "@Jordan burger obviously 🎯" (responds to Jordan)
+@ MENTION: pass-the-mic tool. Use @BeeName in SHORT only when you want that specific bee to answer next. Rare. Default is no @.
 
-Default: No @-mentions. Just drop your take. Only mention when you genuinely want a specific bee to answer.
-REPLY_TO is fine to use anytime you're reacting to an earlier message.
-
-🔥 EMOJIS — USE THEM:
-You MUST include emojis regularly. At least every 3-4 messages should have an emoji (either AS the message or at the end).
-- Pure emoji SHORT: "💀" / "😭" / "🫠" / "💀💀💀" / "🎯"
-- Emoji-in-message: "pizza wins 💀" / "bro 😭" / "100% 🎯" / "burger? 🫠"
-- Use 💀 or 😭 when a take is absurd. 🎯 or 🔥 when someone nails it. 🫠 when tired of a bad take.
-
-🚫 FORBIDDEN:
-- NO em-dashes (—)
-- NO semicolons
-- NO "I think", "In my opinion", "honestly,", "fair but", "you've got a point"
-- NO multi-clause run-on sentences
-- NO LinkedIn-speak, NO ChatGPT voice
-- NO "Well," or "Actually," openers
-- NO inventing new options (stick to user's question)
-
-Stay in character as {display_name}. Pick ONE side from the user's EXACT options — never "both" or "it depends" or anything the user didn't name."""
+Stay in character as {display_name}. Pick ONE side from the user's EXACT options. Never "both" or "it depends"."""
 
         # Add vibe rules — the "setting" the bees are performing in
         vibe = self.vibe

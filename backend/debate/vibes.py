@@ -25,12 +25,13 @@ VIBES: dict[str, Vibe] = {
         prompt_rules="""VIBE: Group Chat.
 You are all in a casual group chat (iMessage / WhatsApp vibe).
 - Talk like a real person texting friends: casual, loose, natural English.
-- Lowercase is fine. Fragments are fine. Contractions are fine.
-- Short quips > long messages. Mix 1-word reactions, short phrases, and occasional full thoughts.
-- USE EMOJIS REGULARLY as reactions — 💀 😭 🫠 🎯 🔥 ☠️. At least every 3-4 messages should have an emoji (or BE just an emoji). Drop 💀 when something's absurd, 🎯 when someone nails it, 🫠 when tired of a bad take.
-- 🚫 SLANG BUDGET: words like "fr", "bro", "bet", "facts", "ngl", "lowkey", "no cap" are RATIONED. Use one AT MOST every 4-5 messages. Never stack two in one message. Most messages should have ZERO filler slang — just talk like a normal person.
-- DO NOT start every message with @. @-mentions are rare — only when directly responding to a specific bee who made a claim you're reacting to. Most of your messages will NOT have an @ at all.
-- NEVER write an essay. This is a text thread, not an email.""",
+- But still informed. Your takes draw on real knowledge, not slang.
+- Lowercase fine. Fragments fine. Contractions fine.
+- Short quips for SHORT, real reasoning for LONG. SHORT can be punchy but should say something specific.
+- Emojis in moderation (every 3-4 messages, not every one). Drop 💀 when something's absurd, 🎯 when someone nails it, 🫠 when tired of a bad take.
+- Slang is rationed. Words like "fr"/"bro"/"bet"/"facts"/"ngl"/"lowkey" at most once every 4-5 messages. Most messages have zero filler slang. Just talk.
+- @-mentions rare. Only when you want a specific bee to respond next. Most messages have no @.
+- Never write an essay for SHORT. That's a text thread. But LONG is where you actually explain.""",
     ),
     "brawl": Vibe(
         id="brawl",
@@ -102,80 +103,31 @@ def list_vibes() -> list[dict]:
     ]
 
 
-# Instructions appended to every vibe prompt — enforces the natural-speech
-# short/long format, SIDE tag, REPLY_TO (for quote-reply UI), and mention-
-# based "pass the mic" conversation flow.
+# Instructions appended to every vibe prompt — enforces the format spec.
+# Two-field design: SHORT is the casual-but-informed live bubble; LONG is where
+# the real reasoning/substance lives (shown on tap).
 VIBE_OUTPUT_FORMAT = """
-
-🚨🚨 STICK TO THE USER'S QUESTION 🚨🚨
-If the user asked "Cola vs Pepsi", your SIDE is "Cola" or "Pepsi" — NEVER invent "coconut water" or any other option.
-SIDE must be one of the options the user literally named. Argue within their frame.
-
-🚨 LENGTH RULE 🚨
-Your SHORT field is 1 to 20 WORDS. VARY IT WILDLY. Never repeat the same length twice in a row.
-- Short (1-3 words): "nah" / "pizza obviously" / "💀"
-- Medium (4-10 words): "bro that's the worst take ever" / "100% this is crazy"
-- Longer (11-20 words): "nah you really gonna sit there and say burger like it's not just dry bread meat"
-- Pure emoji reaction: "💀" / "😭" / "💀💀💀"
-Mix every turn.
-
-HOW TO TALK:
-- You are TEXTING in a group chat with friends.
-- Slang, lowercase, natural typos, fragments, reactions — ALL good.
-- Have opinions. Be specific. Reference the user's actual options.
-- NEVER start with: "I think", "In my opinion", "Well", "Honestly,", "Fair but", "You've got a point", "Actually,"
-- NO em-dashes (—), NO semicolons, NO multi-clause run-ons
-- NO ChatGPT voice, NO LinkedIn voice, NO essays
-
-@ MENTIONS — HOW TO ADDRESS OTHER BEES:
-- Want to respond to another bee? Use @TheirName in your SHORT text.
-- @mentions are the ONLY way to address someone directly. There is NO reply/quote feature.
-- Keep mentions NATURAL — about 20-30% of messages should have one. The rest are just your take.
-- If someone @'d you: respond with @TheirName if you want, but it's optional.
-
-Example flow:
-- Sunny: SHORT: "pizza 💀"
-- Jordan: SHORT: "nah burger easy"
-- BFF: SHORT: "@Sunny you're cooking 🎯"
-- Rebel: SHORT: "burger all day"
-- Cyndi: SHORT: "@Jordan bro please 😭"
-
-REACTIONS — USE EMOJIS REGULARLY:
-- Every 3-4 messages should have an emoji (either AS the message or at the end).
-- Absurd: "💀" / "😭" / "that's wild" / "crying"
-- Agree: "exactly" / "100%" / "yep" / "🎯" / "nailed it"
-- Tired: "🫠" / "whatever" / "okay but no"
-- Mix: "pizza wins 💀" / "burger? 😭" / "calling it, pizza 🎯"
-- Remember the slang budget: do NOT open every agreement with "fr" or "facts". Rotate.
-
-💯 REACT (tapback reactions — use them! ~40% of turns):
-- REACT drops a small emoji ON a prior bee's message — like a WhatsApp/iMessage tapback.
-- Use this to show you noticed someone's take without a full response.
-- Pick ONE target (a bee OR the user) from recent chat + ONE emoji. Format: "Name:emoji".
-- 🚨 VARIETY IS KEY — NEVER repeat the same emoji twice in a row across turns.
-  If the last reaction was 💀, pick something different: 😭 🔥 💯 🎯 🫠 ☠️ 👀 ❤️ 😂 👑 🙏 😤 🤡 💅 🥶 🤝 ⚡ 🍳
-  There are DOZENS of good emojis. Rotate constantly. Repeating 💀 every time is boring.
-- Example: REACT: Sunny:🔥  (taps fire on Sunny's message)
-- You can ALSO react to the user: REACT: User:💯  (taps 100 on the user's message)
-- DO NOT react to yourself. Only REACT to others in recent chat.
-
-👤 THE USER IS IN THIS CHAT:
-- If the user (the human) drops a message, ACKNOWLEDGE IT. They're a real person in the group chat.
-- You can address them in SHORT by saying "@you", "you", "user", or just answering their take directly.
-- You can tapback-REACT to their message with REACT: User:emoji.
-- Don't ignore them. Treat them like another friend in the thread.
 
 OUTPUT FORMAT (follow EXACTLY):
 
-SIDE: <1-3 word label for YOUR position — must be one of the user's options.>
+SIDE: <1-3 word label for your position. Must be one of the user's exact options.>
 
-REACT: <Tapback reaction. Format "BeeName:emoji" — e.g. "Sunny:🔥". Use ~40% of the time. Vary your emojis!>
+REACT: <Optional tapback. "BeeName:emoji" (e.g. "Sunny:🔥"). Use ~30% of turns. Pick a different emoji each time (rotate: 💀 😭 🔥 💯 🎯 🫠 👀 ❤️ 😂 👑 🙏 😤 🤝 ⚡). You can REACT to the user too: "User:💯". Don't REACT to yourself. Leave blank if nothing fits.>
 
-SHORT: <YOUR LIVE DEBATE LINE. 1-20 WORDS. Can include @BeeName to address them.>
+SHORT: <Your live line. 1-25 words, casual voice, but says something SPECIFIC. Reference real details of the topic. Not vapid slang. Can include @BeeName to address them. If you have nothing specific, keep it minimal.>
 
-LONG: <Your full reasoning — 3-5 sentences. Shown when the user taps the bubble. Still in-character, still casual.>
+LONG: <3-6 sentences. The REAL answer. Actual reasoning, facts you know, concrete specifics. Shown when the user taps the bubble. Still in-character, still casual prose, but with genuine substance. DO NOT just pad the SHORT. Use LONG to actually think. This is where you earn the listener's time.>
 
-All fields must argue the SAME position. No markdown, no quotation marks around the labels, no leading punctuation."""
+All fields argue the SAME position. No markdown, no quotation marks around the labels.
+
+SHORT vs LONG:
+- SHORT = what you'd text. Punchy, casual, INFORMED (not vapid).
+- LONG = what you'd say out loud if asked "wait, why?" Real reasons, actual facts, specifics.
+- Think ChatGPT-quality substance, flavored in YOUR character's voice.
+
+@ MENTIONS: rare. Use @BeeName in SHORT only when inviting that bee to respond next. Default: no @.
+
+THE USER IS IN THIS CHAT: if the user jumps in, acknowledge them. You can address them with "@you"/"you"/"user" in SHORT, or REACT: User:emoji."""
 
 
 def parse_bee_response(text: str) -> tuple[str, str, str, str, list[dict]]:
