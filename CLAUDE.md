@@ -1,5 +1,13 @@
 # Beecision - Project Notes
 
+## ⚠️ Workflow Rule: Commit, Push, Back Up After Every Change
+After every change, in this order:
+1. `git add` + `git commit` the change
+2. `git push origin master`
+3. Run `powershell -ExecutionPolicy Bypass -File backup.ps1` from the repo root
+
+`backup.ps1` writes a dated zip to `C:\Users\micha\beecision-backups\` and keeps only the 20 most recent. Never skip this — it's the user's disaster-recovery policy.
+
 ## What This Is
 A multi-AI debate platform where users pose a question, a "hive" of AI bee personalities discusses it live, and a synthesized verdict is rendered at the end. Each hive is 5 themed bees; conversations are choreographed by a **vibe** (the stage/setting — e.g. Group Chat, Courtroom, Boardroom) that shapes how they speak. Finished debates can be published to a public **Decisions** feed with likes and yes/no polls.
 
