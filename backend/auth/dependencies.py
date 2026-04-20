@@ -58,3 +58,6 @@ async def get_current_user_optional(
         return await get_current_user(credentials)
     except HTTPException:
         return None
+    except Exception:
+        # Database connection errors, etc. - treat as unauthenticated
+        return None

@@ -6,12 +6,9 @@ from backend.providers import ProviderRegistry
 from .service import save_user_fact, save_debate_summary
 
 
-# Preferred models for extraction (fast and cheap)
+# Preferred models for extraction
 EXTRACTION_MODELS = [
-    ("google", "gemini-2.0-flash"),      # Fast and often free
-    ("openai", "gpt-5-mini"),            # Fast
-    ("anthropic", "claude-haiku-4-5-20251001"),  # Fast
-    ("deepseek", "deepseek-chat"),       # Very cheap
+    ("xai", "grok-4-fast-reasoning"),
 ]
 
 

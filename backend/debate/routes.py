@@ -6,8 +6,9 @@ from typing import Dict, Optional
 from fastapi import APIRouter, HTTPException, status, Depends, WebSocket, WebSocketDisconnect
 from pydantic import BaseModel
 from cryptography.fernet import Fernet
-from backend.config import AI_MODELS, ENCRYPTION_KEY, FREE_DEBATE_LIMIT
-from backend.auth.dependencies import get_current_user
+from backend.config import AI_MODELS, ENCRYPTION_KEY, FREE_DEBATE_LIMIT, GUEST_DEBATE_LIMIT
+from backend.auth.dependencies import get_current_user, get_current_user_optional
+from fastapi import Request
 from backend.auth.jwt import verify_token
 from backend.database import get_db, User, Debate, Message
 try:
@@ -26,6 +27,7 @@ except ImportError as e:
     async def get_user_memory_context(user_id): return ""
     async def delete_user_fact(user_id, fact_id): return False
     async def clear_user_memory(user_id): return 0
+from .vibes import list_vibes, extract_short
 from .schemas import (
     CreateDebateRequest,
     DebateResponse,
@@ -105,22 +107,19 @@ def decrypt_api_key(encrypted_key: str) -> str:
 
 
 async def get_user_api_keys(user_id: str) -> dict[str, str]:
-    """Get user's API keys."""
-    async with get_db() as db:
-        cursor = await db.execute(
-            "SELECT provider, api_key_encrypted FROM user_api_keys WHERE user_id = ?",
-            (user_id,)
-        )
-        rows = await cursor.fetchall()
-        keys = {}
-        for row in rows:
-            try:
-                keys[row["provider"]] = decrypt_api_key(row["api_key_encrypted"])
-            except Exception:
-                # Key was encrypted with different key, skip it
-                # User will need to re-enter this key
-                pass
-        return keys
+    """Get app-level API key (xAI only)."""
+    from backend.config import XAI_API_KEY
+    keys = {}
+    if XAI_API_KEY:
+        keys["xai"] = XAI_API_KEY
+    return keys
+
+
+# Vibes endpoint — debate format presets (Group Chat, Brawl, Courtroom, etc.)
+@router.get("/api/vibes")
+async def api_list_vibes():
+    """List all available debate vibes (public endpoint)."""
+    return list_vibes()
 
 
 # Hives endpoints
@@ -240,66 +239,9 @@ async def list_models(current_user: User = Depends(get_current_user)):
     return models
 
 
-# API Keys endpoints
-@router.post("/api/keys/{provider}")
-async def save_api_key(
-    provider: str,
-    request: ApiKeyRequest,
-    current_user: User = Depends(get_current_user)
-):
-    """Save an API key for a provider."""
-    if provider not in AI_MODELS:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Unknown provider: {provider}"
-        )
-
-    try:
-        encrypted_key = encrypt_api_key(request.api_key)
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Encryption error: {str(e)}"
-        )
-
-    try:
-        async with get_db() as db:
-            await db.execute(
-                """INSERT INTO user_api_keys (user_id, provider, api_key_encrypted)
-                   VALUES (?, ?, ?)
-                   ON CONFLICT(user_id, provider) DO UPDATE SET api_key_encrypted = ?""",
-                (current_user.id, provider, encrypted_key, encrypted_key)
-            )
-            await db.commit()
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Database error: {str(e)}"
-        )
-
-    return {"status": "ok", "provider": provider}
-
-
-@router.delete("/api/keys/{provider}")
-async def delete_api_key(
-    provider: str,
-    current_user: User = Depends(get_current_user)
-):
-    """Delete an API key for a provider."""
-    async with get_db() as db:
-        await db.execute(
-            "DELETE FROM user_api_keys WHERE user_id = ? AND provider = ?",
-            (current_user.id, provider)
-        )
-        await db.commit()
-
-    return {"status": "ok", "provider": provider}
-
-
 @router.get("/api/keys", response_model=list[ProviderStatus])
 async def list_configured_providers(current_user: User = Depends(get_current_user)):
     """List all providers and whether they have API keys configured."""
-    # Get keys that can actually be decrypted
     valid_keys = await get_user_api_keys(current_user.id)
     configured = set(valid_keys.keys())
 
@@ -309,61 +251,47 @@ async def list_configured_providers(current_user: User = Depends(get_current_use
     ]
 
 
-@router.post("/api/keys/{provider}/test")
-async def test_api_key(
-    provider: str,
-    current_user: User = Depends(get_current_user)
-):
-    """Test if an API key is valid."""
-    if provider not in AI_MODELS:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Unknown provider: {provider}"
-        )
-
-    api_keys = await get_user_api_keys(current_user.id)
-    if provider not in api_keys:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"No API key configured for {provider}"
-        )
-
-    try:
-        # Special handling for image-only providers
-        if provider == "stability":
-            from backend.custom_hives.dalle_service import check_stability_key_valid
-            is_valid = await check_stability_key_valid(api_keys[provider])
-            return {"valid": is_valid, "provider": provider}
-
-        provider_class = ProviderRegistry.get(provider)
-        provider_instance = provider_class(api_keys[provider])
-        result = await provider_instance.test_connection()
-
-        # Handle both bool and tuple returns
-        if isinstance(result, tuple):
-            is_valid, error_msg = result
-            if error_msg:
-                return {"valid": is_valid, "provider": provider, "error": error_msg}
-            return {"valid": is_valid, "provider": provider}
-        else:
-            return {"valid": result, "provider": provider}
-    except Exception as e:
-        return {"valid": False, "provider": provider, "error": str(e)}
-
-
 # Debates endpoints
 @router.post("/api/debates", response_model=DebateResponse)
 async def create_debate(
     request: CreateDebateRequest,
-    current_user: User = Depends(get_current_user)
+    req: Request,
+    current_user: Optional[User] = Depends(get_current_user_optional)
 ):
     """Create and start a new debate."""
-    # Check if user can create a debate (free users limited to FREE_DEBATE_LIMIT)
-    if not current_user.can_create_debate(FREE_DEBATE_LIMIT):
+    if current_user is None:
+        # Guest user - no server-side limit, tracked by frontend session
+        pass
+    else:
+        # Logged in user - check limits
+        if not current_user.can_create_debate(FREE_DEBATE_LIMIT):
+            raise HTTPException(
+                status_code=status.HTTP_402_PAYMENT_REQUIRED,
+                detail=f"Monthly limit ({FREE_DEBATE_LIMIT} buzzes) reached. Upgrade to Pro for unlimited buzzes!"
+            )
+
+    # Free users cannot attach images
+    if request.images and (current_user is None or current_user.subscription_status != "active"):
         raise HTTPException(
             status_code=status.HTTP_402_PAYMENT_REQUIRED,
-            detail=f"Free trial limit ({FREE_DEBATE_LIMIT} debates) reached. Upgrade to Pro for unlimited debates."
+            detail="Image attachments are a Pro feature. Upgrade to Pro to use images."
         )
+
+    # Determine user_id for this debate
+    if current_user:
+        user_id = current_user.id
+    else:
+        client_ip = req.headers.get("x-forwarded-for", req.client.host if req.client else "unknown").split(",")[0].strip()
+        user_id = f"guest:{client_ip}"
+        # Ensure guest user row exists (for FK constraint)
+        async with get_db() as db:
+            await db.execute(
+                """INSERT INTO users (id, email, password_hash, subscription_status)
+                   VALUES (?, ?, '', 'free')
+                   ON CONFLICT(id) DO NOTHING""",
+                (user_id, f"{client_ip}@guest")
+            )
+            await db.commit()
 
     debate_id = str(uuid.uuid4())
     config_data = request.config.model_dump()
@@ -372,26 +300,33 @@ async def create_debate(
         config_data["images"] = [img.model_dump() for img in request.images]
     config_json = json.dumps(config_data)
 
-    async with get_db() as db:
-        await db.execute(
-            "INSERT INTO debates (id, user_id, topic, config, status) VALUES (?, ?, ?, ?, ?)",
-            (debate_id, current_user.id, request.topic, config_json, "pending")
+    try:
+        async with get_db() as db:
+            await db.execute(
+                "INSERT INTO debates (id, user_id, topic, config, status) VALUES (?, ?, ?, ?, ?)",
+                (debate_id, user_id, request.topic, config_json, "pending")
+            )
+            # Increment debates_used for logged-in free users
+            if current_user and current_user.subscription_status != "active":
+                current_month = current_user.get_current_month()
+                if current_user.debates_reset_month != current_month:
+                    # New month - reset counter
+                    await db.execute(
+                        "UPDATE users SET debates_used = 1, debates_reset_month = ? WHERE id = ?",
+                        (current_month, current_user.id)
+                    )
+                else:
+                    await db.execute(
+                        "UPDATE users SET debates_used = debates_used + 1 WHERE id = ?",
+                        (current_user.id,)
+                    )
+            await db.commit()
+    except Exception as e:
+        print(f"Error creating debate: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Database temporarily unavailable. Please try again."
         )
-        # Increment debates_used for free users
-        if current_user.subscription_status != "active":
-            current_month = current_user.get_current_month()
-            if current_user.debates_reset_month != current_month:
-                # New month - reset counter
-                await db.execute(
-                    "UPDATE users SET debates_used = 1, debates_reset_month = ? WHERE id = ?",
-                    (current_month, current_user.id)
-                )
-            else:
-                await db.execute(
-                    "UPDATE users SET debates_used = debates_used + 1 WHERE id = ?",
-                    (current_user.id,)
-                )
-        await db.commit()
 
     return DebateResponse(
         id=debate_id,
@@ -408,6 +343,13 @@ async def continue_debate(
     current_user: User = Depends(get_current_user)
 ):
     """Continue an existing debate with a new message."""
+    # Free users cannot attach images
+    if request.images and current_user.subscription_status != "active":
+        raise HTTPException(
+            status_code=status.HTTP_402_PAYMENT_REQUIRED,
+            detail="Image attachments are a Pro feature. Upgrade to Pro to use images."
+        )
+
     async with get_db() as db:
         # Verify debate exists and belongs to user
         cursor = await db.execute(
@@ -430,11 +372,14 @@ async def continue_debate(
         existing_messages = await cursor.fetchall()
 
         # Build context from previous messages
+        # Messages may be stored as JSON (new vibe format) or plain text (legacy).
+        # Use extract_short() so only the punchy 2-sentence take goes into context.
         original_topic = debate_row["topic"]
         previous_context = f"Previous conversation:\nUser: {original_topic}\n"
         for msg in existing_messages:
             if msg["round"] > 0:  # Skip summary (round 0)
-                previous_context += f"{msg['model_name']}: {msg['content']}\n"
+                content = extract_short(msg["content"])
+                previous_context += f"{msg['model_name']}: {content}\n"
 
         # Get max round number to continue from
         cursor = await db.execute(
@@ -709,38 +654,46 @@ async def debate_websocket(websocket: WebSocket, debate_id: str):
     """WebSocket endpoint for real-time debate updates."""
     await websocket.accept()
 
-    # Authenticate via token in query params
+    # Authenticate via token in query params (optional for guests)
     token = websocket.query_params.get("token")
-    if not token:
-        await websocket.close(code=4001, reason="Missing authentication token")
-        return
+    user_id = None
+    is_pro = False
 
-    payload = verify_token(token)
-    if not payload:
-        await websocket.close(code=4001, reason="Invalid authentication token")
-        return
+    if token:
+        payload = verify_token(token)
+        if payload:
+            user_id = payload.get("sub")
 
-    user_id = payload.get("sub")
-
-    # Verify debate belongs to user and get subscription status
+    # Verify debate exists and belongs to user (or is a guest debate)
     async with get_db() as db:
-        cursor = await db.execute(
-            "SELECT * FROM debates WHERE id = ? AND user_id = ?",
-            (debate_id, user_id)
-        )
+        if user_id:
+            cursor = await db.execute(
+                "SELECT * FROM debates WHERE id = ? AND user_id = ?",
+                (debate_id, user_id)
+            )
+        else:
+            # Guest - just check debate exists and is a guest debate
+            cursor = await db.execute(
+                "SELECT * FROM debates WHERE id = ? AND user_id LIKE 'guest:%'",
+                (debate_id,)
+            )
         debate_row = await cursor.fetchone()
 
         if not debate_row:
             await websocket.close(code=4004, reason="Debate not found")
             return
 
-        # Get user's subscription status
-        user_cursor = await db.execute(
-            "SELECT subscription_status FROM users WHERE id = ?",
-            (user_id,)
-        )
-        user_row = await user_cursor.fetchone()
-        is_pro = user_row and user_row["subscription_status"] == "active"
+        if user_id:
+            user_cursor = await db.execute(
+                "SELECT subscription_status FROM users WHERE id = ?",
+                (user_id,)
+            )
+            user_row = await user_cursor.fetchone()
+            is_pro = user_row and user_row["subscription_status"] == "active"
+
+        # Use the debate's user_id for guest debates
+        if not user_id:
+            user_id = debate_row["user_id"]
 
     # Add to connections (prevent duplicates)
     if debate_id not in debate_connections:
@@ -765,6 +718,12 @@ async def debate_websocket(websocket: WebSocket, debate_id: str):
         if debate_row["status"] == "pending":
             api_keys = await get_user_api_keys(user_id)
             config = json.loads(debate_row["config"]) if isinstance(debate_row["config"], str) else debate_row["config"]
+
+            # All users use grok-4-fast-reasoning
+            for model in config.get("models", []):
+                model["provider"] = "xai"
+                model["model_id"] = "grok-4-fast-reasoning"
+                model["model_name"] = "Grok 4"
 
             # Extract images from config if present
             images = config.pop("images", None)

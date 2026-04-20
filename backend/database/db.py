@@ -139,6 +139,10 @@ async def init_postgres():
                     user_id TEXT NOT NULL REFERENCES users(id),
                     name TEXT NOT NULL,
                     description TEXT,
+                    visibility TEXT DEFAULT 'private',
+                    tags TEXT,
+                    creator_name TEXT,
+                    color TEXT DEFAULT NULL,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
             """)
@@ -161,6 +165,69 @@ async def init_postgres():
                 )
             """)
             print("Created custom_bees table")
+
+            # Add explore hives columns if missing (for existing tables)
+            for col, default in [("visibility", "'private'"), ("tags", "NULL"), ("creator_name", "NULL"), ("color", "NULL")]:
+                try:
+                    await conn.execute(f"ALTER TABLE custom_hives ADD COLUMN {col} TEXT DEFAULT {default}")
+                except Exception:
+                    pass
+
+            # Add display name columns to users
+            for col, default in [("display_name", "NULL"), ("display_name_changed_at", "NULL")]:
+                try:
+                    await conn.execute(f"ALTER TABLE users ADD COLUMN {col} TEXT DEFAULT {default}")
+                except Exception:
+                    pass
+
+            # Create favorites table
+            await conn.execute("""
+                CREATE TABLE IF NOT EXISTS hive_favorites (
+                    id TEXT PRIMARY KEY,
+                    user_id TEXT NOT NULL REFERENCES users(id),
+                    hive_id TEXT NOT NULL REFERENCES custom_hives(id) ON DELETE CASCADE,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    UNIQUE(user_id, hive_id)
+                )
+            """)
+
+            # Create public decisions table
+            await conn.execute("""
+                CREATE TABLE IF NOT EXISTS public_decisions (
+                    id TEXT PRIMARY KEY,
+                    debate_id TEXT NOT NULL,
+                    user_id TEXT,
+                    topic TEXT NOT NULL,
+                    verdict_json TEXT NOT NULL,
+                    hive_name TEXT,
+                    likes INTEGER DEFAULT 0,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+
+            # Create decision likes table
+            await conn.execute("""
+                CREATE TABLE IF NOT EXISTS decision_likes (
+                    id TEXT PRIMARY KEY,
+                    decision_id TEXT NOT NULL REFERENCES public_decisions(id) ON DELETE CASCADE,
+                    user_id TEXT NOT NULL REFERENCES users(id),
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    UNIQUE(decision_id, user_id)
+                )
+            """)
+
+            # Create decision polls table (agree/disagree)
+            await conn.execute("""
+                CREATE TABLE IF NOT EXISTS decision_polls (
+                    id TEXT PRIMARY KEY,
+                    decision_id TEXT NOT NULL REFERENCES public_decisions(id) ON DELETE CASCADE,
+                    user_id TEXT NOT NULL REFERENCES users(id),
+                    vote TEXT NOT NULL,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    UNIQUE(decision_id, user_id)
+                )
+            """)
+
             print("PostgreSQL initialization complete!")
         except Exception as e:
             print(f"Error creating tables: {e}")
@@ -244,6 +311,10 @@ async def init_sqlite():
                 user_id TEXT NOT NULL,
                 name TEXT NOT NULL,
                 description TEXT,
+                visibility TEXT DEFAULT 'private',
+                tags TEXT,
+                creator_name TEXT,
+                color TEXT DEFAULT NULL,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (user_id) REFERENCES users(id)
             );
@@ -283,6 +354,56 @@ async def init_sqlite():
             await db.execute("ALTER TABLE users ADD COLUMN reset_code_expires TIMESTAMP")
         except Exception:
             pass
+        # Add explore hives columns if missing
+        for col, default in [("visibility", "'private'"), ("tags", "NULL"), ("creator_name", "NULL"), ("color", "NULL")]:
+            try:
+                await db.execute(f"ALTER TABLE custom_hives ADD COLUMN {col} TEXT DEFAULT {default}")
+            except Exception:
+                pass
+        # Add display name columns to users
+        for col, default in [("display_name", "NULL"), ("display_name_changed_at", "NULL")]:
+            try:
+                await db.execute(f"ALTER TABLE users ADD COLUMN {col} TEXT DEFAULT {default}")
+            except Exception:
+                pass
+        # Create favorites table
+        await db.execute("""
+            CREATE TABLE IF NOT EXISTS hive_favorites (
+                id TEXT PRIMARY KEY,
+                user_id TEXT NOT NULL,
+                hive_id TEXT NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(user_id, hive_id),
+                FOREIGN KEY (user_id) REFERENCES users(id),
+                FOREIGN KEY (hive_id) REFERENCES custom_hives(id) ON DELETE CASCADE
+            )
+        """)
+        await db.execute("CREATE INDEX IF NOT EXISTS idx_hive_favorites_user ON hive_favorites(user_id)")
+        await db.execute("CREATE INDEX IF NOT EXISTS idx_hive_favorites_hive ON hive_favorites(hive_id)")
+        # Create public decisions tables
+        await db.execute("""
+            CREATE TABLE IF NOT EXISTS public_decisions (
+                id TEXT PRIMARY KEY,
+                debate_id TEXT NOT NULL,
+                user_id TEXT,
+                topic TEXT NOT NULL,
+                verdict_json TEXT NOT NULL,
+                hive_name TEXT,
+                likes INTEGER DEFAULT 0,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        await db.execute("""
+            CREATE TABLE IF NOT EXISTS decision_likes (
+                id TEXT PRIMARY KEY,
+                decision_id TEXT NOT NULL,
+                user_id TEXT NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(decision_id, user_id),
+                FOREIGN KEY (decision_id) REFERENCES public_decisions(id) ON DELETE CASCADE,
+                FOREIGN KEY (user_id) REFERENCES users(id)
+            )
+        """)
         await db.commit()
 
 

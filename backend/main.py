@@ -1,12 +1,13 @@
 """FastAPI application entry point."""
 import os
 import sys
+import json
 from pathlib import Path
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, HTMLResponse
 
 # Add backend to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -17,6 +18,8 @@ from backend.auth import auth_router
 from backend.debate import debate_router
 from backend.billing import billing_router
 from backend.custom_hives import router as custom_hives_router
+from backend.decisions import decisions_router
+from backend.admin import router as admin_router
 
 
 @asynccontextmanager
@@ -50,6 +53,8 @@ app.include_router(auth_router)
 app.include_router(debate_router)
 app.include_router(billing_router)
 app.include_router(custom_hives_router)
+app.include_router(decisions_router)
+app.include_router(admin_router)
 
 # Serve frontend static files
 frontend_path = Path(__file__).parent.parent / "frontend"
@@ -63,34 +68,37 @@ if (frontend_path / "images").exists():
     app.mount("/images", StaticFiles(directory=frontend_path / "images"), name="images")
 
 
+NO_CACHE_HEADERS = {"Cache-Control": "no-cache, no-store, must-revalidate", "Pragma": "no-cache"}
+
+
 @app.get("/")
 async def serve_app():
     """Serve the main app page."""
-    return FileResponse(frontend_path / "app.html")
+    return FileResponse(frontend_path / "app.html", headers=NO_CACHE_HEADERS)
 
 
 @app.get("/login")
 async def serve_login():
     """Serve the login/signup page."""
-    return FileResponse(frontend_path / "index.html")
+    return FileResponse(frontend_path / "index.html", headers=NO_CACHE_HEADERS)
 
 
 @app.get("/pricing")
 async def serve_pricing():
     """Serve the pricing page."""
-    return FileResponse(frontend_path / "pricing.html")
+    return FileResponse(frontend_path / "pricing.html", headers=NO_CACHE_HEADERS)
 
 
 @app.get("/privacy")
 async def serve_privacy():
     """Serve the privacy policy page."""
-    return FileResponse(frontend_path / "privacy.html")
+    return FileResponse(frontend_path / "privacy.html", headers=NO_CACHE_HEADERS)
 
 
 @app.get("/settings")
 async def serve_settings():
     """Serve the settings page."""
-    return FileResponse(frontend_path / "settings.html")
+    return FileResponse(frontend_path / "settings.html", headers=NO_CACHE_HEADERS)
 
 
 @app.get("/logo.svg")
@@ -145,6 +153,60 @@ async def serve_bee_skeptic():
 async def serve_bee_realist():
     """Serve the realist bee icon."""
     return FileResponse(frontend_path / "bee-realist.png", media_type="image/png")
+
+
+@app.get("/decision/{decision_id}")
+async def serve_decision(decision_id: str):
+    """Serve the main app with OG meta tags for a shared decision."""
+    from backend.database import get_db
+
+    # Try to fetch decision data for OG tags
+    title = "Beecision - Hive Decision"
+    description = "See what the hive decided!"
+
+    try:
+        async with get_db() as db:
+            cursor = await db.execute(
+                "SELECT topic, verdict_json, hive_name FROM public_decisions WHERE id = ?",
+                (decision_id,)
+            )
+            row = await cursor.fetchone()
+            if row:
+                verdict = json.loads(row["verdict_json"]) if row["verdict_json"] else {}
+                topic_title = verdict.get("title") or row["topic"]
+                hive_decision = verdict.get("hive_decision", "")
+                confidence = verdict.get("confidence", "")
+                hive = row["hive_name"] or ""
+
+                title = f"{topic_title} - Beecision"
+                parts = []
+                if hive_decision:
+                    parts.append(f"Hive Decision: {hive_decision}")
+                if confidence:
+                    parts.append(f"{confidence}% confidence")
+                if hive:
+                    parts.append(f"{hive} Hive")
+                description = " · ".join(parts) if parts else "See what the hive decided!"
+    except Exception:
+        pass
+
+    # Read app.html and inject OG tags
+    html_path = Path(__file__).parent.parent / "frontend" / "app.html"
+    html = html_path.read_text(encoding="utf-8")
+
+    og_tags = f'''<meta property="og:title" content="{title.replace('"', '&quot;')}">
+    <meta property="og:description" content="{description.replace('"', '&quot;')}">
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="https://www.beecision.com/decision/{decision_id}">
+    <meta property="og:image" content="https://www.beecision.com/logo.png">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="{title.replace('"', '&quot;')}">
+    <meta name="twitter:description" content="{description.replace('"', '&quot;')}">'''
+
+    # Inject OG tags after the <title> tag
+    html = html.replace("</title>", f"</title>\n    {og_tags}")
+
+    return HTMLResponse(content=html)
 
 
 @app.get("/health")

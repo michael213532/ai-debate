@@ -44,12 +44,17 @@ class CustomHiveCreate(BaseModel):
     name: str = Field(..., min_length=1, max_length=50, description="Hive name")
     description: Optional[str] = Field(None, max_length=200, description="Hive description")
     bees: list[CustomBeeCreate] = Field(..., min_length=2, max_length=5, description="2-5 bees required")
+    visibility: str = Field(default="private", description="'private' or 'public'")
+    tags: Optional[str] = Field(None, max_length=200, description="Comma-separated tags")
+    color: Optional[str] = None
 
 
 class CustomHiveUpdate(BaseModel):
     """Request to update a custom hive."""
     name: Optional[str] = Field(None, min_length=1, max_length=50)
     description: Optional[str] = Field(None, max_length=200)
+    visibility: Optional[str] = Field(None)
+    color: Optional[str] = None
 
 
 class CustomHiveResponse(BaseModel):
@@ -59,6 +64,13 @@ class CustomHiveResponse(BaseModel):
     name: str
     description: Optional[str] = None
     bees: list[CustomBeeResponse] = []
+    visibility: str = "private"
+    tags: Optional[str] = None
+    creator_name: Optional[str] = None
+    color: Optional[str] = None
+    favorite_count: int = 0
+    is_favorited: bool = False
+    is_built_in: bool = False
     created_at: Optional[str] = None
     is_custom: bool = True
 

@@ -65,6 +65,7 @@ class DebateConfig(BaseModel):
     rounds: int = 3
     summarizer_index: Optional[int] = 0  # Index of model to summarize
     previous_context: Optional[str] = None  # Context from continued conversations
+    vibe: Optional[str] = "group-chat"  # Debate vibe (group-chat, brawl, courtroom, boardroom, panel-show)
 
 
 class ImageData(BaseModel):

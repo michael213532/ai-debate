@@ -16,12 +16,22 @@
             align-items: center;
             justify-content: center;
             background: var(--background);
+            padding: 24px;
         }
 
         .auth-container {
             width: 100%;
             max-width: 360px;
-            padding: 24px;
+            margin: 0 auto;
+            text-align: center;
+        }
+
+        .auth-container .form-group {
+            text-align: left;
+        }
+
+        .auth-container .btn {
+            justify-content: center;
         }
 
         .auth-footer {
@@ -191,6 +201,13 @@
             passwordStep.style.display = 'none';
             emailStep.style.display = 'block';
         });
+
+        // Auto-show register form if #register hash
+        if (window.location.hash === '#register') {
+            loginForm.style.display = 'none';
+            passwordStep.style.display = 'none';
+            emailStep.style.display = 'block';
+        }
 
         registerBtn.addEventListener('click', async () => {
             const email = displayEmail.value;

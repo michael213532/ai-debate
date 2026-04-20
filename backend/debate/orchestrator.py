@@ -1,10 +1,18 @@
 """Debate orchestrator - manages the flow of debates."""
 import asyncio
 import json
+import re
 from typing import AsyncGenerator, Callable, Optional
 from backend.providers import ProviderRegistry
 from backend.database import get_db
 from backend.personalities import get_personality, is_special_bee, PERSONALITIES, get_personality_async
+from backend.debate.vibes import (
+    get_vibe,
+    DEFAULT_VIBE,
+    VIBE_OUTPUT_FORMAT,
+    parse_bee_response,
+    extract_short,
+)
 
 
 class DebateOrchestrator:
@@ -33,6 +41,8 @@ class DebateOrchestrator:
         self.summarizer_index = config.get("summarizer_index", 0)
         self.previous_context = config.get("previous_context", None)  # Context from continued conversations
         self.start_round = config.get("start_round", 1)  # Starting round for continuations
+        self.vibe_id = config.get("vibe") or DEFAULT_VIBE
+        self.vibe = get_vibe(self.vibe_id) or get_vibe(DEFAULT_VIBE)
         self.messages: list[dict] = []
         self._stopped = False
         self._paused = False
@@ -157,27 +167,43 @@ class DebateOrchestrator:
                 )
                 await db.commit()
 
-            # Run exactly 1 round for continuations, 3 for new debates
-            round_num = self.start_round
-            # For continuations (start_round > 1), run 1 additional round
-            # For new debates (start_round == 1), run 3 rounds
-            total_rounds = self.start_round if self.start_round > 1 else 3
-
-            while not self._stopped and round_num <= total_rounds:
+            # Tell the frontend which vibe this debate is in so it can pick
+            # the right choreography before any bees start speaking.
+            if self.vibe:
                 await self._broadcast({
-                    "type": "round_start",
-                    "round": round_num,
-                    "total_rounds": total_rounds
+                    "type": "vibe_info",
+                    "vibe": {
+                        "id": self.vibe.id,
+                        "name": self.vibe.name,
+                        "emoji": self.vibe.emoji,
+                    }
                 })
 
-                await self._run_round(round_num)
+            # Vibed debates run as ONE flowing conversation — bees take turns,
+            # each speaking up to N times. Non-vibed debates still run in rounds.
+            if self.vibe:
+                await self._run_vibed_conversation()
+                round_num = 1  # For verdict generation compat
+            else:
+                # Legacy: 3 rounds for both new debates and continuations
+                round_num = self.start_round
+                total_rounds = self.start_round + 2
 
-                await self._broadcast({
-                    "type": "round_end",
-                    "round": round_num
-                })
+                while not self._stopped and round_num <= total_rounds:
+                    await self._broadcast({
+                        "type": "round_start",
+                        "round": round_num,
+                        "total_rounds": total_rounds
+                    })
 
-                round_num += 1
+                    await self._run_round(round_num)
+
+                    await self._broadcast({
+                        "type": "round_end",
+                        "round": round_num
+                    })
+
+                    round_num += 1
 
             # Generate summary if not stopped (disabled - user wants to see individual AI discussions only)
             # if not self._stopped and self.models:
@@ -192,6 +218,32 @@ class DebateOrchestrator:
                         "type": "verdict",
                         "verdict": verdict
                     })
+                    # Save verdict to database for loading later
+                    await self._save_message(
+                        round_num=0,
+                        model_name="verdict",
+                        provider="system",
+                        content=json.dumps(verdict)
+                    )
+                    # Auto-publish to public decisions feed
+                    try:
+                        import uuid
+                        # Get hive name from first personality
+                        hive_name = None
+                        if self.models:
+                            pid = self.models[0].get("personality_id", "")
+                            if pid:
+                                hive_name = pid.split("-")[0].title() if "-" in pid else pid
+                        decision_id = str(uuid.uuid4())
+                        async with get_db() as db:
+                            await db.execute(
+                                """INSERT INTO public_decisions (id, debate_id, user_id, topic, verdict_json, hive_name)
+                                   VALUES (?, ?, ?, ?, ?, ?)""",
+                                (decision_id, self.debate_id, self.user_id, self.topic, json.dumps(verdict), hive_name)
+                            )
+                            await db.commit()
+                    except Exception as e:
+                        print(f"Failed to save public decision: {e}")
 
             # Extract and save memory asynchronously (don't block completion)
             if self.user_id and not self._stopped:
@@ -229,92 +281,70 @@ class DebateOrchestrator:
             })
 
     async def _run_round(self, round_num: int):
-        """Run a single round of the debate."""
-        # Each model responds, building on previous responses
+        """Run a single round of the debate - all bees respond in parallel."""
+        if self._stopped:
+            return
+
+        # Check for user intervention before starting round
+        intervention = await self._check_for_intervention()
+        if intervention:
+            if isinstance(intervention, dict) and intervention.get("type") == "reply_to_bee":
+                reply_content = intervention["content"]
+                target_bee = intervention["target_bee"]
+                self.messages.append({
+                    "round": round_num,
+                    "model_name": "User",
+                    "provider": "user",
+                    "content": reply_content,
+                    "target_bee": target_bee
+                })
+                await self._save_message(
+                    round_num=round_num,
+                    model_name="User",
+                    provider="user",
+                    content=f"[Reply to {target_bee}]: {reply_content}"
+                )
+                await self._broadcast({
+                    "type": "user_intervention",
+                    "content": reply_content,
+                    "round": round_num,
+                    "target_bee": target_bee
+                })
+            else:
+                content = intervention if isinstance(intervention, str) else intervention.get("content", "")
+                self.messages.append({
+                    "round": round_num,
+                    "model_name": "User",
+                    "provider": "user",
+                    "content": content
+                })
+                await self._save_message(
+                    round_num=round_num,
+                    model_name="User",
+                    provider="user",
+                    content=content
+                )
+                await self._broadcast({
+                    "type": "user_intervention",
+                    "content": content,
+                    "round": round_num
+                })
+
+        # Prepare all bee info and broadcast all model_start events
+        bee_tasks = []
         for model_index, model_config in enumerate(self.models):
-            if self._stopped:
-                break
-
-            # Wait while paused (user is composing a reply), auto-resume after 5 min
-            pause_start = asyncio.get_event_loop().time()
-            while self._paused and not self._stopped:
-                await asyncio.sleep(0.2)
-                if asyncio.get_event_loop().time() - pause_start > 300:
-                    self._paused = False
-                    break
-
-            if self._stopped:
-                break
-
-            # Check for user intervention before each model
-            intervention = await self._check_for_intervention()
-            if intervention:
-                # Handle targeted reply vs generic intervention
-                if isinstance(intervention, dict) and intervention.get("type") == "reply_to_bee":
-                    reply_content = intervention["content"]
-                    target_bee = intervention["target_bee"]
-                    # Add targeted reply to messages with target info
-                    self.messages.append({
-                        "round": round_num,
-                        "model_name": "User",
-                        "provider": "user",
-                        "content": reply_content,
-                        "target_bee": target_bee
-                    })
-                    await self._save_message(
-                        round_num=round_num,
-                        model_name="User",
-                        provider="user",
-                        content=f"[Reply to {target_bee}]: {reply_content}"
-                    )
-                    await self._broadcast({
-                        "type": "user_intervention",
-                        "content": reply_content,
-                        "round": round_num,
-                        "target_bee": target_bee
-                    })
-                else:
-                    # Generic intervention (original behavior)
-                    content = intervention if isinstance(intervention, str) else intervention.get("content", "")
-                    self.messages.append({
-                        "round": round_num,
-                        "model_name": "User",
-                        "provider": "user",
-                        "content": content
-                    })
-                    await self._save_message(
-                        round_num=round_num,
-                        model_name="User",
-                        provider="user",
-                        content=content
-                    )
-                    await self._broadcast({
-                        "type": "user_intervention",
-                        "content": content,
-                        "round": round_num
-                    })
-
             provider_name = model_config["provider"]
             model_id = model_config["model_id"]
             model_name = model_config["model_name"]
             role = model_config.get("role", "")
             personality_id = model_config.get("personality_id", None)
 
-            # Check if we have API key for this provider
             if provider_name not in self.api_keys:
-                await self._broadcast({
-                    "type": "model_error",
-                    "model_name": model_name,
-                    "provider": provider_name,
-                    "error": f"No API key configured for {provider_name}"
-                })
                 continue
 
-            # Get display name with personality if set
             display_name = model_name
             role_name = None
             if personality_id:
-                # Use async version to support custom bees
                 if self.user_id:
                     personality = await get_personality_async(self.user_id, personality_id)
                 else:
@@ -323,60 +353,673 @@ class DebateOrchestrator:
                     display_name = personality.human_name
                     role_name = personality.name
 
-            await self._broadcast({
-                "type": "model_start",
-                "model_name": display_name,
+            # Build context - all bees get the same context (previous rounds only)
+            context = self._build_context(round_num, model_index, display_name)
+
+            bee_tasks.append({
+                "provider_name": provider_name,
+                "model_id": model_id,
+                "model_name": model_name,
+                "display_name": display_name,
                 "role_name": role_name,
-                "provider": provider_name,
-                "round": round_num,
-                "personality_id": personality_id
+                "role": role,
+                "personality_id": personality_id,
+                "context": context,
+                "round_num": round_num,
             })
 
+        # Broadcast all model_start events at once
+        for bee in bee_tasks:
+            await self._broadcast({
+                "type": "model_start",
+                "model_name": bee["display_name"],
+                "role_name": bee["role_name"],
+                "provider": bee["provider_name"],
+                "round": round_num,
+                "personality_id": bee["personality_id"]
+            })
+
+        # Max bees allowed on any single side — forces diverse takes.
+        MAX_PER_SIDE = 3
+
+        def _side_tally() -> dict[str, int]:
+            """Return a lowercased tally of round-1 sides from self.messages."""
+            tally: dict[str, int] = {}
+            for m in self.messages:
+                if m.get("round") == round_num and m.get("side"):
+                    s = m["side"].strip().lower()
+                    if s:
+                        tally[s] = tally.get(s, 0) + 1
+            return tally
+
+        def _build_round1_context_with_tally(bee: dict, forbidden: list[str] = None, retry: bool = False) -> str:
+            """Round 1 context that includes prior bees' takes + a strict side cap."""
+            context = ""
+            if self.user_memory_context:
+                context += f"(USER INFO - only reference if relevant: {self.user_memory_context}.)\n\n"
+            if self.previous_context:
+                context += f"BACKGROUND:\n{self.previous_context}\n---\n\n"
+            context += f"USER'S CURRENT MESSAGE: {self.topic}\n\n"
+
+            prior = [m for m in self.messages if m.get("round") == round_num and m.get("personality_id")]
+            if prior:
+                context += "WHAT OTHER BEES HAVE ALREADY SAID THIS ROUND:\n\n"
+                for m in prior:
+                    side_tag = f"[side: {m.get('side', '?')}]" if m.get("side") else ""
+                    context += f"**{m['model_name']}** {side_tag}: {m['content']}\n\n"
+                tally = _side_tally()
+                context += "CURRENT SIDE TALLY:\n"
+                for s, n in sorted(tally.items(), key=lambda x: -x[1]):
+                    context += f"  {s}: {n}\n"
+                context += "\n"
+                if forbidden:
+                    forbidden_str = ", ".join(f'"{f}"' for f in forbidden)
+                    context += (
+                        f"🚨🚨🚨 HARD CONSTRAINT — NO EXCEPTIONS 🚨🚨🚨\n"
+                        f"These sides are FULL and FORBIDDEN: {forbidden_str}.\n"
+                        f"Your SIDE field MUST be something DIFFERENT from those.\n"
+                        f"If you put {forbidden_str} in your SIDE field, your response will be REJECTED and you will be re-queried.\n"
+                        f"Pick a new angle. Be contrarian. Pick the minority side, or invent a third option.\n\n"
+                    )
+                    if retry:
+                        context += (
+                            f"⚠️ THIS IS A RETRY. Your previous answer picked one of the forbidden sides. "
+                            f"You MUST NOT do that again. Pick LITERALLY ANY OTHER SIDE.\n\n"
+                        )
+                else:
+                    context += (
+                        "The debate needs 2+ sides. Feel free to disagree with the prior bees.\n\n"
+                    )
+            else:
+                context += "You're the first bee to speak this round. Pick your genuine take — others will react.\n\n"
+
+            context += "Pick ONE side. NEVER say 'both' or 'it depends'. Commit."
+            return context
+
+        # Run all bees in parallel
+        async def run_single_bee(bee):
             try:
-                # Build context fresh for each model so it includes previous responses
-                context = self._build_context(round_num, model_index, display_name)
-
-                content = await self._get_model_response(
-                    provider_name=provider_name,
-                    model_id=model_id,
-                    model_name=model_name,
-                    role=role,
-                    context=context,
-                    round_num=round_num,
-                    personality_id=personality_id
+                raw_content = await self._get_model_response(
+                    provider_name=bee["provider_name"],
+                    model_id=bee["model_id"],
+                    model_name=bee["model_name"],
+                    role=bee["role"],
+                    context=bee["context"],
+                    round_num=bee["round_num"],
+                    personality_id=bee["personality_id"]
                 )
-
-                # Save message to database (use display_name which includes personality)
+                # Parse SIDE/SHORT/LONG/REPLY_TO/REACTIONS from the AI response
+                side_text, short_text, long_text, reply_to, reactions = parse_bee_response(raw_content)
+                stored_content = json.dumps({
+                    "side": side_text,
+                    "short": short_text,
+                    "long": long_text,
+                    "reply_to": reply_to,
+                    "reactions": reactions,
+                })
                 await self._save_message(
                     round_num=round_num,
-                    model_name=display_name,
-                    provider=provider_name,
-                    content=content
+                    model_name=bee["display_name"],
+                    provider=bee["provider_name"],
+                    content=stored_content
                 )
-
-                # Store for context (use display_name for personality)
+                # For in-memory context building between rounds, use short text
+                # (so bees see each other's punchy take, not the padded long version)
                 self.messages.append({
                     "round": round_num,
-                    "model_name": display_name,
-                    "provider": provider_name,
-                    "content": content,
-                    "personality_id": personality_id
+                    "model_name": bee["display_name"],
+                    "provider": bee["provider_name"],
+                    "content": short_text,
+                    "side": side_text,
+                    "reply_to": reply_to,
+                    "personality_id": bee["personality_id"]
                 })
-
                 await self._broadcast({
                     "type": "model_end",
-                    "model_name": display_name,
-                    "provider": provider_name,
-                    "round": round_num
+                    "model_name": bee["display_name"],
+                    "provider": bee["provider_name"],
+                    "round": round_num,
+                    "side": side_text,
+                    "short": short_text,
+                    "long": long_text,
+                    "reply_to": reply_to,
+                    "reactions": reactions,
                 })
-
             except Exception as e:
                 await self._broadcast({
                     "type": "model_error",
-                    "model_name": display_name,
-                    "provider": provider_name,
+                    "model_name": bee["display_name"],
+                    "provider": bee["provider_name"],
                     "error": str(e)
                 })
+
+        # Round 1 runs SEQUENTIALLY so each bee sees the running side tally.
+        # We validate side BEFORE broadcasting so rejected responses never
+        # reach the frontend (otherwise the frontend's finished-bee lookup
+        # would miss the retry). Round 2+ runs in parallel since each bee
+        # already sees all prior messages regardless.
+        async def _get_bee_once(bee: dict, context: str):
+            raw = await self._get_model_response(
+                provider_name=bee["provider_name"],
+                model_id=bee["model_id"],
+                model_name=bee["model_name"],
+                role=bee["role"],
+                context=context,
+                round_num=bee["round_num"],
+                personality_id=bee["personality_id"],
+            )
+            s, short_t, long_t, reply_to, reactions = parse_bee_response(raw)
+            return raw, s, short_t, long_t, reply_to, reactions
+
+        async def _commit_bee(bee: dict, side_text: str, short_text: str, long_text: str, reply_to: str = "", reactions: list | None = None):
+            reactions = reactions or []
+            stored = json.dumps({
+                "side": side_text,
+                "short": short_text,
+                "long": long_text,
+                "reply_to": reply_to,
+                "reactions": reactions,
+            })
+            await self._save_message(
+                round_num=round_num,
+                model_name=bee["display_name"],
+                provider=bee["provider_name"],
+                content=stored,
+            )
+            self.messages.append({
+                "round": round_num,
+                "model_name": bee["display_name"],
+                "provider": bee["provider_name"],
+                "content": short_text,
+                "side": side_text,
+                "reply_to": reply_to,
+                "personality_id": bee["personality_id"],
+            })
+            await self._broadcast({
+                "type": "model_end",
+                "model_name": bee["display_name"],
+                "provider": bee["provider_name"],
+                "round": round_num,
+                "side": side_text,
+                "short": short_text,
+                "long": long_text,
+                "reply_to": reply_to,
+                "reactions": reactions,
+            })
+
+        if round_num == 1 and len(bee_tasks) > 1:
+            for bee in bee_tasks:
+                if self._stopped:
+                    break
+                try:
+                    tally_before = _side_tally()
+                    forbidden = [s for s, n in tally_before.items() if n >= MAX_PER_SIDE]
+                    context = _build_round1_context_with_tally(bee, forbidden=forbidden)
+                    raw, side_text, short_text, long_text, reply_to, reactions = await _get_bee_once(bee, context)
+
+                    # Retry once if the bee picked a forbidden side
+                    if forbidden and side_text and side_text.strip().lower() in [f.lower() for f in forbidden]:
+                        print(f"[vibes] Rejecting {bee['display_name']} — picked forbidden side '{side_text}', retrying")
+                        context = _build_round1_context_with_tally(bee, forbidden=forbidden, retry=True)
+                        raw, side_text, short_text, long_text, reply_to, reactions = await _get_bee_once(bee, context)
+                        # Last resort: if still forbidden, force onto the minority side
+                        if side_text and side_text.strip().lower() in [f.lower() for f in forbidden]:
+                            known_sides = [m.get("side") for m in self.messages if m.get("side") and m.get("side").strip().lower() not in [f.lower() for f in forbidden]]
+                            fallback_side = known_sides[0] if known_sides else "other"
+                            print(f"[vibes] Forcing {bee['display_name']} onto fallback side '{fallback_side}'")
+                            side_text = fallback_side
+
+                    await _commit_bee(bee, side_text, short_text, long_text, reply_to, reactions)
+                except Exception as e:
+                    await self._broadcast({
+                        "type": "model_error",
+                        "model_name": bee["display_name"],
+                        "provider": bee["provider_name"],
+                        "error": str(e),
+                    })
+        else:
+            await asyncio.gather(*[run_single_bee(bee) for bee in bee_tasks])
+
+    async def _run_vibed_conversation(self):
+        """Run a vibed debate as a flowing conversation.
+
+        No rounds. Each bee speaks up to MAX_SPEAKS_PER_BEE times. Turn picker
+        prioritizes bees who were @-mentioned and haven't responded yet, then
+        round-robins by least-spoken. Max-3-per-side still enforced via retry.
+        """
+        MAX_SPEAKS_PER_BEE = 3
+        MAX_PER_SIDE = 3
+        TOTAL_TURNS_MIN = 8   # Minimum conversation length
+        TOTAL_TURNS_MAX = 12  # Max — keep it short and snappy, not every bee speaks max times
+
+        # Pre-resolve display names for all bees so we can match mentions
+        bee_info: list[dict] = []
+        for model_index, model_config in enumerate(self.models):
+            if model_config["provider"] not in self.api_keys:
+                continue
+            pid = model_config.get("personality_id")
+            display_name = model_config["model_name"]
+            role_name = None
+            if pid:
+                if self.user_id:
+                    p = await get_personality_async(self.user_id, pid)
+                else:
+                    p = get_personality(pid)
+                if p:
+                    display_name = p.human_name
+                    role_name = p.name
+            bee_info.append({
+                "provider_name": model_config["provider"],
+                "model_id": model_config["model_id"],
+                "model_name": model_config["model_name"],
+                "display_name": display_name,
+                "role_name": role_name,
+                "role": model_config.get("role", ""),
+                "personality_id": pid,
+                "model_index": model_index,
+                "first_name": display_name.split()[0] if display_name else "",
+            })
+
+        if not bee_info:
+            return
+
+        import random as _rand_turn
+        speak_counts = {b["personality_id"]: 0 for b in bee_info}
+        last_speaker_pid = None
+        recent_react_emojis = []
+        # Vary total turn count per conversation — feels less mechanical than always 15
+        total_turns = _rand_turn.randint(TOTAL_TURNS_MIN, TOTAL_TURNS_MAX)
+
+        # Natural staggered joining: start with just 2 bees, then a new bee
+        # organically joins every few turns (randomized gap so it doesn't feel
+        # like a mechanical brigade). Each bee that isn't yet active is simply
+        # invisible to the speaker picker until it's added to `active_bees`.
+        shuffled_bees = list(bee_info)
+        _rand_turn.shuffle(shuffled_bees)
+        active_bees = shuffled_bees[:min(2, len(shuffled_bees))]
+        pending_bees = shuffled_bees[len(active_bees):]
+        # Randomized schedule for each remaining bee to join (turn index).
+        # First extra bee joins after 2-3 turns, each subsequent one 2-4 turns
+        # later. Gives the initial 2 bees time to banter before others drop in.
+        join_schedule: dict[int, list[dict]] = {}
+        _next_join_turn = _rand_turn.randint(2, 3)
+        for b in pending_bees:
+            join_schedule.setdefault(_next_join_turn, []).append(b)
+            _next_join_turn += _rand_turn.randint(2, 4)
+
+        def _side_tally() -> dict[str, int]:
+            tally: dict[str, int] = {}
+            for m in self.messages:
+                s = (m.get("side") or "").strip().lower()
+                if s:
+                    tally[s] = tally.get(s, 0) + 1
+            return tally
+
+        def _pending_mention_for(bee: dict) -> bool:
+            """True if this bee was @-mentioned in a message AFTER their last speak."""
+            if not bee["first_name"]:
+                return False
+            mention_re = re.compile(r'@' + re.escape(bee["first_name"]) + r'\b', re.IGNORECASE)
+            # Find the last index where this bee spoke
+            last_idx = -1
+            for i, m in enumerate(self.messages):
+                if m.get("personality_id") == bee["personality_id"]:
+                    last_idx = i
+            # Scan for a mention after that
+            for m in self.messages[last_idx + 1:]:
+                if m.get("personality_id") and m.get("personality_id") != bee["personality_id"]:
+                    if mention_re.search(m.get("content", "") or ""):
+                        return True
+            return False
+
+        import random as _rand
+
+        def _pick_next_speaker():
+            # Only pick from bees that have already "joined" the conversation
+            candidates = [b for b in active_bees if speak_counts[b["personality_id"]] < MAX_SPEAKS_PER_BEE]
+            if not candidates:
+                return None
+            not_last = [b for b in candidates if b["personality_id"] != last_speaker_pid]
+            pool = not_last if not_last else candidates
+
+            pool.sort(key=lambda b: (speak_counts[b["personality_id"]], b["model_index"]))
+
+            # Mentioned bees get 70% priority (up from 50%)
+            pending_mention_bees = [b for b in pool if _pending_mention_for(b)]
+            if pending_mention_bees and _rand.random() < 0.7:
+                return pending_mention_bees[0]
+
+            # Among least-spoken bees (same speak count as top candidate),
+            # pick randomly instead of always first-by-index
+            min_speaks = speak_counts[pool[0]["personality_id"]]
+            tied = [b for b in pool if speak_counts[b["personality_id"]] == min_speaks]
+            return _rand.choice(tied)
+
+        def _build_vibed_context(bee: dict, forbidden: list[str] = None, retry: bool = False) -> str:
+            context = ""
+            if self.user_memory_context:
+                context += f"(USER INFO - only reference if relevant: {self.user_memory_context}.)\n\n"
+            if self.previous_context:
+                context += f"BACKGROUND - {self.previous_context}\n---\n\n"
+            context += f"USER'S QUESTION: {self.topic}\n\n"
+
+            if self.messages:
+                # Show only the last ~6 messages — keeps focus on recent context.
+                recent = self.messages[-6:]
+                context += "RECENT CHAT:\n\n"
+                for m in recent:
+                    if m.get("model_name") == "User":
+                        context += f"  User (the human in this chat): {m.get('content', '')}\n"
+                    else:
+                        side_tag = f" [{m.get('side', '?')}]" if m.get("side") else ""
+                        context += f"  {m.get('model_name')}{side_tag}: {m.get('content', '')}\n"
+
+                # Check how recently the user jumped in — if within last 3 messages,
+                # bees should still be acknowledging them (not just the very next one)
+                last_user_offset = None
+                for i, m in enumerate(reversed(recent)):
+                    if m.get("model_name") == "User":
+                        last_user_offset = i
+                        break
+
+                # Emphasize the very last message so the bee reacts TO IT
+                last = None
+                last_is_user = False
+                for m in reversed(recent):
+                    if m.get("model_name") == "User":
+                        last_is_user = True
+                        last = m
+                        break
+                    if m.get("personality_id"):
+                        last = m
+                        break
+                if last_is_user:
+                    context += (
+                        f"\n🗣️🗣️🗣️ **THE USER JUST JUMPED IN**: \"{last['content']}\"\n"
+                        f"YOU MUST react to what the user said. Options:\n"
+                        f"  - Address them directly in your SHORT (e.g. \"@you real fr\", \"yeah you're right\", \"nah user wrong\")\n"
+                        f"  - Drop a tapback REACT on their message: REACT: User:💯 (or 🔥 😭 🎯 etc)\n"
+                        f"  - Answer their point head-on\n"
+                        f"The user is a real person in this group chat — acknowledge them like a friend would.\n\n"
+                    )
+                elif last_user_offset is not None and last_user_offset <= 2:
+                    # User jumped in recently but another bee already replied.
+                    # Still encourage this bee to chime in on the user's point.
+                    user_msg = next((m for m in reversed(recent) if m.get("model_name") == "User"), None)
+                    if user_msg:
+                        context += (
+                            f"\n🗣️ **The user jumped in a moment ago**: \"{user_msg['content']}\"\n"
+                            f"Other bees are reacting. You can ALSO chime in on their take — "
+                            f"address them (\"@you\", \"user\"), REACT to their message, or build on what they said.\n\n"
+                        )
+                elif last:
+                    context += (
+                        f"\n👆 The most recent message is from **{last['model_name']}**. "
+                        f"If you have a take on what they just said, react to it directly "
+                        f"(set REPLY_TO: {last['model_name']} to quote them, or reference their point in your SHORT). "
+                        f"If you don't have anything to say about it, drop your own take instead.\n\n"
+                    )
+
+                if forbidden:
+                    forbidden_str = ", ".join(f'"{f}"' for f in forbidden)
+                    context += (
+                        f"🚨 SIDE CAP: {forbidden_str} is full. Pick a different side.\n"
+                    )
+                    if retry:
+                        context += "⚠️ RETRY — your previous answer was rejected. Pick a DIFFERENT side.\n"
+                    context += "\n"
+
+                # Check for pending mentions of this bee — OPTIONAL reaction
+                if bee["first_name"]:
+                    mention_re = re.compile(r'@' + re.escape(bee["first_name"]) + r'\b', re.IGNORECASE)
+                    last_self_idx = -1
+                    for i, m in enumerate(self.messages):
+                        if m.get("personality_id") == bee["personality_id"]:
+                            last_self_idx = i
+                    mentioning = [
+                        m for m in self.messages[last_self_idx + 1:]
+                        if m.get("personality_id") and m.get("personality_id") != bee["personality_id"]
+                        and mention_re.search(m.get("content", "") or "")
+                    ]
+                    if mentioning:
+                        latest = mentioning[-1]
+                        context += (
+                            f"🔔 {latest['model_name']} @-mentioned you earlier. "
+                            f"You CAN react with @{latest['model_name']} if you want, but it's optional.\n\n"
+                        )
+            else:
+                context += "You're the first to speak. Drop your take on the question.\n\n"
+
+            context += "Pick ONE side from the user's options. NEVER 'both' or 'it depends'."
+            return context
+
+        async def _get_bee_once(bee: dict, context: str):
+            raw = await self._get_model_response(
+                provider_name=bee["provider_name"],
+                model_id=bee["model_id"],
+                model_name=bee["model_name"],
+                role=bee["role"],
+                context=context,
+                round_num=1,
+                personality_id=bee["personality_id"],
+            )
+            return parse_bee_response(raw)  # (side, short, long, reply_to, reactions)
+
+        async def _commit_turn(bee: dict, side: str, short: str, long: str, reply_to: str = "", reactions: list | None = None):
+            reactions = reactions or []
+            stored = json.dumps({
+                "side": side,
+                "short": short,
+                "long": long,
+                "reply_to": reply_to,
+                "reactions": reactions,
+            })
+            await self._save_message(
+                round_num=1,
+                model_name=bee["display_name"],
+                provider=bee["provider_name"],
+                content=stored,
+            )
+            self.messages.append({
+                "round": 1,
+                "model_name": bee["display_name"],
+                "provider": bee["provider_name"],
+                "content": short,
+                "side": side,
+                "reply_to": reply_to,
+                "personality_id": bee["personality_id"],
+            })
+            await self._broadcast({
+                "type": "model_end",
+                "model_name": bee["display_name"],
+                "provider": bee["provider_name"],
+                "round": 1,
+                "side": side,
+                "short": short,
+                "long": long,
+                "reply_to": reply_to,
+                "reactions": reactions,
+            })
+
+        # Run the conversation
+        turn = 0
+        while turn < total_turns:
+            if self._stopped:
+                break
+
+            # Wait while paused (user is composing a reply)
+            while self._paused and not self._stopped:
+                await asyncio.sleep(0.2)
+
+            # Natural staggered joining: add any bees scheduled to join at this turn.
+            # Their first-time speak will trigger the join-toast on the frontend.
+            if turn in join_schedule:
+                for nb in join_schedule[turn]:
+                    if nb not in active_bees:
+                        active_bees.append(nb)
+
+            # Check for a user intervention (from the reply-to-bee button).
+            # If the user replied to a specific bee, inject a User message
+            # and force that bee to speak next by using them as the speaker.
+            intervention = await self._check_for_intervention()
+            forced_speaker = None
+            if intervention:
+                if isinstance(intervention, dict) and intervention.get("type") == "reply_to_bee":
+                    content = intervention.get("content", "")
+                    target = intervention.get("target_bee", "")
+                    self.messages.append({
+                        "round": 1,
+                        "model_name": "User",
+                        "provider": "user",
+                        "content": content,
+                        "target_bee": target,
+                    })
+                    await self._save_message(
+                        round_num=1,
+                        model_name="User",
+                        provider="user",
+                        content=f"[Reply to {target}]: {content}",
+                    )
+                    await self._broadcast({
+                        "type": "user_intervention",
+                        "content": content,
+                        "round": 1,
+                        "target_bee": target,
+                    })
+                    # Force the targeted bee to speak next (add to active if pending)
+                    for b in bee_info:
+                        if b["display_name"] == target and speak_counts[b["personality_id"]] < MAX_SPEAKS_PER_BEE:
+                            forced_speaker = b
+                            if b not in active_bees:
+                                active_bees.append(b)
+                            break
+                else:
+                    content = intervention if isinstance(intervention, str) else intervention.get("content", "")
+                    self.messages.append({
+                        "round": 1,
+                        "model_name": "User",
+                        "provider": "user",
+                        "content": content,
+                    })
+                    await self._save_message(
+                        round_num=1,
+                        model_name="User",
+                        provider="user",
+                        content=content,
+                    )
+                    await self._broadcast({
+                        "type": "user_intervention",
+                        "content": content,
+                        "round": 1,
+                    })
+                    # Detect @mentions in the message and force that bee next
+                    mention_match = re.search(r'@(\S+)', content)
+                    if mention_match and not forced_speaker:
+                        mname = mention_match.group(1).lower()
+                        for b in bee_info:
+                            if (b["display_name"].lower() == mname
+                                or b["first_name"].lower() == mname
+                                ) and speak_counts[b["personality_id"]] < MAX_SPEAKS_PER_BEE:
+                                forced_speaker = b
+                                if b not in active_bees:
+                                    active_bees.append(b)
+                                break
+
+            speaker = forced_speaker or _pick_next_speaker()
+            if not speaker:
+                break
+
+            # Broadcast model_start for JUST this turn's speaker. Doing it here
+            # (not upfront) means each turn gets its own start/end pair, so the
+            # frontend beeQueue can enqueue and play bees one at a time.
+            await self._broadcast({
+                "type": "model_start",
+                "model_name": speaker["display_name"],
+                "role_name": speaker["role_name"],
+                "provider": speaker["provider_name"],
+                "round": 1,
+                "personality_id": speaker["personality_id"],
+            })
+
+            try:
+                tally = _side_tally()
+                forbidden = [s for s, n in tally.items() if n >= MAX_PER_SIDE]
+                ctx = _build_vibed_context(speaker, forbidden=forbidden)
+                side, short, long, reply_to, reactions = await _get_bee_once(speaker, ctx)
+
+                # Retry once if forbidden side picked
+                if forbidden and side and side.strip().lower() in [f.lower() for f in forbidden]:
+                    print(f"[vibes] Rejecting {speaker['display_name']} — picked forbidden side '{side}', retrying")
+                    ctx = _build_vibed_context(speaker, forbidden=forbidden, retry=True)
+                    side, short, long, reply_to, reactions = await _get_bee_once(speaker, ctx)
+                    if side and side.strip().lower() in [f.lower() for f in forbidden]:
+                        known_sides = [
+                            m.get("side") for m in self.messages
+                            if m.get("side") and m.get("side").strip().lower() not in [f.lower() for f in forbidden]
+                        ]
+                        fallback = known_sides[0] if known_sides else "other"
+                        print(f"[vibes] Forcing {speaker['display_name']} onto fallback side '{fallback}'")
+                        side = fallback
+
+                if reactions:
+                    valid_targets = {
+                        b["display_name"].lower(): b["display_name"]
+                        for b in bee_info
+                        if b["display_name"].lower() != speaker["display_name"].lower()
+                    }
+                    # Allow reacting to the user's messages too
+                    valid_targets["user"] = "User"
+                    valid_targets["you"] = "User"
+                    filtered = []
+                    for r in reactions:
+                        tname = (r.get("target") or "").strip().lower()
+                        resolved = valid_targets.get(tname)
+                        if not resolved:
+                            for key, full in valid_targets.items():
+                                if key.split()[0] == tname.split()[0]:
+                                    resolved = full
+                                    break
+                        if resolved and r.get("emoji"):
+                            filtered.append({"target": resolved, "emoji": r["emoji"]})
+                    reactions = filtered[:1]
+                    if reactions and reactions[0]["emoji"] in recent_react_emojis[-3:]:
+                        reactions = []
+                    if reactions and _rand.random() > 0.60:
+                        reactions = []
+                    if reactions:
+                        recent_react_emojis.append(reactions[0]["emoji"])
+
+                await _commit_turn(speaker, side, short, long, reply_to, reactions)
+                speak_counts[speaker["personality_id"]] += 1
+                last_speaker_pid = speaker["personality_id"]
+
+                # Listening window: randomized pause so user can jump in.
+                # Shorter during fast back-and-forth (consecutive short
+                # messages), longer when the conversation slows down.
+                if turn >= 3 and not self._stopped:
+                    recent_lens = [len(m.get("content", "")) for m in self.messages[-3:] if m.get("personality_id")]
+                    avg_len = sum(recent_lens) / max(len(recent_lens), 1)
+                    if avg_len < 30:
+                        window = _rand.uniform(0.8, 1.5)
+                    else:
+                        window = _rand.uniform(1.8, 3.2)
+                    try:
+                        msg = await asyncio.wait_for(
+                            self._intervention_queue.get(), timeout=window
+                        )
+                        await self._intervention_queue.put(msg)
+                    except asyncio.TimeoutError:
+                        pass
+
+            except Exception as e:
+                print(f"[vibes] Turn {turn} error: {e}")
+                await self._broadcast({
+                    "type": "model_error",
+                    "model_name": speaker["display_name"],
+                    "provider": speaker["provider_name"],
+                    "error": str(e),
+                })
+            turn += 1
 
     async def _get_model_response(
         self,
@@ -417,24 +1060,19 @@ class DebateOrchestrator:
         else:
             images = None
 
-        # Stream response
+        # Stream response — we buffer silently on the server so we can parse
+        # the SHORT/LONG format out before sending it to the client. No raw
+        # chunks are broadcast so the SHORT:/LONG: labels never leak to the UI.
         full_response = ""
         async for chunk in provider.generate_stream(model_id, messages, system_prompt, images):
             if self._stopped:
                 break
             full_response += chunk
-            await self._broadcast({
-                "type": "chunk",
-                "model_name": display_name,
-                "provider": provider_name,
-                "content": chunk,
-                "round": round_num
-            })
 
         return full_response
 
     async def _build_system_prompt(self, model_name: str, role: str, round_num: int, personality_id: str = None) -> str:
-        """Build system prompt for a model, optionally with personality."""
+        """Build system prompt for a model, optionally with personality and vibe."""
 
         # Get personality role if specified
         personality_role = ""
@@ -449,64 +1087,91 @@ class DebateOrchestrator:
                 personality_role = personality.role
                 display_name = personality.human_name
 
-        # FAST MODE (free users) - shorter, quicker responses
-        if self.detail_mode == "fast":
-            if round_num == 1:
-                base_prompt = f"""You are {display_name}. Pick ONE answer - NEVER say "both" or "it depends". Defend your choice in 2-3 sentences. Be direct, be opinionated. No markdown."""
-            else:
-                base_prompt = f"""You are {display_name}. Round {round_num}. Respond to the others in 2-3 sentences. You can agree or push back. Stay with ONE answer - never "both". No markdown."""
-
-        # DETAILED MODE (pro users) - full debate experience
+        # Unified group-chat style prompt for both round 1 and subsequent turns
+        if round_num == 1:
+            turn_context = "You're the first to drop a take on the user's question. Commit."
         else:
-            if round_num == 1:
-                base_prompt = f"""You are {display_name}.
+            turn_context = "You've seen the conversation. React like you're in a real group chat."
 
-You're in a heated debate with other AI personalities. This is ROUND 1 - state your opinion and FIGHT for it.
+        base_prompt = f"""You are {display_name}.
 
-RULES:
-1. PICK ONE ANSWER. Never say "both are good" or "it depends". There's always a winner.
+{turn_context}
 
-2. BE CONFRONTATIONAL: If another AI said something you disagree with, call them out! Say things like "That's ridiculous", "Are you serious?", "That makes no sense because...", "I completely disagree with [name]".
+🚨🚨 STICK TO THE USER'S EXACT QUESTION 🚨🚨
+The user asked a specific question with specific options. DO NOT invent new options or change the framing.
+- If they asked "Cola vs Pepsi", your SIDE must be "Cola" or "Pepsi". NEVER "coconut water", "sparkling water", "neither", or any substitute.
+- If they asked "Pizza or burger", SIDE is "Pizza" or "Burger". Not "tacos".
+- If they asked "Should I quit?", SIDE is "Quit" or "Stay". Not "negotiate".
+NEVER substitute the user's options. Argue within their frame, ONLY using options they literally named.
 
-3. ASK TOUGH QUESTIONS: Challenge other AIs. "But have you considered...?", "How can you say that when...?", "What about...?"
+🚨 LENGTH: 1 to 20 WORDS. VARY WILDLY. Don't repeat the same length twice in a row.
+- 1 word: "nah" / "exactly" / "hard pass" / "💀"
+- A pair: "pizza obviously" / "hot take" / "that's wild"
+- A sentence: "pizza has an objectively wider flavor range", "you really said burger with a straight face"
+- Pure emoji: "💀" / "😭" / "🫠"
 
-4. MOCK BAD ARGUMENTS: If someone says something silly, playfully roast them. Be witty. Be sarcastic if needed.
+🎯 TALK LIKE AN ACTUAL HUMAN, NOT A TIKTOK AI:
+- Reference the actual topic — real details, not abstract concepts.
+- Roast bad takes, cosign good ones, BUT do it like a person texting, not a caricature.
+- Slang is SEASONING, not the whole meal. Most of your messages should be plain casual English — contractions, fragments, lowercase, but NOT filler slang.
 
-5. FIGHT FOR YOUR POSITION: Don't back down easily. Defend your choice with passion. You believe you're RIGHT.
+🚫 SLANG BUDGET — DO NOT OVERUSE THESE:
+Words like "fr", "bro", "bet", "facts", "ngl", "fr fr", "lowkey", "no cap" are RATIONED.
+- Use ONE of them at MOST every 4-5 messages — and NEVER two in the same message.
+- If the last thing you said already used "fr" or "bro", DO NOT use it again for a while.
+- Most of your messages should have ZERO filler slang. Just talk.
+- BAD (overused slang): "fr burger wins", "bro pizza is fire", "facts fr", "ngl bro fr"
+- GOOD (natural): "pizza objectively wins", "burger? really?", "this take is genuinely wild", "nah that's a stretch", "calling it now, pizza"
 
-6. BE HUMAN: Talk like real people argue - with emotion, personality, and occasional humor. Not robotic.
+🔁 REPLY_TO (QUOTE TOOL — this is separate from mentions):
+If your message is a direct reaction to ONE earlier message, put that bee's human_name in the REPLY_TO field.
+This shows a small quote of their message above yours — like iMessage reply-to.
+Blank REPLY_TO = you're just dropping your own take, not reacting to anyone specific.
 
-7. BE CONCISE: 3-6 sentences max. Punch hard, not long.
+@ MENTION (PASS-THE-MIC TOOL — different from REPLY_TO):
+@-mentions in your SHORT text = INVITING that bee to speak NEXT.
+- Use @BeeName when you want that bee to respond to you immediately after.
+- Mentions are INVITATIONS. If you @ someone, they speak next and reply to you.
+- If someone @-mentioned YOU (see the 🔔 notice below if present), you MUST respond with their @name and react.
 
-8. NO AGREEING EASILY: Do NOT say "great point" or "I agree with everyone". Fight first.
+Example conversation flow:
+  Turn 1 — Sunny: REPLY_TO blank, SHORT: "pizza 💀"
+  Turn 2 — Jordan: REPLY_TO "Sunny", SHORT: "@BFF thoughts on this?" (quotes Sunny, passes mic to BFF)
+  Turn 3 — BFF: REPLY_TO "Jordan", SHORT: "@Jordan burger obviously 🎯" (responds to Jordan)
 
-9. NO MARKDOWN: Plain text only, no ** or * or #."""
+Default: No @-mentions. Just drop your take. Only mention when you genuinely want a specific bee to answer.
+REPLY_TO is fine to use anytime you're reacting to an earlier message.
 
-            else:
-                base_prompt = f"""You are {display_name}.
+🔥 EMOJIS — USE THEM:
+You MUST include emojis regularly. At least every 3-4 messages should have an emoji (either AS the message or at the end).
+- Pure emoji SHORT: "💀" / "😭" / "🫠" / "💀💀💀" / "🎯"
+- Emoji-in-message: "pizza wins 💀" / "bro 😭" / "100% 🎯" / "burger? 🫠"
+- Use 💀 or 😭 when a take is absurd. 🎯 or 🔥 when someone nails it. 🫠 when tired of a bad take.
 
-This is ROUND {round_num}. You've heard what others think. Respond naturally like a real person would.
+🚫 FORBIDDEN:
+- NO em-dashes (—)
+- NO semicolons
+- NO "I think", "In my opinion", "honestly,", "fair but", "you've got a point"
+- NO multi-clause run-on sentences
+- NO LinkedIn-speak, NO ChatGPT voice
+- NO "Well," or "Actually," openers
+- NO inventing new options (stick to user's question)
 
-RULES:
-1. BE YOURSELF: You might agree if someone made a killer point. Or you might double down on your position. Do what feels right.
+Stay in character as {display_name}. Pick ONE side from the user's EXACT options — never "both" or "it depends" or anything the user didn't name."""
 
-2. IF YOU AGREE: Say it naturally. "Actually [name], that's a good point, I'm changing my mind because..." or "Okay you convinced me"
+        # Add vibe rules — the "setting" the bees are performing in
+        vibe = self.vibe
+        if vibe:
+            base_prompt += f"\n\n{vibe.prompt_rules}"
 
-3. IF YOU DISAGREE: Keep fighting! "Nah I still think..." or "That doesn't change anything because..."
-
-4. BE HUMAN: Some people are stubborn, some change their minds easily. Be natural, not robotic.
-
-5. RESPOND TO SPECIFIC POINTS: Reference what others actually said. "When [name] said X, I thought..."
-
-6. BE CONCISE: 3-6 sentences max.
-
-7. NO MARKDOWN: Plain text only, no ** or * or #."""
-
-        # Add personality role if specified
+        # Add personality role if specified — this is how the bee acts in the vibe
         if personality_role:
-            base_prompt += f"\n\n{personality_role}"
+            base_prompt += f"\n\nYOUR CHARACTER:\n{personality_role}"
         elif role:
             base_prompt += f"\n\nYour perspective/role: {role}"
+
+        # Add the SHORT/LONG output format spec last so it's the final instruction
+        base_prompt += VIBE_OUTPUT_FORMAT
 
         return base_prompt
 
@@ -532,8 +1197,9 @@ RULES:
         current_model_name = current_display_name or (self.models[model_index]["model_name"] if model_index < len(self.models) else "")
 
         if round_num == 1:
-            # Round 1: Each AI responds independently - don't show other round 1 responses
-            # This ensures each AI forms their own genuine opinion first
+            # Round 1 runs sequentially via _build_round1_context_with_tally,
+            # which re-builds the context for each bee. This path is only hit
+            # for the first bee in round 1 (no prior takes yet) or continuations.
             if self.previous_context:
                 context += "The user is following up on a previous conversation. Pick ONE answer. NEVER say 'both are good' or 'it depends' - make a clear choice."
             else:
@@ -553,8 +1219,47 @@ RULES:
                         # Other bees see it as context but less urgently
                         context += f"**User** (replying to {target}): {msg['content']}\n\n"
                 else:
-                    context += f"**{msg['model_name']}**: {msg['content']}\n\n"
-            context += "---\nRespond to the discussion. You can agree, disagree, or partially agree - whatever feels natural based on the arguments."
+                    side_tag = f" [side: {msg.get('side', '?')}]" if msg.get("side") else ""
+                    context += f"**{msg['model_name']}**{side_tag}: {msg['content']}\n\n"
+
+            # If other bees have @-mentioned the CURRENT bee, flag it so they
+            # can respond directly. Match on the first token of the display name
+            # to handle multi-word names like "Devil's Advocate" → "@Devil".
+            first_name = (current_model_name or "").split()[0] if current_model_name else ""
+            if first_name:
+                mention_re = re.compile(r'@' + re.escape(first_name) + r'\b', re.IGNORECASE)
+                mentioning = [
+                    m for m in self.messages
+                    if m.get("content") and m.get("model_name") != current_model_name
+                    and m.get("personality_id")  # Only bees, not user messages
+                    and mention_re.search(m["content"])
+                ]
+                if mentioning:
+                    latest = mentioning[-1]
+                    context += f"\n🔔 {latest['model_name']} @-mentioned you earlier. You CAN react if you want, but it's optional.\n"
+                    for m in mentioning[-3:]:
+                        context += f"  → {m['model_name']}: \"{m['content']}\"\n"
+                    context += (
+                        f"\nIf you feel like responding, use @{latest['model_name']}. "
+                        f"Otherwise just drop your own take like normal — not every mention needs an answer.\n\n"
+                    )
+
+            # Compute current side tally across all rounds and tell this bee about it
+            tally: dict[str, int] = {}
+            for msg in self.messages:
+                s = (msg.get("side") or "").strip().lower()
+                if s:
+                    tally[s] = tally.get(s, 0) + 1
+            if tally:
+                context += "CURRENT SIDE TALLY (all rounds combined):\n"
+                for s, n in sorted(tally.items(), key=lambda x: -x[1]):
+                    context += f"  {s}: {n}\n"
+                maxed = [s for s, n in tally.items() if n >= 3]
+                if maxed:
+                    context += f"\n⚠️ {maxed} already has 3+ bees agreeing. Consider switching to the minority side if you can justify it — keep the debate alive.\n"
+                context += "\n"
+
+            context += "---\nRespond like you're in a group chat. React to specific bees by @-mentioning them. You can agree, flip, or double down — whatever feels real."
 
         return context
 
@@ -679,12 +1384,9 @@ GUIDELINES:
         if len(latest_responses) < 2:
             return False
 
-        # Find a fast model to check agreement
+        # Find a model to check agreement
         check_models = [
-            ("google", "gemini-2.0-flash"),
-            ("openai", "gpt-5-mini"),
-            ("anthropic", "claude-haiku-4-5-20251001"),
-            ("deepseek", "deepseek-chat"),
+            ("xai", "grok-4-fast-reasoning"),
         ]
 
         provider_name = None
@@ -747,13 +1449,9 @@ Do all AIs agree? Reply ONLY with AGREE or DISAGREE."""
         if not self.messages or len(self.messages) < 2:
             return None
 
-        # Find a fast model to generate verdict (ordered by speed)
+        # Find a model to generate verdict
         verdict_models = [
-            ("google", "gemini-2.0-flash"),  # Fastest
-            ("deepseek", "deepseek-chat"),   # Very fast
-            ("openai", "gpt-4o-mini"),       # Fast
-            ("xai", "grok-3-mini"),          # Fast
-            ("anthropic", "claude-haiku-4-5-20251001"),
+            ("xai", "grok-4-fast-reasoning"),
         ]
 
         provider_name = None
@@ -787,12 +1485,13 @@ Do all AIs agree? Reply ONLY with AGREE or DISAGREE."""
             system_prompt = f"""Output ONLY valid JSON. Extract each AI's FINAL choice and reason from their response.
 
 Example format:
-{{"votes":[{{"name":"Analyst","choice":"Pizza","reason":"Better value and more variety"}},{{"name":"Skeptic","choice":"Burger","reason":"Higher quality ingredients"}}],"hive_decision":"Pizza"}}
+{{"title":"honestly just get pizza","votes":[{{"name":"Analyst","choice":"Pizza","reason":"way better value"}},{{"name":"Skeptic","choice":"Burger","reason":"pizza gets boring fast"}}],"hive_decision":"Pizza"}}
 
 Rules:
+- "title" = how a regular person would sum up this whole debate in a casual text message. ALL LOWERCASE. 3-7 words. Natural speech. NO perfect grammar. NO colons. NO "the great ___ debate" tabloid style. NO title case. Should feel like a friend texting you their hot take after hearing both sides. Examples: "just get the pizza", "honestly nah don't do it", "both kinda mid", "team burger wins easy", "quit the job fr", "don't overthink it", "nah stay put". Must relate to the actual topic.
 - Extract the ACTUAL final answer each AI chose (e.g., "Pizza", "Option A", "Yes", "iPhone 15")
-- "reason" = 1 short sentence explaining WHY they chose it (max 12 words)
-- Use their personality name (Analyst, Expert, Optimist, Skeptic, Realist)
+- "reason" = the bee's actual take in plain-person speech. 1 line, max 15 words. Casual. No ChatGPT-speak. Lowercase is fine.
+- Use each AI's EXACT name as shown (e.g., "Sunny", "Murphy", "BFF") — do NOT rename them
 - Each AI appears ONLY ONCE (their FINAL position after debate)
 - hive_decision = the answer with most votes
 - If tied, pick the one argued most convincingly
@@ -842,15 +1541,27 @@ Generate verdict JSON (votes and hive_decision only):"""
                     verdict["confidence"] = confidence
 
                 # Enrich votes with bee personality description
-                for vote in votes:
+                for i, vote in enumerate(votes):
                     vote_name = vote.get("name", "").lower()
+                    matched = False
                     # Match by human_name across all models in this debate
                     for model in self.models:
                         pid = model.get("personality_id", "")
                         p = get_personality(pid)
                         if p and p.human_name.lower() == vote_name:
+                            vote["name"] = p.human_name
                             vote["description"] = p.description
+                            vote["emoji"] = p.emoji
+                            matched = True
                             break
+                    # Fallback: match by position if name didn't match any bee
+                    if not matched and i < len(self.models):
+                        pid = self.models[i].get("personality_id", "")
+                        p = get_personality(pid)
+                        if p:
+                            vote["name"] = p.human_name
+                            vote["description"] = p.description
+                            vote["emoji"] = p.emoji
 
             return verdict
 

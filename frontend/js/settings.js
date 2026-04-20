@@ -46,41 +46,6 @@ const PROVIDER_NAMES = Object.fromEntries(
     Object.entries(PROVIDER_INFO).map(([k, v]) => [k, v.name])
 );
 
-// Open settings modal
-function openSettingsModal() {
-    // Close any open dropdowns first
-    document.querySelectorAll('.mobile-profile-dropdown.open').forEach(d => d.classList.remove('open'));
-    document.querySelectorAll('.profile-dropdown.open').forEach(d => d.classList.remove('open'));
-
-    const modal = document.getElementById('settings-modal');
-    modal.classList.add('active');
-    document.body.style.overflow = 'hidden';
-    loadRoleAssignments();
-}
-
-// Close settings modal
-function closeSettingsModal() {
-    const modal = document.getElementById('settings-modal');
-    modal.classList.remove('active');
-    document.body.style.overflow = '';
-}
-
-// Modal done button
-document.getElementById('settings-done-btn').addEventListener('click', closeSettingsModal);
-
-// Close on overlay click
-document.getElementById('settings-modal').addEventListener('click', (e) => {
-    if (e.target === e.currentTarget) {
-        closeSettingsModal();
-    }
-});
-
-// Close on Escape key
-document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') {
-        closeSettingsModal();
-    }
-});
 
 // Load provider settings
 async function loadProviderSettings() {
@@ -101,6 +66,12 @@ async function loadProviderSettings() {
 // Render provider list
 function renderProviderList(providers) {
     const list = document.getElementById('provider-list');
+    const isPro = window.subscriptionStatus?.status === 'active';
+
+    // Free users only see xAI (and stability for bee icons)
+    if (!isPro) {
+        providers = providers.filter(p => p.provider === 'xai' || p.provider === 'stability');
+    }
 
     list.innerHTML = providers.map(provider => {
         const info = PROVIDER_INFO[provider.provider] || { name: provider.provider, description: '', keyUrl: '#', keyHelp: '' };
@@ -266,95 +237,6 @@ async function deleteApiKey(provider) {
 
 // ============== ROLE ASSIGNMENTS ==============
 
-// Load and render role assignments
-function loadRoleAssignments() {
-    const container = document.getElementById('role-assignments');
-    if (!container) return;
-
-    // Get current hive and special bees from app.js globals
-    const allHives = window.allHives || [];
-    const selectedHiveId = localStorage.getItem('selectedHive') || 'chaos';
-    const selectedSpecialBees = (() => {
-        try {
-            const saved = localStorage.getItem('selectedSpecialBees');
-            return saved ? JSON.parse(saved) : [];
-        } catch (e) {
-            return [];
-        }
-    })();
-    const allSpecialBees = window.allSpecialBees || [];
-
-    // Get current hive
-    const hive = allHives.find(h => h.id === selectedHiveId);
-
-    // Build personalities list: hive bees + selected special bees
-    let personalities = [];
-    if (hive) {
-        personalities = [...hive.personalities];
-    }
-    selectedSpecialBees.forEach(specialId => {
-        const specialBee = allSpecialBees.find(b => b.id === specialId);
-        if (specialBee && !personalities.find(p => p.id === specialBee.id)) {
-            personalities.push(specialBee);
-        }
-    });
-
-    if (personalities.length === 0) {
-        container.innerHTML = '<p style="color: var(--text-secondary);">Select a hive to see available bees.</p>';
-        return;
-    }
-
-    // Get configured models (from global in app.js)
-    const models = (window.availableModels || []).filter(m =>
-        window.configuredProviders && window.configuredProviders.has(m.provider)
-    );
-
-    // Get saved role assignments
-    const savedRoles = getRoleAssignments();
-
-    // Show hive name at top
-    const hiveHeader = hive ? `
-        <div style="margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid var(--border-color);">
-            <span style="font-size: 0.9rem; color: var(--text-secondary);">Current Hive:</span>
-            <span style="font-weight: 600; color: var(--text-primary); margin-left: 8px;">${hive.name}</span>
-        </div>
-    ` : '';
-
-    container.innerHTML = hiveHeader + personalities.map(p => {
-        const savedModelId = savedRoles[p.id];
-        const isSpecial = p.is_special || selectedSpecialBees.includes(p.id);
-        return `
-            <div class="role-assignment-card ${isSpecial ? 'special' : ''}" data-role="${p.id}">
-                <div class="role-emoji">${p.emoji}</div>
-                <div class="role-main">
-                    <div class="role-header">
-                        <div class="role-name-group">
-                            <div class="role-human-name">${p.human_name || p.name}${isSpecial ? ' <span style="font-size: 0.7rem; color: var(--primary-color);">(Add-on)</span>' : ''}</div>
-                            <div class="role-title">${p.name}</div>
-                        </div>
-                        <div class="role-description">${p.description}</div>
-                    </div>
-                    <select class="role-model-select" data-role="${p.id}">
-                        <option value="">Auto-assign</option>
-                        ${models.map(m => `
-                            <option value="${m.provider}:${m.id}" ${savedModelId === `${m.provider}:${m.id}` ? 'selected' : ''}>
-                                ${m.name}
-                            </option>
-                        `).join('')}
-                    </select>
-                </div>
-            </div>
-        `;
-    }).join('');
-
-    // Add change listeners to save immediately
-    container.querySelectorAll('.role-model-select').forEach(select => {
-        select.addEventListener('change', () => {
-            saveRoleAssignment(select.dataset.role, select.value);
-        });
-    });
-}
-
 // Get role assignments from localStorage
 function getRoleAssignments() {
     try {
@@ -364,25 +246,6 @@ function getRoleAssignments() {
         return {};
     }
 }
-
-// Save a single role assignment
-function saveRoleAssignment(roleId, modelKey) {
-    const assignments = getRoleAssignments();
-    if (modelKey) {
-        assignments[roleId] = modelKey;
-    } else {
-        delete assignments[roleId];
-    }
-    localStorage.setItem('roleAssignments', JSON.stringify(assignments));
-}
-
-// Reset all role assignments
-document.getElementById('reset-roles-btn')?.addEventListener('click', () => {
-    if (confirm('Reset all role assignments to auto-assign?')) {
-        localStorage.removeItem('roleAssignments');
-        loadRoleAssignments();
-    }
-});
 
 // Get the model for a specific personality (used by startDebateWithPersonalities)
 function getModelForPersonality(personalityId, fallbackModels) {
@@ -407,4 +270,3 @@ function getModelForPersonality(personalityId, fallbackModels) {
 // Make functions globally available
 window.getRoleAssignments = getRoleAssignments;
 window.getModelForPersonality = getModelForPersonality;
-window.loadRoleAssignments = loadRoleAssignments;

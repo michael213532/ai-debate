@@ -1,11 +1,11 @@
 /* CSS Variables - Light Theme (Default) */
 :root {
-    --primary-color: #6366f1;
-    --primary-hover: #4f46e5;
+    --primary-color: #ea580c;
+    --primary-hover: #c2410c;
     --secondary-color: #64748b;
     --success-color: #22c55e;
     --error-color: #ef4444;
-    --warning-color: #f59e0b;
+    --warning-color: #facc15;
     --background: #ffffff;
     --bg-color: #ffffff;
     --surface: #f8fafc;
@@ -174,7 +174,7 @@ a:hover {
 
 .btn-primary {
     background-color: var(--primary-color);
-    color: white;
+    color: #1a1a1a;
 }
 
 .btn-primary:hover {
@@ -378,7 +378,7 @@ a:hover {
 
 .model-checkbox.selected {
     border-color: var(--primary-color);
-    background-color: rgba(99, 102, 241, 0.1);
+    background-color: rgba(250, 204, 21, 0.1);
 }
 
 .model-checkbox.disabled {
@@ -418,7 +418,7 @@ a:hover {
 .model-checkbox.selected .checkmark {
     background-color: var(--primary-color);
     border-color: var(--primary-color);
-    color: white;
+    color: #1a1a1a;
     font-size: 0.8rem;
 }
 
@@ -514,7 +514,7 @@ a:hover {
 
 .panel-status.speaking {
     background-color: var(--primary-color);
-    color: white;
+    color: #1a1a1a;
     animation: pulse 1.5s infinite;
 }
 
@@ -733,7 +733,7 @@ a:hover {
 .get-key-btn {
     display: inline-block;
     background: var(--primary-color);
-    color: white !important;
+    color: #1a1a1a !important;
     font-size: 0.9rem;
     font-weight: 600;
     padding: 8px 16px;
@@ -760,8 +760,8 @@ a:hover {
 
 /* Pro Badge */
 .pro-badge {
-    background: linear-gradient(135deg, var(--primary-color), #8b5cf6);
-    color: white;
+    background: linear-gradient(135deg, var(--primary-color), #c2410c);
+    color: #1a1a1a;
     font-size: 0.65rem;
     padding: 2px 6px;
     border-radius: 4px;
@@ -900,13 +900,13 @@ a:hover {
 }
 
 .subscription-badge.pro {
-    background-color: rgba(99, 102, 241, 0.2);
+    background-color: rgba(250, 204, 21, 0.2);
     color: var(--primary-color);
 }
 
 .upgrade-banner {
-    background: linear-gradient(135deg, var(--primary-color) 0%, #8b5cf6 100%);
-    color: white;
+    background: linear-gradient(135deg, var(--primary-color) 0%, #c2410c 100%);
+    color: #1a1a1a;
     padding: 12px 20px;
     border-radius: var(--border-radius);
     margin-bottom: 16px;
@@ -1015,6 +1015,55 @@ a:hover {
         padding: 5px 10px;
         font-size: 0.8rem;
     }
+
+    .upgrade-banner {
+        flex-direction: column;
+        text-align: center;
+        gap: 10px;
+        padding: 12px 16px;
+    }
+
+    .models-grid {
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    }
+
+    .debate-status-bar {
+        flex-direction: column;
+        gap: 8px;
+        padding: 12px;
+    }
+
+    .model-panel {
+        max-height: 400px;
+    }
+
+    .summary-panel {
+        padding: 16px;
+    }
+
+    .modal {
+        width: 100%;
+        max-width: 100%;
+        max-height: 100vh;
+        height: 100vh;
+        border-radius: 0;
+        margin: 0;
+    }
+
+    .provider-item .api-key-input {
+        min-width: 0;
+        width: 100%;
+    }
+
+    .personality-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+
+    .personality-model-name {
+        min-width: auto;
+    }
 }
 
 /* Toast Notifications */
@@ -1034,7 +1083,8 @@ a:hover {
     z-index: 10000;
     opacity: 0;
     transition: transform 0.3s ease, opacity 0.3s ease;
-    max-width: 500px;
+    max-width: min(500px, calc(100vw - 32px));
+    box-sizing: border-box;
 }
 
 .toast-notification.show {
@@ -1045,7 +1095,7 @@ a:hover {
 .toast-notification.toast-warning {
     background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
     border: 2px solid var(--warning-color);
-    box-shadow: 0 4px 20px rgba(245, 158, 11, 0.2);
+    box-shadow: 0 4px 20px rgba(250, 204, 21, 0.2);
 }
 
 [data-theme="dark"] .toast-notification.toast-warning {

@@ -179,6 +179,27 @@
             </div>
 
             <div class="settings-section">
+                <h2>Response Mode</h2>
+                <p>Choose how detailed the bee responses should be.</p>
+
+                <div class="setting-row">
+                    <label class="setting-label" for="mode-select">Mode</label>
+                    <div class="setting-description">Fast gives quick 2-3 sentence responses. Detailed provides in-depth analysis (Pro only).</div>
+                    <select id="mode-select" class="setting-select">
+                        <option value="normal">⚡ Fast</option>
+                        <option value="detailed">🔬 Detailed (Pro)</option>
+                    </select>
+                </div>
+
+                <div id="mode-save-notice" class="save-notice">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M20 6L9 17l-5-5"/>
+                    </svg>
+                    Settings saved
+                </div>
+            </div>
+
+            <div class="settings-section">
                 <h2>Summary Settings</h2>
                 <p>Choose which voice generates the final summary after discussions.</p>
 
@@ -242,6 +263,40 @@
 
         // Initialize
         loadPersonalities();
+
+        // Response mode select
+        const modeSelect = document.getElementById('mode-select');
+        const savedMode = localStorage.getItem('detailMode') || 'normal';
+        modeSelect.value = savedMode;
+
+        // Check if user is Pro
+        async function checkProStatus() {
+            try {
+                const res = await fetch(`${API_BASE}/api/subscription/status`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    return data.plan === 'pro';
+                }
+            } catch (e) {}
+            return false;
+        }
+
+        let settingsUserIsPro = false;
+        checkProStatus().then(isPro => { settingsUserIsPro = isPro; });
+
+        modeSelect.addEventListener('change', () => {
+            if (modeSelect.value === 'detailed' && !settingsUserIsPro) {
+                modeSelect.value = 'normal';
+                alert('Detailed mode requires a Pro subscription.');
+                return;
+            }
+            localStorage.setItem('detailMode', modeSelect.value);
+            const notice = document.getElementById('mode-save-notice');
+            notice.classList.add('show');
+            setTimeout(() => notice.classList.remove('show'), 2000);
+        });
 
         // Save on change
         const summarizerSelect = document.getElementById('summarizer-select');

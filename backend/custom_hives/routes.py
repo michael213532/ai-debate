@@ -4,7 +4,7 @@ from fastapi import APIRouter, HTTPException, status, Depends, BackgroundTasks
 from pydantic import BaseModel
 from typing import Optional
 
-from backend.auth.dependencies import get_current_user
+from backend.auth.dependencies import get_current_user, get_current_user_optional
 from backend.database import get_db, User
 from .schemas import (
     CustomHiveCreate,
@@ -44,30 +44,18 @@ async def get_custom_hive_count(user_id: str) -> int:
 
 
 async def get_user_api_key(user_id: str, provider: str) -> Optional[str]:
-    """Get user's API key for a specific provider."""
-    from backend.debate.routes import decrypt_api_key
-
-    async with get_db() as db:
-        cursor = await db.execute(
-            "SELECT api_key_encrypted FROM user_api_keys WHERE user_id = ? AND provider = ?",
-            (user_id, provider)
-        )
-        row = await cursor.fetchone()
-        if row:
-            try:
-                return decrypt_api_key(row["api_key_encrypted"])
-            except Exception:
-                return None
-        return None
+    """Get app-level API key for a specific provider."""
+    from backend.config import XAI_API_KEY
+    if provider == "xai":
+        return XAI_API_KEY or None
+    return None
 
 
 async def get_user_openai_key(user_id: str) -> Optional[str]:
-    """Get user's OpenAI API key for DALL-E generation."""
     return await get_user_api_key(user_id, "openai")
 
 
 async def get_user_stability_key(user_id: str) -> Optional[str]:
-    """Get user's Stability AI API key for image generation."""
     return await get_user_api_key(user_id, "stability")
 
 
@@ -218,6 +206,10 @@ async def list_custom_hives(current_user: User = Depends(get_current_user)):
                 name=hive_row["name"],
                 description=hive_row["description"],
                 bees=bees,
+                visibility=hive_row["visibility"] or "private",
+                tags=hive_row["tags"],
+                creator_name=hive_row["creator_name"],
+                color=hive_row["color"] if "color" in hive_row.keys() else None,
                 created_at=str(hive_row["created_at"]) if hive_row["created_at"] else None,
                 is_custom=True
             ))
@@ -258,9 +250,12 @@ async def create_custom_hive(
 
     async with get_db() as db:
         # Create hive
+        visibility = request.visibility if request.visibility in ("public", "private") else "private"
+        tags = request.tags.strip() if request.tags else None
+        creator_name = (current_user.display_name or current_user.email.split("@")[0]) if visibility == "public" else None
         await db.execute(
-            "INSERT INTO custom_hives (id, user_id, name, description) VALUES (?, ?, ?, ?)",
-            (hive_id, current_user.id, request.name, request.description)
+            "INSERT INTO custom_hives (id, user_id, name, description, visibility, tags, creator_name, color) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+            (hive_id, current_user.id, request.name, request.description, visibility, tags, creator_name, request.color)
         )
 
         # Create bees
@@ -316,9 +311,167 @@ async def create_custom_hive(
         name=request.name,
         description=request.description,
         bees=bees,
+        visibility=visibility,
+        tags=tags,
+        creator_name=creator_name,
+        color=request.color,
         created_at=None,
         is_custom=True
     )
+
+
+@router.get("/explore", response_model=list[CustomHiveResponse])
+async def explore_public_hives(
+    q: str = "",
+    tag: str = "",
+    sort: str = "popular",
+    current_user: Optional[User] = Depends(get_current_user_optional)
+):
+    """Browse all public hives with favorite counts. Optional auth for is_favorited."""
+    user_id = current_user.id if current_user else None
+
+    async with get_db() as db:
+        # Base query with favorite count
+        base = """SELECT ch.*, COALESCE(fav.cnt, 0) as favorite_count
+                  FROM custom_hives ch
+                  LEFT JOIN (SELECT hive_id, COUNT(*) as cnt FROM hive_favorites GROUP BY hive_id) fav
+                  ON ch.id = fav.hive_id
+                  WHERE ch.visibility = 'public'"""
+
+        params = []
+        if q:
+            base += " AND (LOWER(ch.name) LIKE ? OR LOWER(ch.description) LIKE ? OR LOWER(ch.tags) LIKE ?)"
+            params.extend([f"%{q.lower()}%"] * 3)
+        elif tag:
+            base += " AND LOWER(ch.tags) LIKE ?"
+            params.append(f"%{tag.lower()}%")
+
+        if sort == "popular":
+            base += " ORDER BY favorite_count DESC, ch.created_at DESC"
+        else:
+            base += " ORDER BY ch.created_at DESC"
+        base += " LIMIT 100"
+
+        cursor = await db.execute(base, params)
+        hive_rows = await cursor.fetchall()
+
+        # Get user's favorites if logged in
+        user_favorites = set()
+        if user_id:
+            fav_cursor = await db.execute("SELECT hive_id FROM hive_favorites WHERE user_id = ?", (user_id,))
+            user_favorites = {r["hive_id"] for r in await fav_cursor.fetchall()}
+
+        hives = []
+        for hive_row in hive_rows:
+            bee_cursor = await db.execute(
+                "SELECT * FROM custom_bees WHERE hive_id = ? ORDER BY display_order",
+                (hive_row["id"],)
+            )
+            bee_rows = await bee_cursor.fetchall()
+            bees = [
+                CustomBeeResponse(
+                    id=bee["id"], hive_id=bee["hive_id"], name=bee["name"],
+                    human_name=bee["human_name"], emoji=bee["emoji"] or "🐝",
+                    description=bee["description"], role=bee["role"],
+                    icon_base64=bee["icon_base64"],
+                    icon_generation_status=bee["icon_generation_status"] or "pending",
+                    display_order=bee["display_order"] or 0,
+                    created_at=str(bee["created_at"]) if bee["created_at"] else None
+                ) for bee in bee_rows
+            ]
+            hives.append(CustomHiveResponse(
+                id=hive_row["id"], user_id=hive_row["user_id"],
+                name=hive_row["name"], description=hive_row["description"],
+                bees=bees, visibility="public", tags=hive_row["tags"],
+                creator_name=hive_row["creator_name"],
+                color=hive_row["color"] if "color" in hive_row.keys() else None,
+                favorite_count=hive_row["favorite_count"],
+                is_favorited=hive_row["id"] in user_favorites,
+                created_at=str(hive_row["created_at"]) if hive_row["created_at"] else None,
+                is_custom=True
+            ))
+        return hives
+
+
+@router.get("/favorites", response_model=list[CustomHiveResponse])
+async def list_favorites(current_user: User = Depends(get_current_user)):
+    """List user's favorited hives."""
+    async with get_db() as db:
+        cursor = await db.execute(
+            """SELECT ch.*, COALESCE(fav_count.cnt, 0) as favorite_count
+               FROM hive_favorites hf
+               JOIN custom_hives ch ON hf.hive_id = ch.id
+               LEFT JOIN (SELECT hive_id, COUNT(*) as cnt FROM hive_favorites GROUP BY hive_id) fav_count
+               ON ch.id = fav_count.hive_id
+               WHERE hf.user_id = ?
+               ORDER BY hf.created_at DESC""",
+            (current_user.id,)
+        )
+        hive_rows = await cursor.fetchall()
+
+        hives = []
+        for hive_row in hive_rows:
+            bee_cursor = await db.execute(
+                "SELECT * FROM custom_bees WHERE hive_id = ? ORDER BY display_order",
+                (hive_row["id"],)
+            )
+            bee_rows = await bee_cursor.fetchall()
+            bees = [
+                CustomBeeResponse(
+                    id=bee["id"], hive_id=bee["hive_id"], name=bee["name"],
+                    human_name=bee["human_name"], emoji=bee["emoji"] or "🐝",
+                    description=bee["description"], role=bee["role"],
+                    icon_base64=bee["icon_base64"],
+                    icon_generation_status=bee["icon_generation_status"] or "pending",
+                    display_order=bee["display_order"] or 0,
+                    created_at=str(bee["created_at"]) if bee["created_at"] else None
+                ) for bee in bee_rows
+            ]
+            hives.append(CustomHiveResponse(
+                id=hive_row["id"], user_id=hive_row["user_id"],
+                name=hive_row["name"], description=hive_row["description"],
+                bees=bees, visibility=hive_row["visibility"] or "public",
+                tags=hive_row["tags"], creator_name=hive_row["creator_name"],
+                color=hive_row["color"] if "color" in hive_row.keys() else None,
+                favorite_count=hive_row["favorite_count"],
+                is_favorited=True,
+                created_at=str(hive_row["created_at"]) if hive_row["created_at"] else None,
+                is_custom=True
+            ))
+        return hives
+
+
+@router.post("/{hive_id}/favorite")
+async def toggle_favorite(hive_id: str, current_user: User = Depends(get_current_user)):
+    """Toggle favorite on a public hive."""
+    async with get_db() as db:
+        # Check hive exists and is public
+        cursor = await db.execute(
+            "SELECT id FROM custom_hives WHERE id = ? AND visibility = 'public'", (hive_id,)
+        )
+        if not await cursor.fetchone():
+            raise HTTPException(status_code=404, detail="Public hive not found")
+
+        # Check if already favorited
+        cursor = await db.execute(
+            "SELECT id FROM hive_favorites WHERE user_id = ? AND hive_id = ?",
+            (current_user.id, hive_id)
+        )
+        existing = await cursor.fetchone()
+
+        if existing:
+            await db.execute("DELETE FROM hive_favorites WHERE user_id = ? AND hive_id = ?",
+                             (current_user.id, hive_id))
+            await db.commit()
+            return {"favorited": False}
+        else:
+            fav_id = str(uuid.uuid4())
+            await db.execute(
+                "INSERT INTO hive_favorites (id, user_id, hive_id) VALUES (?, ?, ?)",
+                (fav_id, current_user.id, hive_id)
+            )
+            await db.commit()
+            return {"favorited": True}
 
 
 @router.get("/{hive_id}", response_model=CustomHiveResponse)
@@ -370,6 +523,10 @@ async def get_custom_hive(
             name=hive_row["name"],
             description=hive_row["description"],
             bees=bees,
+            visibility=hive_row["visibility"] or "private",
+            tags=hive_row["tags"],
+            creator_name=hive_row["creator_name"],
+            color=hive_row["color"] if "color" in hive_row.keys() else None,
             created_at=str(hive_row["created_at"]) if hive_row["created_at"] else None,
             is_custom=True
         )
@@ -405,6 +562,12 @@ async def update_custom_hive(
         if request.description is not None:
             updates.append("description = ?")
             params.append(request.description)
+        if request.visibility is not None and request.visibility in ("public", "private"):
+            updates.append("visibility = ?")
+            params.append(request.visibility)
+        if request.color is not None:
+            updates.append("color = ?")
+            params.append(request.color)
 
         if updates:
             params.append(hive_id)
@@ -733,3 +896,5 @@ async def regenerate_bee_icon(
             display_order=bee_row["display_order"] or 0,
             created_at=str(bee_row["created_at"]) if bee_row["created_at"] else None
         )
+
+

@@ -12,9 +12,325 @@ let selectedImages = []; // Array of { base64: string, media_type: string, dataU
 let lastSentMessage = null; // Track last message for retry functionality
 const MAX_IMAGES = 10;
 
+// Track which bees have made their "big entrance" in this debate session.
+// First-appearance gets the @EVERYONE slam; later appearances just pop in normally.
+let seenBeesThisSession = new Set();
+function resetSessionBeeEntrances() {
+    seenBeesThisSession = new Set();
+}
+window.resetSessionBeeEntrances = resetSessionBeeEntrances;
+
 // Reply-to-bee state
 let replyTargetBee = null;       // { name, personalityId }
 let debatePausedForReply = false; // Whether debate is paused waiting for reply
+
+// Sequential bee display — bees respond in parallel but we show one at a time
+// Simple approach: buffer ALL responses silently, play back one by one with typewriter
+const beeQueue = {
+    bees: [],              // { modelName, provider, personalityId, roleName, text: '', finished: false, error: null }
+    playing: false,        // Currently playing back
+    stopped: false,        // User hit stop
+    _timer: null,
+    _pendingVerdict: null,
+    _pendingDebateEnd: false,
+
+    reset() {
+        this.stop();
+        this.bees = [];
+        this.playing = false;
+        this.stopped = false;
+        this._pendingVerdict = null;
+        this._pendingDebateEnd = false;
+        // Clear any prior debate's roster strip so the next debate rebuilds it
+        // with the currently-selected hive.
+        if (typeof resetBeeRoster === 'function') resetBeeRoster();
+    },
+
+    stop() {
+        if (this._timer) { clearInterval(this._timer); this._timer = null; }
+        // Clean up any streaming bubbles
+        const c = document.getElementById('chat-messages');
+        if (c) c.querySelectorAll('.message.ai-individual.streaming').forEach(m => m.classList.remove('streaming'));
+        // Render pending verdict/debate-end immediately if stopping early
+        if (this._pendingVerdict) {
+            const v = this._pendingVerdict;
+            this._pendingVerdict = null;
+            renderHiveVerdict(v);
+        }
+        if (this._pendingDebateEnd) {
+            this._pendingDebateEnd = false;
+            _handleDebateEnd();
+        }
+    },
+
+    enqueue(modelName, provider, personalityId, roleName) {
+        // Don't add duplicate bee in same round
+        if (!this.bees.find(b => b.modelName === modelName && !b.finished)) {
+            this.bees.push({
+                modelName, provider, personalityId, roleName,
+                side: '', short: '', long: '', replyTo: '', reactions: [], text: '',
+                finished: false, error: null
+            });
+        }
+    },
+
+    addChunk(modelName, text) {
+        // Legacy path — backend no longer streams raw chunks for vibed debates,
+        // but older models may still stream. Append so we have fallback text.
+        const bee = this.bees.find(b => b.modelName === modelName && !b.finished);
+        if (bee) bee.text += text;
+    },
+
+    setResponse(modelName, short, long, side, replyTo, reactions) {
+        const bee = this.bees.find(b => b.modelName === modelName && !b.finished);
+        if (bee) {
+            bee.short = short || '';
+            bee.long = long || '';
+            bee.side = side || '';
+            bee.replyTo = replyTo || '';
+            bee.reactions = Array.isArray(reactions) ? reactions : [];
+        }
+    },
+
+    finishBee(modelName) {
+        const bee = this.bees.find(b => b.modelName === modelName && !b.finished);
+        if (bee) {
+            bee.finished = true;
+            // If no short was received, fall back to the raw chunk buffer.
+            if (!bee.short && bee.text) bee.short = bee.text;
+        }
+        // Check if all bees in this batch are done — if so, start playback
+        this._checkAllDone();
+    },
+
+    errorBee(modelName, error) {
+        const bee = this.bees.find(b => b.modelName === modelName && !b.finished);
+        if (bee) { bee.error = error; bee.finished = true; }
+        this._checkAllDone();
+    },
+
+    _checkAllDone() {
+        if (this.playing || this.stopped) return;
+        if (this.bees.length > 0 && this.bees.every(b => b.finished)) {
+            this._playAll();
+        } else if (this.bees.length === 0) {
+            // No bees queued and not playing — flush any pending verdict/debate_end
+            this._flushPending();
+        }
+    },
+
+    async _playAll() {
+        this.playing = true;
+        let beesToPlay = [...this.bees];
+        this.bees = []; // Clear for next round
+
+        // Remove thinking spinner once bees start appearing
+        hideBuzzThinking();
+
+        // Apply the active debate vibe to the chat container so CSS picks up
+        // the right choreography for bubbles, typing pills, reactions, etc.
+        const vibe = window._currentDebateVibe || window.selectedVibeId || 'group-chat';
+        const chatC = document.getElementById('chat-messages');
+        if (chatC) chatC.dataset.vibe = vibe;
+
+        // Build the persistent bee roster strip above the chat if this is a
+        // group-chat vibe. Shows all hive members with idle blink; pulses when
+        // it's their turn to speak. Safe to call multiple times — idempotent.
+        if (vibe === 'group-chat') ensureBeeRoster();
+
+        // Interleave by side for Group Chat — still used to avoid 3+ same-side
+        // bees in a row. Skip during replay so the original bubble order is
+        // preserved (otherwise the replay feels like a different debate).
+        let classifySide = null;
+        if (vibe === 'group-chat') {
+            const sideInfo = assignBeeSides(beesToPlay);
+            classifySide = sideInfo.classify;
+            if (!this._replayMode) {
+                beesToPlay = interleaveBeesBySide(beesToPlay);
+            }
+        }
+
+        for (const bee of beesToPlay) {
+            if (this.stopped) break;
+
+            if (bee.error) {
+                addAiDiscussionError(bee.modelName, bee.error);
+                await this._wait(600);
+                continue;
+            }
+
+            const isFirstEntrance = !seenBeesThisSession.has(bee.modelName);
+            seenBeesThisSession.add(bee.modelName);
+
+            const iconPath = bee.personalityId
+                ? getBeeIconPath(bee.personalityId)
+                : '/images/bee-icons/default bee icon.png?v=3';
+
+            const sideClass = classifySide ? classifySide(bee.side) : null;
+
+            // Variable typing delay — makes timing feel human, not robotic
+            const typingDelay = 900 + Math.floor(Math.random() * 1400); // 900-2300ms
+
+            rosterMarkTyping(bee.modelName);
+
+            if (isFirstEntrance) {
+                // Non-blocking Discord-style join toast + small beat, then typing pill
+                await this._playEntranceSlam(bee.modelName, iconPath, bee.personalityId);
+                if (this.stopped) break;
+                const pill = addBeeTypingPill(bee.modelName, bee.personalityId, iconPath, sideClass);
+                updateChatStatus(`${bee.modelName} is typing...`);
+                await this._wait(typingDelay);
+                if (pill) pill.remove();
+                if (this.stopped) break;
+            } else {
+                // Typing pill shows for a variable beat
+                const pill = addBeeTypingPill(bee.modelName, bee.personalityId, iconPath, sideClass);
+                updateChatStatus(`${bee.modelName} is typing...`);
+                await this._wait(typingDelay);
+                if (pill) pill.remove();
+                if (this.stopped) break;
+            }
+
+            // Drop the bubble with the already-buffered short text.
+            const shortText = bee.short || bee.text || '';
+            const longText = bee.long || '';
+            const msgEl = addAiDiscussionMessage(
+                bee.modelName,
+                bee.provider,
+                shortText,
+                bee.personalityId,
+                bee.roleName,
+                longText,
+                sideClass,
+                bee.replyTo
+            );
+            finishAiDiscussion(bee.modelName);
+
+            // WhatsApp-style tapback: drop reaction chips UNDER the messages
+            // this bee reacted to, with a tiny stagger so they feel "dropped"
+            // instead of appearing instantly.
+            if (Array.isArray(bee.reactions) && bee.reactions.length) {
+                for (const r of bee.reactions) {
+                    addReactionChip(r.target, r.emoji, bee.modelName, bee.personalityId);
+                }
+                // Stash the reactor's reactions on their own bubble so
+                // replayDebate can faithfully re-fire them.
+                if (msgEl) {
+                    try { msgEl.dataset.reactions = JSON.stringify(bee.reactions); } catch (_) {}
+                }
+            }
+
+            // Mark this bee as "spoken" in the roster strip (no longer idle)
+            rosterMarkSpoken(bee.modelName);
+
+            // Read-receipt transition: bubble lands as "unread" (grey), then
+            // flips to "read" (light honey) after a beat.
+            if (msgEl) {
+                msgEl.classList.add('unread');
+                setTimeout(() => {
+                    msgEl.classList.remove('unread');
+                    msgEl.classList.add('read');
+                }, 1000);
+            }
+
+            // Variable inter-bee pacing — sometimes snappy, sometimes slow beat
+            const gap = 700 + Math.floor(Math.random() * 1600);  // 700-2300ms
+            await this._wait(gap);
+        }
+        this.playing = false;
+        // Check if more bees arrived while we were playing (next round)
+        this._checkAllDone();
+        // If no more bees to play, flush pending verdict and debate_end
+        this._flushPending();
+    },
+
+    _playEntranceSlam(beeName, iconPath, personalityId) {
+        // Discord-style bottom-right join toast. Non-blocking: the toast stays
+        // on screen for ~3s while the bee's bubble drops in normally.
+        const colors = personalityId && window.getPersonalityColor
+            ? window.getPersonalityColor(personalityId)
+            : null;
+        const accent = colors && colors.border ? colors.border : '#fde047';
+
+        let stack = document.getElementById('bee-join-toast-stack');
+        if (!stack) {
+            stack = document.createElement('div');
+            stack.id = 'bee-join-toast-stack';
+            stack.className = 'bee-join-toast-stack';
+            document.body.appendChild(stack);
+        }
+
+        const toast = document.createElement('div');
+        toast.className = 'bee-join-toast';
+        toast.style.setProperty('--bee-accent', accent);
+        toast.innerHTML = `
+            <img class="bee-join-toast-avatar" src="${iconPath}" alt="" onerror="this.src='/images/bee-icons/default bee icon.png?v=3'">
+            <div class="bee-join-toast-text">
+                <span class="bee-join-toast-everyone">@everyone</span>
+                <div><span class="bee-join-toast-name">${escapeHtml(beeName)}</span><span class="bee-join-toast-action">has joined the chat</span></div>
+            </div>
+        `;
+        stack.appendChild(toast);
+        setTimeout(() => { toast.remove(); }, 3100);
+        // Brief beat so the toast is visible before the bubble lands
+        return new Promise(resolve => setTimeout(resolve, 350));
+    },
+
+    _getStreamingMsg(modelName) {
+        const c = document.getElementById('chat-messages');
+        return c ? c.querySelector(`.message.ai-individual[data-model="${CSS.escape(modelName)}"].streaming`) : null;
+    },
+
+    _typewrite(modelName, fullText) {
+        return new Promise(resolve => {
+            let i = 0;
+            const CHARS = 4;
+            const MS = 12;
+            this._timer = setInterval(() => {
+                if (this.stopped || i >= fullText.length) {
+                    clearInterval(this._timer);
+                    this._timer = null;
+                    // If stopped early, dump remaining text
+                    if (i < fullText.length) {
+                        const msg = this._getStreamingMsg(modelName);
+                        if (msg) {
+                            const content = msg.querySelector('.message-content');
+                            if (content) content.textContent += fullText.slice(i);
+                        }
+                    }
+                    resolve();
+                    return;
+                }
+                const end = Math.min(i + CHARS, fullText.length);
+                const msg = this._getStreamingMsg(modelName);
+                if (msg) {
+                    const content = msg.querySelector('.message-content');
+                    if (content) content.textContent += fullText.slice(i, end);
+                    scrollToBottom(document.getElementById('chat-messages'));
+                }
+                i = end;
+            }, MS);
+        });
+    },
+
+    _flushPending() {
+        // Only flush if truly idle (not playing, no bees waiting)
+        if (this.playing || this.bees.length > 0) return;
+        if (this._pendingVerdict) {
+            const v = this._pendingVerdict;
+            this._pendingVerdict = null;
+            renderHiveVerdict(v);
+        }
+        if (this._pendingDebateEnd) {
+            this._pendingDebateEnd = false;
+            _handleDebateEnd();
+        }
+    },
+
+    _wait(ms) {
+        return new Promise(r => setTimeout(r, ms));
+    }
+};
 
 // Vision-capable models (all others cannot see images)
 const VISION_MODELS = new Set([
@@ -134,36 +450,35 @@ document.getElementById('send-btn').addEventListener('click', () => {
     }
 });
 
-// Stop the current discussion
+// Stop the current discussion — stops playback, keeps what's shown, unlocks input
 function stopDiscussion() {
     if (chatWebSocket && chatWebSocket.readyState === WebSocket.OPEN) {
         chatWebSocket.send(JSON.stringify({ type: 'stop' }));
         chatWebSocket.close();
     }
-    updateChatStatus('Discussion stopped');
+    chatWebSocket = null;
+    beeQueue.stopped = true;
+    beeQueue.stop();
+    isProcessing = false;
+    updateChatStatus('');
     setInputLocked(false);
+
+    // Allow continuing from this point
+    window.continuingDebateId = currentSessionId;
+
+    // Hide the stop button
+    const stopBtn = document.getElementById('floating-stop-btn');
+    if (stopBtn) stopBtn.classList.remove('visible');
 }
 
-// Add image button - opens file picker directly
-document.getElementById('add-image-btn').addEventListener('click', () => {
-    document.getElementById('image-input').click();
-});
-
-// Export PDF button
-document.getElementById('export-pdf-btn').addEventListener('click', () => {
-    // Check if user is Pro
+// Add image button - opens file picker directly (Pro only)
+document.getElementById('add-image-btn').addEventListener('click', (e) => {
+    e.stopPropagation();
     if (subscriptionStatus?.status !== 'active') {
-        alert('Export to PDF is a Pro feature. Upgrade to Pro for unlimited exports.');
+        alert('Image attachments are a Pro feature. Upgrade to Pro to attach images.');
         return;
     }
-
-    // Check if there's a session to export
-    if (!currentSessionId) {
-        alert('Start a conversation first to export it as PDF.');
-        return;
-    }
-
-    exportToPdf();
+    document.getElementById('image-input').click();
 });
 
 // Image file selected
@@ -245,10 +560,11 @@ async function sendMessage() {
     // Hide export button for new session
     hideExportButton();
 
-    // Clear empty state if present
+    // Hide empty state if present
     const emptyState = document.querySelector('.empty-chat');
     if (emptyState) {
-        emptyState.remove();
+        emptyState.style.display = 'none';
+        emptyState._hiddenForChat = true;
     }
 
     // Add user message to chat (with images if present)
@@ -265,12 +581,26 @@ async function sendMessage() {
     input.value = '';
     input.style.height = 'auto';
 
+    // Show thinking spinner under question bubble
+    showBuzzThinking();
+
     // Update status
     updateChatStatus('Starting discussion...');
 
     try {
+        // Free users: force all models to grok-3-mini
+        if (subscriptionStatus?.status !== 'active') {
+            selectedModels = selectedModels.map(m => ({
+                ...m,
+                provider: 'xai',
+                model_id: 'grok-3-mini',
+                model_name: 'Grok 3 Mini'
+            }));
+        }
+
         const summarizerIndex = getSummarizerIndex(selectedModels);
         let session;
+        let retried = false;
 
         // Check if we're continuing an existing conversation
         if (window.continuingDebateId) {
@@ -283,7 +613,8 @@ async function sendMessage() {
                 config: {
                     models: selectedModels,
                     rounds: 1,
-                    summarizer_index: summarizerIndex
+                    summarizer_index: summarizerIndex,
+                    vibe: window.selectedVibeId || 'group-chat'
                 }
             };
 
@@ -320,7 +651,8 @@ async function sendMessage() {
                     models: selectedModels,
                     rounds: 1,
                     summarizer_index: summarizerIndex,
-                    detail_mode: detailMode
+                    detail_mode: detailMode,
+                    vibe: window.selectedVibeId || 'group-chat'
                 }
             };
 
@@ -340,10 +672,31 @@ async function sendMessage() {
                 return;
             }
 
-            if (!response.ok) throw new Error('Failed to start session');
-
-            session = await response.json();
-            currentSessionId = session.id;
+            if (!response.ok) {
+                // Auto-retry once on server errors (503, 500, etc.)
+                if (response.status >= 500 && !retried) {
+                    console.log('[sendMessage] Server error, retrying...');
+                    retried = true;
+                    await new Promise(r => setTimeout(r, 1000));
+                    const retryResponse = await fetch(`${API_BASE}/api/debates`, {
+                        method: 'POST',
+                        headers: getAuthHeaders(),
+                        body: JSON.stringify(requestBody)
+                    });
+                    if (!retryResponse.ok) {
+                        const errData = await retryResponse.json().catch(() => ({}));
+                        throw new Error(errData.detail || 'Failed to start session');
+                    }
+                    session = await retryResponse.json();
+                    currentSessionId = session.id;
+                } else {
+                    const errData = await response.json().catch(() => ({}));
+                    throw new Error(errData.detail || 'Failed to start session');
+                }
+            } else {
+                session = await response.json();
+                currentSessionId = session.id;
+            }
         }
 
         // Connect WebSocket (summary placeholder added when summary_start received)
@@ -355,13 +708,19 @@ async function sendMessage() {
         console.error('Error starting session:', error);
         updateChatStatus('');
         setInputLocked(false);
-        alert('Failed to start session. Please try again.');
+        alert(error.message || 'Failed to start session. Please try again.');
     }
 }
 
 // Connect to WebSocket
 function connectWebSocket(sessionId) {
     console.log('[WebSocket] Connecting to session:', sessionId);
+    beeQueue.reset();
+    // Reset which bees have made their big entrance when a fresh debate starts.
+    // Continuations keep the same sessionId so only brand-new sessions reset.
+    if (!window.continuingDebateId || window.continuingDebateId !== sessionId) {
+        resetSessionBeeEntrances();
+    }
 
     // Close any existing connection first to prevent duplicates
     if (chatWebSocket) {
@@ -377,7 +736,7 @@ function connectWebSocket(sessionId) {
 
     const token = localStorage.getItem('token');
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const wsUrl = `${protocol}//${window.location.host}/ws/debates/${sessionId}?token=${token}`;
+    const wsUrl = `${protocol}//${window.location.host}/ws/debates/${sessionId}${token ? '?token=' + token : ''}`;
     console.log('[WebSocket] URL:', wsUrl);
 
     chatWebSocket = new WebSocket(wsUrl);
@@ -419,34 +778,78 @@ function connectWebSocket(sessionId) {
 }
 
 // Handle WebSocket messages
+function _handleDebateEnd() {
+    hideBuzzThinking();
+    updateChatStatus('');
+    finishFinalResponse();
+    showExportButton();
+    if (debatePausedForReply) {
+        replyTargetBee = null;
+        debatePausedForReply = false;
+        const indicator = document.getElementById('reply-indicator');
+        if (indicator) indicator.classList.remove('visible');
+        const inputArea = document.getElementById('chat-input-area');
+        if (inputArea) inputArea.classList.remove('replying');
+    }
+    window.continuingDebateId = currentSessionId;
+    setInputLocked(false);
+    if (window._tryingHive && typeof showTryItBanner === 'function') {
+        showTryItBanner();
+    }
+}
+
 function handleWebSocketMessage(message) {
     console.log('[WebSocket]', message.type, message); // Debug logging
     switch (message.type) {
+        case 'vibe_info':
+            // Backend told us which vibe this debate is in — drive the choreography.
+            if (message.vibe && message.vibe.id) {
+                window._currentDebateVibe = message.vibe.id;
+                const chatC = document.getElementById('chat-messages');
+                if (chatC) chatC.dataset.vibe = message.vibe.id;
+            }
+            break;
+
         case 'round_start':
             updateChatStatus('Getting opinions...');
+            updateBuzzProgress('debate');
             break;
 
         case 'model_start':
             console.log('[AI Response] Starting:', message.model_name);
-            addAiDiscussionMessage(message.model_name, message.provider, '', message.personality_id, message.role_name);
-            updateChatStatus(`${message.model_name} is responding...`);
+            beeQueue.enqueue(message.model_name, message.provider, message.personality_id, message.role_name);
+            updateBuzzProgress('debate');
             break;
 
         case 'chunk':
-            appendToAiDiscussion(message.model_name, message.content);
+            // Legacy fallback — vibed debates don't send chunks.
+            beeQueue.addChunk(message.model_name, message.content);
             break;
 
         case 'model_end':
             console.log('[AI Response] Finished:', message.model_name);
-            finishAiDiscussion(message.model_name);
+            // Vibed responses carry parsed side + short + long + reply_to payloads.
+            if (typeof message.short === 'string' || typeof message.long === 'string'
+                || typeof message.side === 'string' || typeof message.reply_to === 'string') {
+                beeQueue.setResponse(
+                    message.model_name,
+                    message.short || '',
+                    message.long || '',
+                    message.side || '',
+                    message.reply_to || '',
+                    Array.isArray(message.reactions) ? message.reactions : []
+                );
+            }
+            beeQueue.finishBee(message.model_name);
             break;
 
         case 'model_error':
             console.log('[AI Error]', message.model_name, message.error);
-            addAiDiscussionError(message.model_name, message.error);
+            beeQueue.errorBee(message.model_name, message.error);
             break;
 
         case 'summary_start':
+            updateBuzzProgress('verdict');
             addAiMessagePlaceholder();
             updateChatStatus('Synthesizing summary...');
             break;
@@ -470,25 +873,13 @@ function handleWebSocketMessage(message) {
             break;
 
         case 'debate_end':
-            updateChatStatus('');
-            finishFinalResponse();
-            showExportButton();
-            // Clean up reply state if active
-            if (debatePausedForReply) {
-                replyTargetBee = null;
-                debatePausedForReply = false;
-                const indicator = document.getElementById('reply-indicator');
-                if (indicator) indicator.classList.remove('visible');
-                const inputArea = document.getElementById('chat-input-area');
-                if (inputArea) inputArea.classList.remove('replying');
-            }
-            // Enable continuing this conversation with follow-up messages
-            // MUST be set before setInputLocked so updateSendButton sees it
-            window.continuingDebateId = currentSessionId;
-            setInputLocked(false);
+            // Queue until beeQueue finishes typing all bees
+            beeQueue._pendingDebateEnd = true;
+            beeQueue._flushPending();
             break;
 
         case 'error':
+            hideBuzzThinking();
             updateChatStatus('');
             setInputLocked(false);
             console.error('Session error:', message.message);
@@ -508,7 +899,9 @@ function handleWebSocketMessage(message) {
 
         case 'verdict':
             console.log('[Hive Verdict] Received:', message.verdict);
-            renderHiveVerdict(message.verdict);
+            // Queue verdict until beeQueue finishes playing all bees
+            beeQueue._pendingVerdict = message.verdict;
+            beeQueue._flushPending();
             break;
     }
 }
@@ -516,10 +909,21 @@ function handleWebSocketMessage(message) {
 // Add user message to chat as a big bold question header
 function addUserMessage(text, imageDataUrls = []) {
     const container = document.getElementById('chat-messages');
+
+    // Hide and collapse previous headers — scroll handler will manage visibility
+    container.querySelectorAll('.question-header').forEach(el => {
+        el.style.position = 'relative';
+        el.style.opacity = '0';
+        el.style.pointerEvents = 'none';
+        el.style.height = '0';
+        el.style.padding = '0';
+        el.style.overflow = 'hidden';
+    });
+
     const msg = document.createElement('div');
     msg.className = 'question-header';
 
-    let html = `<div class="question-header-text">${escapeHtml(text)}</div>`;
+    let html = `<div class="question-header-text"><span class="q-text">${escapeHtml(text)}</span><button id="floating-stop-btn" class="q-pause-btn" onclick="event.stopPropagation(); stopDiscussion()"><svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg></button></div>`;
     if (imageDataUrls && imageDataUrls.length > 0) {
         html += '<div class="question-images">';
         for (const dataUrl of imageDataUrls) {
@@ -529,10 +933,77 @@ function addUserMessage(text, imageDataUrls = []) {
     }
 
     msg.innerHTML = html;
+    // Ensure new header is explicitly visible and sticky
+    msg.style.position = 'sticky';
+    msg.style.opacity = '1';
+    msg.style.pointerEvents = '';
     container.appendChild(msg);
     scrollToBottom(container);
 
     conversationHistory.push({ role: 'user', content: text });
+
+    // Set up scroll handler to manage which header is active
+    setupHeaderScrollHandler();
+}
+
+// Manage which question header is sticky based on scroll position
+let _headerScrollSetup = false;
+function setupHeaderScrollHandler() {
+    if (_headerScrollSetup) return;
+    _headerScrollSetup = true;
+
+    const container = document.getElementById('chat-messages');
+    let lastActiveIndex = -1;
+    let scrollRaf = null;
+
+    container.addEventListener('scroll', () => {
+        if (scrollRaf) return;
+        scrollRaf = requestAnimationFrame(() => {
+            scrollRaf = null;
+            const headers = Array.from(container.querySelectorAll('.question-header'));
+            if (headers.length <= 1) {
+                if (headers[0] && lastActiveIndex !== 0) {
+                    headers[0].style.position = 'sticky';
+                    headers[0].style.opacity = '1';
+                    headers[0].style.pointerEvents = '';
+                    headers[0].style.height = '';
+                    headers[0].style.padding = '';
+                    headers[0].style.overflow = '';
+                    lastActiveIndex = 0;
+                }
+                return;
+            }
+
+            const scrollTop = container.scrollTop;
+            let activeIndex = 0;
+            for (let i = 0; i < headers.length; i++) {
+                if (headers[i].offsetTop <= scrollTop + 60) {
+                    activeIndex = i;
+                }
+            }
+
+            if (activeIndex === lastActiveIndex) return;
+            lastActiveIndex = activeIndex;
+
+            headers.forEach((h, i) => {
+                if (i === activeIndex) {
+                    h.style.position = 'sticky';
+                    h.style.opacity = '1';
+                    h.style.pointerEvents = '';
+                    h.style.height = '';
+                    h.style.padding = '';
+                    h.style.overflow = '';
+                } else {
+                    h.style.position = 'relative';
+                    h.style.opacity = '0';
+                    h.style.pointerEvents = 'none';
+                    h.style.height = '0';
+                    h.style.padding = '0';
+                    h.style.overflow = 'hidden';
+                }
+            });
+        }); // end RAF
+    }); // end scroll
 }
 
 // Add AI response placeholder
@@ -639,7 +1110,7 @@ function formatSummaryAsCards(text) {
     }
 
     if (finalAnswer) {
-        html += `<div style="margin-top: 12px; padding: 12px 16px; background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(139, 92, 246, 0.1)); border: 1px solid var(--primary-color); border-radius: 8px;"><strong style="color: var(--primary-color);">Final Answer:</strong> ${escapeHtml(finalAnswer)}</div>`;
+        html += `<div style="margin-top: 12px; padding: 12px 16px; background: linear-gradient(135deg, rgba(250, 204, 21, 0.1), rgba(234, 179, 8, 0.1)); border: 1px solid var(--primary-color); border-radius: 8px;"><strong style="color: var(--primary-color);">Final Answer:</strong> ${escapeHtml(finalAnswer)}</div>`;
     }
 
     html += '</div>';
@@ -668,17 +1139,445 @@ function getProviderClassFromName(name) {
     return '';
 }
 
+// Show bouncing bee avatars + progress bar under question bubble
+function showBuzzThinking() {
+    const container = document.getElementById('chat-messages');
+    console.log('[BuzzThinking] showBuzzThinking called, container:', !!container);
+    hideBuzzThinking();
+
+    // Get current hive bee icons via window globals
+    let beeIcons = [];
+    try {
+        const hives = window.allHives || [];
+        const customs = window.customHives || [];
+        const hiveId = window.selectedHiveId || localStorage.getItem('selectedHive') || 'chaos';
+        const specials = window.selectedSpecialBees || [];
+        const specialBees = window.allSpecialBees || [];
+
+        const selected = Array.isArray(window.selectedPersonalities) ? window.selectedPersonalities : [];
+        const customHive = customs.find(h => h.id === hiveId);
+        if (customHive && customHive.bees) {
+            const bees = selected.length ? customHive.bees.filter(b => selected.includes(b.id)) : customHive.bees;
+            beeIcons = bees.map(b => getBeeIconPath(b.id));
+        } else {
+            const hive = hives.find(h => h.id === hiveId);
+            if (hive && hive.personalities) {
+                const bees = selected.length ? hive.personalities.filter(p => selected.includes(p.id)) : hive.personalities;
+                beeIcons = bees.map(p => getBeeIconPath(p.id));
+            }
+        }
+        specials.forEach(sid => {
+            if (!selected.length || selected.includes(sid)) {
+                const sb = specialBees.find(b => b.id === sid);
+                if (sb) beeIcons.push(getBeeIconPath(sb.id));
+            }
+        });
+    } catch (e) {
+        console.warn('[BuzzThinking] Error getting bee icons:', e);
+    }
+    if (beeIcons.length === 0) beeIcons = ['/images/bee-icons/default bee icon.png?v=3'];
+
+    const beesHtml = beeIcons.map(src =>
+        `<span class="bee-avatar-frame"><img src="${src}" alt="" onerror="this.src='/images/bee-icons/default bee icon.png?v=3'"></span>`
+    ).join('');
+
+    const el = document.createElement('div');
+    el.className = 'buzz-thinking';
+    el.id = 'buzz-thinking-indicator';
+    el.innerHTML = `<div class="buzz-thinking-bees">${beesHtml}</div>`;
+    container.appendChild(el);
+    console.log('[BuzzThinking] Element appended, beeIcons:', beeIcons.length, 'innerHTML length:', el.innerHTML.length);
+    scrollToBottom(container);
+}
+
+// Update the progress step in the buzz thinking indicator
+function updateBuzzProgress(step) {
+    const indicator = document.getElementById('buzz-thinking-indicator');
+    if (!indicator) return;
+    const steps = indicator.querySelectorAll('.buzz-progress-step');
+    const order = ['gather', 'debate', 'verdict'];
+    const idx = order.indexOf(step);
+    steps.forEach((el, i) => {
+        el.classList.remove('active', 'done');
+        if (i < idx) el.classList.add('done');
+        else if (i === idx) el.classList.add('active');
+    });
+    const container = document.getElementById('chat-messages');
+    if (container) scrollToBottom(container);
+}
+
+// Hide thinking indicator
+function hideBuzzThinking() {
+    const el = document.getElementById('buzz-thinking-indicator');
+    if (el) el.remove();
+}
+
+// Escape HTML but turn @-mention patterns ("@Sunny", "@everyone") into
+// clickable-looking pill spans, COLORED per the referenced bee's personality.
+function escapeHtmlWithMentions(text) {
+    if (text === null || text === undefined) return '';
+    const escaped = escapeHtml(text);
+    return escaped.replace(/@([A-Za-z][\w'-]{0,24})/g, (match, name) => {
+        let styleAttr = '';
+        try {
+            // Look up the personality this name maps to
+            const pid = typeof getPersonalityFromName === 'function'
+                ? getPersonalityFromName(name)
+                : null;
+            if (pid && window.getPersonalityColor) {
+                const colors = window.getPersonalityColor(pid);
+                if (colors && colors.text) {
+                    const bg = colors.bg || 'rgba(96, 165, 250, 0.18)';
+                    styleAttr = ` style="color:${colors.text};background:${bg};border-color:${colors.border || colors.text};"`;
+                }
+            }
+        } catch (e) { /* fallback to default blue mention styling */ }
+        return `<span class="gc-mention"${styleAttr}>@${name}</span>`;
+    });
+}
+
+// Reorder bees so no more than 2 consecutive share the same side. Greedy
+// algorithm that preserves the existing order whenever possible but swaps
+// a later bee up when needed to break a 3+ streak.
+function interleaveBeesBySide(bees) {
+    if (!bees || bees.length <= 2) return [...(bees || [])];
+    const norm = b => (b.side || '').trim().toLowerCase();
+    const result = [];
+    const pool = [...bees];
+    let lastSide = null;
+    let streak = 0;
+    while (pool.length > 0) {
+        let pickIdx = -1;
+        // Prefer the first bee whose side doesn't extend the streak past 2
+        for (let i = 0; i < pool.length; i++) {
+            const s = norm(pool[i]);
+            if (streak >= 2 && s && s === lastSide) continue;
+            pickIdx = i;
+            break;
+        }
+        // Fallback: no valid bee found (e.g. all remaining share the streak side) — take first
+        if (pickIdx === -1) pickIdx = 0;
+        const picked = pool.splice(pickIdx, 1)[0];
+        result.push(picked);
+        const ps = norm(picked);
+        if (ps && ps === lastSide) {
+            streak++;
+        } else {
+            lastSide = ps;
+            streak = 1;
+        }
+    }
+    return result;
+}
+
+// Cluster bees into at most two "sides" based on their SIDE field so the
+// Group Chat layout can place them in left/right columns.
+function assignBeeSides(bees) {
+    const norm = s => (s || '').trim().toLowerCase();
+    const sidesOrder = [];
+    const counts = {};
+    const original = {};
+    bees.forEach(b => {
+        const s = norm(b.side);
+        if (!s) return;
+        if (!(s in counts)) {
+            sidesOrder.push(s);
+            original[s] = (b.side || '').trim();
+        }
+        counts[s] = (counts[s] || 0) + 1;
+    });
+    const sideALc = sidesOrder[0] || '';
+    const sideBLc = sidesOrder.find(s => s !== sideALc) || '';
+    const labelA = original[sideALc] || '';
+    const labelB = original[sideBLc] || '';
+    const hasTwoSides = Boolean(sideALc && sideBLc);
+    const classify = (rawSide) => {
+        const s = norm(rawSide);
+        if (!s) return 'a';
+        if (s === sideALc) return 'a';
+        if (s === sideBLc) return 'b';
+        // Unknown 3rd side: collapse into whichever has fewer bees so far
+        return (counts[sideALc] || 0) <= (counts[sideBLc] || 0) ? 'a' : 'b';
+    };
+    return { labelA, labelB, classify, hasTwoSides };
+}
+
+// Walk a loaded conversation's bubbles and assign side-a / side-b classes
+// based on the stored raw SIDE field, plus re-render the side labels banner.
+function applyHistoricalSides(container) {
+    if (!container) return;
+    const bubbles = [...container.querySelectorAll('.message.ai-individual[data-raw-side]')];
+    if (bubbles.length === 0) return;
+    const fakeBees = bubbles.map(b => ({ side: b.dataset.rawSide || '' }));
+    const info = assignBeeSides(fakeBees);
+    // VS sides banner removed — only keep the per-bubble side classes below
+    // so interleaving still works on reload.
+    bubbles.forEach((b, i) => {
+        const cls = info.classify(fakeBees[i].side);
+        b.classList.remove('side-a', 'side-b');
+        b.classList.add(cls === 'b' ? 'side-b' : 'side-a');
+        b.dataset.side = cls;
+    });
+}
+
+// Render the two-sides banner directly UNDER the most recent question bubble
+// so it sticks with the question header as the user scrolls.
+function showSideLabels(labelA, labelB) {
+    const container = document.getElementById('chat-messages');
+    if (!container) return;
+    // Pick the VISIBLE most-recent question header (old ones are hidden via style)
+    const headers = [...container.querySelectorAll('.question-header')];
+    const targetHeader = headers.filter(h => h.style.opacity !== '0' && h.style.height !== '0').pop() || headers.pop();
+
+    // Build fresh banner content with bee colors on the two side labels
+    const html = `
+        <div class="vibe-side-label side-a-label">${escapeHtml(labelA || 'Side A')}</div>
+        <div class="vibe-side-vs">vs</div>
+        <div class="vibe-side-label side-b-label">${escapeHtml(labelB || 'Side B')}</div>
+    `;
+
+    // Remove any existing banner (in any location) so we always end up with one
+    container.querySelectorAll('.vibe-sides-banner').forEach(el => el.remove());
+
+    const banner = document.createElement('div');
+    banner.id = 'vibe-sides-banner';
+    banner.className = 'vibe-sides-banner';
+    banner.innerHTML = html;
+
+    if (targetHeader) {
+        banner.classList.add('vibe-sides-under-question');
+        targetHeader.appendChild(banner);
+    } else {
+        container.prepend(banner);
+    }
+    // Force reflow then show
+    void banner.offsetWidth;
+    banner.classList.add('visible');
+}
+
+function hideSideLabels() {
+    const banner = document.getElementById('vibe-sides-banner');
+    if (banner) banner.remove();
+}
+window.hideSideLabels = hideSideLabels;
+
+// Show a Group-Chat-style typing pill for a bee that's about to speak.
+// Returns the element so the caller can remove it.
+function addBeeTypingPill(modelName, personalityId, iconPath, sideClass) {
+    if (_swipeEmptyShowing) swipeHideEmpty();
+    const container = document.getElementById('chat-messages');
+    if (!container) return null;
+    const wrap = document.createElement('div');
+    wrap.className = 'message ai-individual gc-typing-wrap';
+    if (sideClass === 'a') wrap.classList.add('side-a');
+    else if (sideClass === 'b') wrap.classList.add('side-b');
+    wrap.dataset.model = modelName;
+    wrap.dataset.provider = 'xai';
+    if (personalityId) wrap.dataset.personality = personalityId;
+    const colors = window.getPersonalityColor ? window.getPersonalityColor(personalityId) : null;
+    const pillColor = colors ? colors.text : '';
+    const pillStyle = colors
+        ? `style="color:${colors.text};background:${colors.border ? `${colors.border}22` : 'var(--surface-light)'};border:1px solid ${colors.border || 'transparent'}"`
+        : '';
+    const iconHtml = iconPath ? `<span class="bee-avatar-frame gc-typing-avatar"><img src="${iconPath}" alt="" onerror="this.src='/images/bee-icons/default bee icon.png?v=3'"></span>` : '';
+    wrap.innerHTML = `
+        <div class="gc-typing-pill" ${pillStyle}>
+            ${iconHtml}
+            <span class="gc-typing-name"${pillColor ? ` style="color:${pillColor}"` : ''}>${escapeHtml(modelName)}</span>
+            <span class="gc-typing-label">is typing</span>
+            <span class="gc-typing-dots"><span></span><span></span><span></span></span>
+        </div>
+    `;
+    container.appendChild(wrap);
+    scrollToBottom(container);
+    return wrap;
+}
+
+// WhatsApp-style tapback reaction chip. Finds the target bubble by name and
+// appends a small emoji pill at the bottom-right. Multiple reactions from
+// different bees cluster horizontally. If the same bee reacts twice on the
+// same bubble, we skip the duplicate.
+function addReactionChip(targetName, emoji, fromName, fromPersonalityId) {
+    if (!targetName || !emoji) return;
+    const targetBubble = findBeeBubbleByName(targetName);
+    if (!targetBubble) return;
+    let tray = targetBubble.querySelector(':scope > .gc-reaction-tray');
+    if (!tray) {
+        tray = document.createElement('div');
+        tray.className = 'gc-reaction-tray';
+        // Insert right after the message content so the chips sit visually
+        // attached to the bubble, not below the reply button.
+        const content = targetBubble.querySelector(':scope > .message-content');
+        if (content && content.nextSibling) {
+            targetBubble.insertBefore(tray, content.nextSibling);
+        } else {
+            targetBubble.appendChild(tray);
+        }
+    }
+    // Dedupe: same reactor + same emoji
+    const existing = tray.querySelector(`.gc-reaction-chip[data-from="${CSS.escape(fromName || '')}"][data-emoji="${CSS.escape(emoji)}"]`);
+    if (existing) return;
+    const colors = window.getPersonalityColor ? window.getPersonalityColor(fromPersonalityId) : null;
+    const borderColor = colors && colors.border ? colors.border : 'rgba(255,255,255,0.18)';
+    const chip = document.createElement('span');
+    chip.className = 'gc-reaction-chip';
+    chip.dataset.from = fromName || '';
+    chip.dataset.emoji = emoji;
+    chip.title = `${fromName || 'A bee'} reacted`;
+    chip.style.borderColor = borderColor;
+    chip.textContent = emoji;
+    tray.appendChild(chip);
+    // Trigger the pop-in after a paint
+    requestAnimationFrame(() => chip.classList.add('gc-reaction-in'));
+}
+
+// ---- Bee Roster Strip ----
+// A persistent row above the chat showing all hive bees. Each bee idles with a
+// subtle blink; the currently-typing bee pulses larger in their own color.
+// Bees who've already spoken show as "active" (no longer dimmed). Built once
+// per session — safe to call repeatedly.
+
+function ensureBeeRoster() {
+    const container = document.getElementById('chat-messages');
+    if (!container) return;
+    // Find the latest visible question-header — that's where the roster
+    // wants to live so it scrolls with the sticky debate bubble.
+    const headers = [...container.querySelectorAll('.question-header')];
+    const targetHeader = headers.filter(h => h.style.opacity !== '0' && h.style.height !== '0').pop() || headers.pop();
+    const existing = container.querySelector('.gc-roster-strip');
+    // If an existing roster is already inside the target header, leave it
+    // alone so its typing/spoken state isn't reset between turns.
+    if (existing && targetHeader && existing.parentElement === targetHeader) {
+        return;
+    }
+    // If an existing roster is attached elsewhere (older header / loose in
+    // chat container), move it to the new header instead of rebuilding, so
+    // the per-slot state classes persist across question changes.
+    if (existing && targetHeader) {
+        existing.classList.add('gc-roster-under-question');
+        targetHeader.appendChild(existing);
+        return;
+    }
+    const bees = _rosterPickBees();
+    if (!bees.length) return;
+    const strip = document.createElement('div');
+    strip.className = 'gc-roster-strip';
+    strip.setAttribute('role', 'list');
+    for (const bee of bees) {
+        const iconPath = bee.icon_base64
+            ? bee.icon_base64
+            : getBeeIconPath(bee.id);
+        const colors = window.getPersonalityColor ? window.getPersonalityColor(bee.id) : null;
+        const accent = colors && colors.border ? colors.border : '#fdc003';
+        const slot = document.createElement('div');
+        slot.className = 'gc-roster-slot gc-roster-idle';
+        slot.dataset.beeName = bee.human_name || bee.name || '';
+        slot.dataset.personality = bee.id || '';
+        slot.style.setProperty('--roster-accent', accent);
+        slot.setAttribute('role', 'listitem');
+        slot.setAttribute('title', bee.human_name || bee.name || '');
+        slot.innerHTML = `
+            <div class="gc-roster-ring">
+                <img class="gc-roster-avatar" src="${iconPath}" alt="" onerror="this.src='/images/bee-icons/default bee icon.png?v=3'">
+                <span class="gc-roster-status-dot"></span>
+            </div>
+            <span class="gc-roster-name">${escapeHtml((bee.human_name || bee.name || '').split(' ')[0])}</span>
+        `;
+        strip.appendChild(slot);
+    }
+    // Attach to the target header captured earlier; fall back to prepending
+    // into the chat container if no header exists yet.
+    if (targetHeader) {
+        strip.classList.add('gc-roster-under-question');
+        targetHeader.appendChild(strip);
+    } else {
+        container.prepend(strip);
+    }
+}
+
+function _rosterPickBees() {
+    const all = Array.isArray(window.allPersonalities) ? window.allPersonalities : [];
+    const selected = Array.isArray(window.selectedPersonalities) ? window.selectedPersonalities : [];
+    if (selected.length && all.length) {
+        const filtered = all.filter(p => selected.includes(p.id));
+        if (filtered.length) return filtered;
+    }
+    return all;
+}
+
+function _rosterSlotByName(name) {
+    if (!name) return null;
+    const strip = document.querySelector('.gc-roster-strip');
+    if (!strip) return null;
+    const slots = [...strip.querySelectorAll('.gc-roster-slot')];
+    return slots.find(s => (s.dataset.beeName || '').toLowerCase() === name.toLowerCase()) || null;
+}
+
+function rosterMarkTyping(name) {
+    const strip = document.querySelector('.gc-roster-strip');
+    if (!strip) return;
+    strip.querySelectorAll('.gc-roster-slot').forEach(s => s.classList.remove('gc-roster-typing'));
+    const slot = _rosterSlotByName(name);
+    if (slot) {
+        slot.classList.add('gc-roster-typing');
+        slot.classList.remove('gc-roster-idle');
+    }
+}
+
+function rosterMarkSpoken(name) {
+    const slot = _rosterSlotByName(name);
+    if (!slot) return;
+    slot.classList.remove('gc-roster-typing', 'gc-roster-idle');
+    slot.classList.add('gc-roster-spoken');
+}
+
+function resetBeeRoster() {
+    const strip = document.querySelector('.gc-roster-strip');
+    if (strip) strip.remove();
+}
+
+// Find a prior bee bubble by its display name (used to resolve reply_to quotes)
+function findBeeBubbleByName(name) {
+    if (!name) return null;
+    const container = document.getElementById('chat-messages');
+    if (!container) return null;
+    // "User" / "you" → find the most recent user interject bubble so reactions
+    // land on the user's message tray.
+    const lower = name.toLowerCase();
+    if (lower === 'user' || lower === 'you') {
+        const userBubbles = [...container.querySelectorAll('.user-interject-bubble .interject-bubble-inner')];
+        if (userBubbles.length) return userBubbles[userBubbles.length - 1];
+        return null;
+    }
+    const bubbles = [...container.querySelectorAll('.message.ai-individual')];
+    for (let i = bubbles.length - 1; i >= 0; i--) {
+        if (bubbles[i].dataset.model && bubbles[i].dataset.model.toLowerCase() === name.toLowerCase()) {
+            return bubbles[i];
+        }
+    }
+    return null;
+}
+
 // Add AI discussion message to main chat (inline)
-function addAiDiscussionMessage(modelName, provider, content, personalityId, roleName) {
+function addAiDiscussionMessage(modelName, provider, content, personalityId, roleName, longText, sideClass, replyTo) {
+    // If swipe-empty is showing, restore chat view
+    if (_swipeEmptyShowing) swipeHideEmpty();
     const container = document.getElementById('chat-messages');
 
     const msg = document.createElement('div');
     msg.className = 'message ai-individual streaming';
+    if (sideClass === 'a') msg.classList.add('side-a');
+    else if (sideClass === 'b') msg.classList.add('side-b');
     msg.dataset.model = modelName;
     msg.dataset.provider = provider;
     if (personalityId) {
         msg.dataset.personality = personalityId;
     }
+    // Stash both versions so tap-to-expand can swap between them
+    msg.dataset.short = content || '';
+    msg.dataset.long = longText || '';
+    if (sideClass) msg.dataset.side = sideClass;
+    if (replyTo) msg.dataset.replyTo = replyTo;
 
     // Get personality color
     const colors = window.getPersonalityColor ? window.getPersonalityColor(personalityId) : null;
@@ -686,14 +1585,18 @@ function addAiDiscussionMessage(modelName, provider, content, personalityId, rol
         msg.style.borderLeftColor = colors.border;
     }
 
-    // Use bee icon image from /images/bee-icons/
-    const iconPath = personalityId ? getBeeIconPath(personalityId) : '/images/bee-icons/default bee icon.png';
-    const beeImgHtml = `<img class="bee-avatar" src="${iconPath}" alt="" onerror="this.src='/images/bee-icons/default bee icon.png'">`;
+    // Use bee icon image from /images/bee-icons/. Wrapped in a frame span
+    // whose own background-image mirrors the bee PNG; dark mode uses
+    // background-blend-mode to composite the bee onto a cream circle.
+    const iconPath = personalityId ? getBeeIconPath(personalityId) : '/images/bee-icons/default bee icon.png?v=3';
+    const beeImgHtml = `<span class="bee-avatar-frame"><img class="bee-avatar" src="${iconPath}" alt="" onerror="this.src='/images/bee-icons/default bee icon.png?v=3'"></span>`;
 
     const roleNameHtml = roleName ? `<span class="ai-role-name">${escapeHtml(roleName)}</span>` : '';
 
     // Apply color to header
     const headerStyle = colors ? `color: ${colors.text};` : '';
+
+    let replyQuoteHtml = '';
 
     msg.innerHTML = `
         <div class="ai-model-header">
@@ -704,22 +1607,53 @@ function addAiDiscussionMessage(modelName, provider, content, personalityId, rol
             </div>
             <span class="ai-provider-tag">${escapeHtml(provider)}</span>
         </div>
-        <div class="message-content"></div>
+        ${replyQuoteHtml}
+        <div class="message-content">${escapeHtmlWithMentions(content || '')}</div>
         <button class="reply-to-bee-btn" data-bee-name="${escapeHtml(modelName)}" data-personality="${escapeHtml(personalityId || '')}">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 17 4 12 9 7"/><path d="M20 18v-2a4 4 0 0 0-4-4H4"/></svg>
             Reply
         </button>
     `;
     container.appendChild(msg);
+
     // Attach reply click handler via event listener (safer than inline onclick)
     const replyBtn = msg.querySelector('.reply-to-bee-btn');
     if (replyBtn) {
-        replyBtn.addEventListener('click', () => {
+        replyBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
             startReplyToBee(replyBtn.dataset.beeName, replyBtn.dataset.personality);
         });
     }
+
+    // Tap-to-expand: if we have a long version that differs from the short,
+    // tapping the bubble swaps between them.
+    if (longText && longText.trim() && longText.trim() !== (content || '').trim()) {
+        msg.classList.add('expandable');
+        msg.addEventListener('click', (e) => {
+            if (e.target.closest('.reply-to-bee-btn')) return;
+            toggleBeeExpand(msg);
+        });
+    }
+
     scrollToBottom(container);
+    return msg;
 }
+
+// Toggle a bee bubble between its short and long reasoning.
+function toggleBeeExpand(msg) {
+    if (!msg) return;
+    const content = msg.querySelector('.message-content');
+    if (!content) return;
+    const expanded = msg.classList.contains('expanded');
+    if (expanded) {
+        content.innerHTML = escapeHtmlWithMentions(msg.dataset.short || content.textContent);
+        msg.classList.remove('expanded');
+    } else {
+        content.innerHTML = escapeHtmlWithMentions(msg.dataset.long || msg.dataset.short || content.textContent);
+        msg.classList.add('expanded');
+    }
+}
+window.toggleBeeExpand = toggleBeeExpand;
 
 // Get emoji for a personality
 function getPersonalityEmoji(personalityId) {
@@ -745,12 +1679,26 @@ function finishAiDiscussion(modelName) {
     const msg = container.querySelector(`.message.ai-individual[data-model="${modelName}"].streaming`);
     if (msg) {
         msg.classList.remove('streaming');
-        // Remove markdown ** characters
         const content = msg.querySelector('.message-content');
         if (content) {
-            content.textContent = content.textContent.replace(/\*\*/g, '');
+            // Strip any stray `**` markdown by replacing text nodes only —
+            // NEVER touch textContent on the whole element, which would destroy
+            // child elements like the .gc-mention spans we render inline.
+            if (content.innerHTML.indexOf('**') !== -1) {
+                const walker = document.createTreeWalker(content, NodeFilter.SHOW_TEXT, null);
+                const nodes = [];
+                let n;
+                while ((n = walker.nextNode())) nodes.push(n);
+                nodes.forEach(tn => { tn.nodeValue = tn.nodeValue.replace(/\*\*/g, ''); });
+            }
 
-            // Clamp to 3 lines with "Show more" toggle
+            // In vibed debates (Group Chat, etc) we never want the legacy
+            // "Show more" clamp button — tap-to-expand handles it instead.
+            const chatC = document.getElementById('chat-messages');
+            const inVibe = chatC && chatC.dataset && chatC.dataset.vibe;
+            if (inVibe) return;
+
+            // Legacy: clamp to 3 lines with "Show more" toggle (non-vibed only)
             content.classList.add('clamped');
             requestAnimationFrame(() => {
                 if (content.scrollHeight > content.clientHeight + 1) {
@@ -773,45 +1721,16 @@ function finishAiDiscussion(modelName) {
     }
 }
 
-// Add AI discussion error with helpful labeling and action buttons
+// Add AI discussion error - simple message, no fix suggestions
 function addAiDiscussionError(modelName, error) {
     const container = document.getElementById('chat-messages');
     const msg = container.querySelector(`.message.ai-individual[data-model="${modelName}"]`);
     if (msg) {
         msg.classList.remove('streaming');
         const content = msg.querySelector('.message-content');
-        const provider = msg.dataset.provider;
-
-        // Get labeled error info with provider context
-        const errorInfo = labelError(error, provider);
-
-        // Determine fix link based on error type
-        let fixLink = '';
-        if (errorInfo.actionType === 'key') {
-            // API key issues - open setup wizard
-            fixLink = `<a href="#" onclick="showTutorial(); return false;" style="color: var(--primary-color); margin-left: 4px;">Fix this</a>`;
-        } else if (errorInfo.actionType === 'billing' && errorInfo.billingUrl) {
-            // Billing issues - link to provider
-            fixLink = `<a href="${errorInfo.billingUrl}" target="_blank" rel="noopener" style="color: var(--primary-color); margin-left: 4px;">Fix this</a>`;
-        } else if (errorInfo.actionType === 'retry') {
-            // Temporary errors - offer retry button
-            fixLink = `<button onclick="retryLastMessage()" style="color: var(--primary-color); background: none; border: 1px solid var(--primary-color); padding: 4px 12px; border-radius: 4px; cursor: pointer; margin-left: 8px; font-size: 0.85rem;">Try Again</button>`;
-        } else if (errorInfo.label === 'Model Not Found') {
-            // Model issues - open setup wizard
-            fixLink = `<a href="#" onclick="showTutorial(); return false;" style="color: var(--primary-color); margin-left: 4px;">Fix this</a>`;
-        }
-
         content.innerHTML = `
-            <div class="error-labeled">
-                <div style="display: flex; align-items: center; gap: 8px; color: ${errorInfo.color}; font-weight: 600; margin-bottom: 6px;">
-                    <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                        <circle cx="12" cy="12" r="10"></circle>
-                        <line x1="12" y1="8" x2="12" y2="12"></line>
-                        <line x1="12" y1="16" x2="12.01" y2="16"></line>
-                    </svg>
-                    ${errorInfo.label}
-                </div>
-                <div style="font-size: 0.9rem; color: var(--text-secondary); line-height: 1.5;">${errorInfo.help}${fixLink}</div>
+            <div style="color: var(--text-secondary); font-size: 0.9rem; font-style: italic;">
+                This bee couldn't respond. Please try again.
             </div>
         `;
     }
@@ -825,7 +1744,7 @@ function updateChatStatus(text) {
     if (text) {
         input.placeholder = text;
     } else {
-        input.placeholder = 'Ask your question';
+        input.placeholder = 'Ask the hive...';
     }
 }
 
@@ -845,19 +1764,36 @@ function setInputLocked(locked) {
     const chatMessages = document.getElementById('chat-messages');
 
     if (locked) {
-        // Hide entire input area and show floating stop button
+        // Hide entire input area and show pause button inside question bubble
         sendBtn.classList.add('stop-mode');
         if (inputArea) inputArea.classList.add('debate-active');
         if (floatingStopBtn) floatingStopBtn.classList.add('visible');
+        if (window._showInterjectBar) window._showInterjectBar();
+        // Add debate-running class to the question header text
+        const qHeader = chatMessages ? chatMessages.querySelector('.question-header:last-of-type .question-header-text') : null;
+        if (qHeader) qHeader.classList.add('debate-running');
+        if (qHeader) qHeader.onclick = () => stopDiscussion();
         if (chatMessages) chatMessages.style.paddingBottom = '80px';
+        // Hide voices bar during debate
+        if (voicesBar) { voicesBar.style.visibility = 'hidden'; voicesBar.style.opacity = '0'; }
     } else {
-        // Show input area and hide floating stop button
+        // Show input area and hide pause button
         sendBtn.classList.remove('stop-mode');
-        sendBtn.innerHTML = 'Start Debate';
-        input.placeholder = 'Ask your question';
+        sendBtn.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>';
+        input.placeholder = 'Ask the hive...';
         if (inputArea) inputArea.classList.remove('debate-active');
         if (floatingStopBtn) floatingStopBtn.classList.remove('visible');
+        if (window._hideInterjectBar) window._hideInterjectBar();
+        // Remove debate-running class from all question headers
+        if (chatMessages) {
+            chatMessages.querySelectorAll('.question-header-text.debate-running').forEach(el => {
+                el.classList.remove('debate-running');
+                el.onclick = null;
+            });
+        }
         if (chatMessages) chatMessages.style.paddingBottom = '';
+        // Show voices bar again
+        if (voicesBar) { voicesBar.style.visibility = ''; voicesBar.style.opacity = ''; }
 
         updateSendButton();
         console.log('[setInputLocked] after updateSendButton, btn.disabled:', sendBtn.disabled);
@@ -902,11 +1838,15 @@ function startReplyToBee(beeName, personalityId) {
         setTimeout(() => input.scrollIntoView({ behavior: 'smooth', block: 'end' }), 300);
     }
 
-    // Update send button
+    // Update send button — keep the same arrow icon as the normal send so
+    // the button shape doesn't morph into a text label mid-flow. Add a
+    // `reply-mode` class in case we want to tint it differently.
     const sendBtn = document.getElementById('send-btn');
     if (sendBtn) {
         sendBtn.classList.remove('stop-mode');
-        sendBtn.innerHTML = 'Reply';
+        sendBtn.classList.add('reply-mode');
+        sendBtn.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>';
+        sendBtn.setAttribute('aria-label', 'Send reply');
         sendBtn.disabled = false;
     }
 }
@@ -925,6 +1865,10 @@ function cancelReplyToBee() {
     const inputArea = document.getElementById('chat-input-area');
     if (inputArea) inputArea.classList.remove('replying');
 
+    // Restore normal send button
+    const sendBtn = document.getElementById('send-btn');
+    if (sendBtn) sendBtn.classList.remove('reply-mode');
+
     // Show floating stop button again
     const floatingStopBtn = document.getElementById('floating-stop-btn');
     if (floatingStopBtn && isProcessing) floatingStopBtn.classList.add('visible');
@@ -933,7 +1877,7 @@ function cancelReplyToBee() {
     const input = document.getElementById('chat-input');
     if (input) {
         input.value = '';
-        input.placeholder = 'Ask your question';
+        input.placeholder = 'Ask the hive...';
     }
 
     // Resume the debate
@@ -1043,6 +1987,175 @@ async function sendIntervention() {
     updateChatStatus('Processing your input...');
 }
 
+// ── Floating interject bar ──────────────────────────────────────
+(function initInterjectBar() {
+    const bar = document.getElementById('debate-interject-bar');
+    const inp = document.getElementById('interject-input');
+    const btn = document.getElementById('interject-send');
+    const dropdown = document.getElementById('interject-mention-dropdown');
+    if (!bar || !inp || !btn) return;
+
+    let mentionStart = -1;
+    let selectedIdx = 0;
+
+    function getActiveBees() {
+        const all = Array.isArray(window.allPersonalities) ? window.allPersonalities : [];
+        const sel = Array.isArray(window.selectedPersonalities) ? window.selectedPersonalities : [];
+        if (sel.length && all.length) {
+            const filtered = all.filter(p => sel.includes(p.id));
+            if (filtered.length) return filtered;
+        }
+        return all;
+    }
+
+    function showDropdown(query) {
+        const bees = getActiveBees();
+        const q = query.toLowerCase();
+        const matches = bees.filter(b => b.human_name.toLowerCase().startsWith(q) || b.name.toLowerCase().startsWith(q));
+        if (!matches.length) { dropdown.classList.remove('open'); return; }
+        selectedIdx = 0;
+        dropdown.innerHTML = matches.map((b, i) => {
+            const icon = typeof getBeeIconPath === 'function' ? getBeeIconPath(b.id) : '/images/bee-icons/default bee icon.png?v=3';
+            return `<div class="interject-mention-item${i === 0 ? ' selected' : ''}" data-name="${b.human_name}" data-idx="${i}">
+                <img src="${icon}" alt=""><span>${b.human_name}</span>
+            </div>`;
+        }).join('');
+        dropdown.classList.add('open');
+        dropdown.querySelectorAll('.interject-mention-item').forEach(el => {
+            el.addEventListener('click', () => completeMention(el.dataset.name));
+        });
+    }
+
+    const highlight = document.getElementById('interject-highlight');
+
+    function updateHighlight() {
+        if (!highlight) return;
+        const val = inp.value;
+        if (!val) { highlight.innerHTML = ''; return; }
+        const escaped = val.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        highlight.innerHTML = escaped.replace(/@([A-Za-z][\w'-]{0,24})/g, (match, name) => {
+            let style = '';
+            try {
+                const pid = typeof getPersonalityFromName === 'function' ? getPersonalityFromName(name) : null;
+                if (pid && window.getPersonalityColor) {
+                    const c = window.getPersonalityColor(pid);
+                    if (c && c.border) style = `color:#fff;background:${c.border};`;
+                }
+            } catch (_) {}
+            return `<span class="mention-color" style="${style}">@${name}</span>`;
+        });
+    }
+
+    function completeMention(name) {
+        const val = inp.value;
+        const before = val.slice(0, mentionStart);
+        inp.value = before + '@' + name + ' ';
+        mentionStart = -1;
+        dropdown.classList.remove('open');
+        inp.focus();
+        btn.disabled = !inp.value.trim();
+        updateHighlight();
+    }
+
+    inp.addEventListener('input', () => {
+        btn.disabled = !inp.value.trim();
+        updateHighlight();
+        const val = inp.value;
+        const cursor = inp.selectionStart;
+        const textBefore = val.slice(0, cursor);
+        const atIdx = textBefore.lastIndexOf('@');
+        if (atIdx >= 0 && (atIdx === 0 || textBefore[atIdx - 1] === ' ')) {
+            mentionStart = atIdx;
+            const query = textBefore.slice(atIdx + 1);
+            showDropdown(query);
+        } else {
+            mentionStart = -1;
+            dropdown.classList.remove('open');
+        }
+    });
+
+    inp.addEventListener('keydown', (e) => {
+        if (dropdown.classList.contains('open')) {
+            const items = dropdown.querySelectorAll('.interject-mention-item');
+            if (e.key === 'ArrowDown') { e.preventDefault(); selectedIdx = Math.min(selectedIdx + 1, items.length - 1); updateSelection(items); }
+            else if (e.key === 'ArrowUp') { e.preventDefault(); selectedIdx = Math.max(selectedIdx - 1, 0); updateSelection(items); }
+            else if (e.key === 'Enter' || e.key === 'Tab') {
+                if (items[selectedIdx]) { e.preventDefault(); completeMention(items[selectedIdx].dataset.name); return; }
+            }
+            else if (e.key === 'Escape') { dropdown.classList.remove('open'); return; }
+        }
+        if (e.key === 'Enter' && !e.shiftKey && !dropdown.classList.contains('open')) {
+            e.preventDefault();
+            sendInterject();
+        }
+    });
+
+    function updateSelection(items) {
+        items.forEach((el, i) => el.classList.toggle('selected', i === selectedIdx));
+    }
+
+    btn.addEventListener('click', sendInterject);
+
+    function sendInterject() {
+        const msg = inp.value.trim();
+        if (!msg || !chatWebSocket || chatWebSocket.readyState !== WebSocket.OPEN) return;
+
+        const mentionMatch = msg.match(/@(\S+)/);
+        const bees = getActiveBees();
+        let targetBee = null;
+        if (mentionMatch) {
+            const mName = mentionMatch[1].toLowerCase();
+            const found = bees.find(b => b.human_name.toLowerCase() === mName || b.human_name.toLowerCase().startsWith(mName));
+            if (found) targetBee = found.human_name;
+        }
+
+        // Show as a right-aligned chat bubble (not a sticky question header)
+        const container = document.getElementById('chat-messages');
+        if (container) {
+            const bubble = document.createElement('div');
+            bubble.className = 'user-interject-bubble';
+            const escaped = msg.replace(/</g, '&lt;').replace(/>/g, '&gt;')
+                .replace(/@([A-Za-z][\w'-]{0,24})/g, (match, name) => {
+                    let style = '';
+                    try {
+                        const pid = typeof getPersonalityFromName === 'function' ? getPersonalityFromName(name) : null;
+                        if (pid && window.getPersonalityColor) {
+                            const c = window.getPersonalityColor(pid);
+                            if (c && c.text) style = ` style="color:#fff;background:${c.border || c.text};border-color:${c.border || c.text};"`;
+                        }
+                    } catch (_) {}
+                    return `<span class="gc-mention"${style}>@${name}</span>`;
+                });
+            bubble.innerHTML = `<div class="interject-bubble-inner">${escaped}</div>`;
+            container.appendChild(bubble);
+            scrollToBottom(container, true);
+        }
+        inp.value = '';
+        btn.disabled = true;
+        dropdown.classList.remove('open');
+        if (highlight) highlight.innerHTML = '';
+
+        if (targetBee) {
+            chatWebSocket.send(JSON.stringify({
+                type: 'reply_to_bee',
+                content: msg,
+                target_bee: targetBee
+            }));
+        } else {
+            chatWebSocket.send(JSON.stringify({
+                type: 'intervention',
+                content: msg
+            }));
+        }
+
+        bar.classList.add('interject-bar-reacting');
+        setTimeout(() => bar.classList.remove('interject-bar-reacting'), 1200);
+    }
+
+    window._showInterjectBar = function() { bar.classList.add('visible'); };
+    window._hideInterjectBar = function() { bar.classList.remove('visible'); dropdown.classList.remove('open'); };
+})();
+
 // Scroll to bottom (only when user is already near bottom or forced)
 let autoScrollEnabled = true;
 
@@ -1086,6 +2199,72 @@ document.getElementById('chat-messages')?.addEventListener('scroll', function() 
         hideJumpToSummary();
     }
 });
+
+// Swipe up/down: show empty state honeycomb when no responses, hide on swipe down
+let _swipeEmptyShowing = false;
+
+function swipeShowEmpty() {
+    const container = document.getElementById('chat-messages');
+    const emptyState = container?.querySelector('.empty-chat');
+    if (!emptyState || !emptyState._hiddenForChat) return;
+    // Hide question and spinner
+    container.querySelectorAll('.question-header').forEach(h => h.style.display = 'none');
+    const spinner = document.getElementById('buzz-thinking-indicator');
+    if (spinner) spinner.style.display = 'none';
+    emptyState.style.display = '';
+    _swipeEmptyShowing = true;
+}
+
+function swipeHideEmpty() {
+    const container = document.getElementById('chat-messages');
+    const emptyState = container?.querySelector('.empty-chat');
+    if (!emptyState) return;
+    emptyState.style.display = 'none';
+    container.querySelectorAll('.question-header').forEach(h => {
+        h.style.display = '';
+        h.style.position = 'sticky';
+        h.style.opacity = '1';
+        h.style.pointerEvents = '';
+        h.style.height = '';
+        h.style.padding = '';
+        h.style.overflow = '';
+    });
+    const spinner = document.getElementById('buzz-thinking-indicator');
+    if (spinner) spinner.style.display = '';
+    _swipeEmptyShowing = false;
+}
+
+(function setupSwipeEmptyState() {
+    const container = document.getElementById('chat-messages');
+    if (!container) return;
+    let touchStartY = 0;
+
+    function hasAiResponses() {
+        return container.querySelectorAll('.message.ai-individual, .summary-formatted').length > 0;
+    }
+
+    container.addEventListener('touchstart', function(e) {
+        touchStartY = e.touches[0].clientY;
+    }, { passive: true });
+
+    container.addEventListener('touchend', function(e) {
+        const deltaY = touchStartY - e.changedTouches[0].clientY;
+        if (Math.abs(deltaY) < 50) return;
+        if (deltaY > 0 && !_swipeEmptyShowing && !hasAiResponses()) {
+            swipeShowEmpty();
+        } else if (deltaY < 0 && _swipeEmptyShowing) {
+            swipeHideEmpty();
+        }
+    }, { passive: true });
+
+    container.addEventListener('wheel', function(e) {
+        if (e.deltaY > 0 && !_swipeEmptyShowing && !hasAiResponses() && container.scrollTop <= 5) {
+            swipeShowEmpty();
+        } else if (e.deltaY < 0 && _swipeEmptyShowing) {
+            swipeHideEmpty();
+        }
+    }, { passive: true });
+})();
 
 // Clean up on page unload
 window.addEventListener('beforeunload', () => {
@@ -1343,8 +2522,9 @@ function showSidebarHint() {
 // Initialize sidebar hint after page load
 setTimeout(showSidebarHint, 1000);
 
-// Sidebar toggle button
+// Sidebar toggle buttons (mobile + desktop)
 document.getElementById('sidebar-toggle')?.addEventListener('click', openSidebar);
+document.getElementById('desktop-sidebar-toggle')?.addEventListener('click', openSidebar);
 
 // Close sidebar button
 document.getElementById('sidebar-close')?.addEventListener('click', closeSidebar);
@@ -1363,6 +2543,15 @@ let loadedDebates = [];
 // Load chat history from API
 async function loadChatHistory() {
     const list = document.getElementById('history-list');
+    if (!list) return;
+
+    // Don't attempt to load if user isn't logged in
+    const token = localStorage.getItem('token');
+    if (!token) {
+        list.innerHTML = '';
+        return;
+    }
+
     list.innerHTML = '<p style="color: var(--text-secondary); text-align: center;">Loading...</p>';
 
     try {
@@ -1370,14 +2559,17 @@ async function loadChatHistory() {
             headers: getAuthHeaders()
         });
 
-        if (!response.ok) throw new Error('Failed to load history');
+        if (!response.ok) {
+            const text = await response.text().catch(() => '');
+            throw new Error(`${response.status}: ${text}`);
+        }
 
         loadedDebates = await response.json();
         renderHistoryList(loadedDebates);
 
     } catch (error) {
         console.error('Error loading history:', error);
-        list.innerHTML = '<div class="history-empty"><div class="history-empty-icon">⚠️</div><div class="history-empty-text">Failed to load history.</div></div>';
+        list.innerHTML = '<div class="history-empty"><div class="history-empty-icon">⚠️</div><div class="history-empty-text">Failed to load history.<br><small style="color:var(--text-secondary)">' + error.message + '</small></div></div>';
     }
 }
 
@@ -1547,9 +2739,9 @@ async function loadConversation(debateId) {
         const container = document.getElementById('chat-messages');
         container.innerHTML = '';
 
-        // Remove empty state if present
+        // Hide empty state if present
         const emptyState = document.querySelector('.empty-chat');
-        if (emptyState) emptyState.remove();
+        if (emptyState) emptyState.style.display = 'none';
 
         // Extract images from config if present and convert to dataUrls
         let imageDataUrls = [];
@@ -1562,12 +2754,14 @@ async function loadConversation(debateId) {
         // Get original topic (first part before any "---" for old data compatibility)
         const originalTopic = debate.topic.split(/\s*---\s*/)[0].trim();
 
-        // Separate summary from other messages
-        let summary = null;
+        // Separate verdict and regular messages
+        let verdictMsg = null;
         const chatMessages = [];
         messages.forEach(msg => {
-            if (msg.round === 0) {
-                summary = msg;
+            if (msg.round === 0 && msg.model_name === 'verdict' && msg.provider === 'system') {
+                verdictMsg = msg;
+            } else if (msg.round === 0) {
+                // Old summary format — skip (replaced by verdict)
             } else {
                 chatMessages.push(msg);
             }
@@ -1580,7 +2774,7 @@ async function loadConversation(debateId) {
         });
 
         // Display messages in order
-        // First: original topic as user message
+        // First: original topic as question header bubble
         addUserMessage(originalTopic, imageDataUrls);
 
         // Then: all other messages in chronological order
@@ -1592,26 +2786,13 @@ async function loadConversation(debateId) {
             }
         }
 
-        // Add summary if exists
-        if (summary) {
-            const summaryMsg = document.createElement('div');
-            summaryMsg.className = 'message ai';
-            summaryMsg.innerHTML = `
-                <div class="message-header">
-                    <span class="ensemble-badge">Ensemble</span>
-                    <span>Summary</span>
-                </div>
-                <div class="message-content"></div>
-            `;
-            container.appendChild(summaryMsg);
-
-            const contentEl = summaryMsg.querySelector('.message-content');
-            const cleanContent = summary.content.replace(/\*\*/g, '');
-            const formattedHtml = formatSummaryAsCards(cleanContent);
-            if (formattedHtml) {
-                contentEl.innerHTML = formattedHtml;
-            } else {
-                contentEl.textContent = cleanContent;
+        // Add verdict if exists
+        if (verdictMsg) {
+            try {
+                const verdict = JSON.parse(verdictMsg.content);
+                renderHiveVerdict(verdict, true);
+            } catch (e) {
+                console.error('Failed to parse verdict:', e);
             }
         }
 
@@ -1629,21 +2810,58 @@ async function loadConversation(debateId) {
                 });
             }
         });
-        if (summary) {
-            conversationHistory.push({ role: 'assistant', content: summary.content });
+        if (verdictMsg) {
+            conversationHistory.push({ role: 'assistant', content: verdictMsg.content });
+        }
+
+        // Restore models from debate config so continuations use the same bees
+        if (debate.config && debate.config.models && debate.config.models.length > 0) {
+            selectedModels = debate.config.models;
+        }
+
+        // Restore vibe from debate config so replay + Beecisions feed use the
+        // same choreography this debate was originally recorded in.
+        if (debate.config && debate.config.vibe) {
+            window._currentDebateVibe = debate.config.vibe;
+            if (container) container.dataset.vibe = debate.config.vibe;
+            if (debate.config.vibe === 'group-chat') {
+                applyHistoricalSides(container);
+                // Build the roster strip for this historical debate. All bees
+                // have already spoken, so mark each as "spoken" so none pulse.
+                resetBeeRoster();
+                ensureBeeRoster();
+                const spokenNames = new Set();
+                container.querySelectorAll('.message.ai-individual[data-model]').forEach(el => {
+                    spokenNames.add(el.dataset.model);
+                });
+                spokenNames.forEach(n => rosterMarkSpoken(n));
+            }
         }
 
         // Store for continuing conversation
         window.loadedConversationTopic = debate.topic;
         window.continuingDebateId = debateId;  // Track which debate we're continuing
 
-        // Show chat input area
+        // Show chat input area, voices bar, and hive chip
         const inputArea = document.getElementById('chat-input-area');
-        if (inputArea) inputArea.style.display = 'block';
+        if (inputArea) {
+            inputArea.style.display = 'block';
+            inputArea.classList.remove('debate-active');
+        }
+        if (window._hideInterjectBar) window._hideInterjectBar();
+        const hiveChipBar = document.getElementById('hive-chip-bar');
+        if (hiveChipBar) hiveChipBar.style.display = '';
+        if (typeof updateHiveChip === 'function') updateHiveChip();
+        const voicesBarRestore = document.querySelector('.voices-bar');
+        if (voicesBarRestore) {
+            voicesBarRestore.style.visibility = '';
+            voicesBarRestore.style.opacity = '';
+        }
 
         // Enable continuing the conversation
         setInputLocked(false);
         updateSendButton();
+        setupHeaderScrollHandler();
 
         scrollToBottom(container, true);
 
@@ -1651,6 +2869,28 @@ async function loadConversation(debateId) {
         console.error('Error loading conversation:', error);
         alert('Failed to load conversation.');
     }
+}
+
+// Parse a stored message content field which may be JSON ({side, short, long, reply_to})
+// from a vibed debate, or plain text from a legacy debate.
+function parseStoredBeeContent(content) {
+    if (!content) return { side: '', short: '', long: '', reply_to: '', reactions: [] };
+    const trimmed = String(content).trim();
+    if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
+        try {
+            const data = JSON.parse(trimmed);
+            if (data && typeof data === 'object' && 'short' in data) {
+                return {
+                    side: data.side || '',
+                    short: data.short || '',
+                    long: data.long || '',
+                    reply_to: data.reply_to || '',
+                    reactions: Array.isArray(data.reactions) ? data.reactions : []
+                };
+            }
+        } catch (e) { /* fall through */ }
+    }
+    return { side: '', short: trimmed, long: '', reply_to: '', reactions: [] };
 }
 
 // Add AI message from history (already complete, no streaming)
@@ -1664,34 +2904,85 @@ function addHistoryAiMessage(modelName, provider, content) {
     // Check if this is a personality name and get the icon
     const personalityId = getPersonalityFromName(modelName);
 
-    // Set data-personality for CSS colors (colored border + name)
+    // Set data-personality for CSS colors
     if (personalityId) {
         msg.dataset.personality = personalityId;
     }
 
-    // Use bee icon image
-    const iconPath = personalityId ? getBeeIconPath(personalityId) : '/images/bee-icons/default bee icon.png';
-    const beeImg = `<img class="bee-avatar" src="${iconPath}" alt="" onerror="this.src='/images/bee-icons/default bee icon.png'">`;
+    // Get personality color (same as live stream)
+    const colors = window.getPersonalityColor ? window.getPersonalityColor(personalityId) : null;
+    if (colors) {
+        msg.style.borderLeftColor = colors.border;
+    }
+
+    // Use bee icon image (wrapped in frame span for cream-circle backdrop)
+    const iconPath = personalityId ? getBeeIconPath(personalityId) : '/images/bee-icons/default bee icon.png?v=3';
+    const beeImg = `<span class="bee-avatar-frame"><img class="bee-avatar" src="${iconPath}" alt="" onerror="this.src='/images/bee-icons/default bee icon.png?v=3'"></span>`;
 
     // Get role name for personality
     const roleName = personalityId ? personalityId.split('-').pop().charAt(0).toUpperCase() + personalityId.split('-').pop().slice(1) : null;
     const roleNameHtml = roleName ? `<span class="ai-role-name">${escapeHtml(roleName)}</span>` : '';
 
-    // Clean content of markdown
-    const cleanContent = content.replace(/\*\*/g, '');
+    // Apply color to header (same as live stream)
+    const headerStyle = colors ? `color: ${colors.text};` : '';
+
+    // History messages may be JSON ({side, short, long, reply_to}) for vibed debates.
+    const parsed = parseStoredBeeContent(content);
+    const cleanShort = (parsed.short || '').replace(/\*\*/g, '');
+    const cleanLong = (parsed.long || '').replace(/\*\*/g, '');
+    msg.dataset.short = cleanShort;
+    msg.dataset.long = cleanLong;
+    if (parsed.side) msg.dataset.rawSide = parsed.side;
+    if (parsed.reply_to) msg.dataset.replyTo = parsed.reply_to;
+    // Mark as already-read so the historical bubbles use the read color
+    msg.classList.add('read');
+
+    let replyQuoteHtml = '';
 
     msg.innerHTML = `
         <div class="ai-model-header">
             ${beeImg}
             <div class="ai-name-info">
-                <span class="ai-model-name">${escapeHtml(modelName)}</span>
+                <span class="ai-model-name" style="${headerStyle}">${escapeHtml(modelName)}</span>
                 ${roleNameHtml}
             </div>
             <span class="ai-provider-tag">${escapeHtml(provider)}</span>
         </div>
-        <div class="message-content">${escapeHtml(cleanContent)}</div>
+        ${replyQuoteHtml}
+        <div class="message-content">${escapeHtmlWithMentions(cleanShort)}</div>
+        <button class="reply-to-bee-btn" data-bee-name="${escapeHtml(modelName)}" data-personality="${escapeHtml(personalityId || '')}">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 17 4 12 9 7"/><path d="M20 18v-2a4 4 0 0 0-4-4H4"/></svg>
+            Reply
+        </button>
     `;
     container.appendChild(msg);
+
+    // Attach reply click handler
+    const replyBtn = msg.querySelector('.reply-to-bee-btn');
+    if (replyBtn) {
+        replyBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            startReplyToBee(replyBtn.dataset.beeName, replyBtn.dataset.personality);
+        });
+    }
+
+    // Tap-to-expand for historical bubbles too
+    if (cleanLong && cleanLong.trim() && cleanLong.trim() !== cleanShort.trim()) {
+        msg.classList.add('expandable');
+        msg.addEventListener('click', (e) => {
+            if (e.target.closest('.reply-to-bee-btn')) return;
+            toggleBeeExpand(msg);
+        });
+    }
+
+    // Historical reactions: render chips on the target bubbles that were
+    // already loaded above this one in the history.
+    if (Array.isArray(parsed.reactions) && parsed.reactions.length) {
+        for (const r of parsed.reactions) {
+            addReactionChip(r.target, r.emoji, modelName, personalityId);
+        }
+        try { msg.dataset.reactions = JSON.stringify(parsed.reactions); } catch (_) {}
+    }
 }
 
 // ============ HIVE VERDICT RENDERING ============
@@ -1704,30 +2995,95 @@ function addHistoryAiMessage(modelName, provider, content) {
  * @param {number} verdict.confidence - 0-100 confidence percentage
  * @param {Array} verdict.key_reasons - Array of reason strings
  */
-function renderHiveVerdict(verdict) {
+function renderHiveVerdict(verdict, fromHistory = false) {
     if (!verdict) return;
+    window._lastVerdict = verdict;
 
     const container = document.getElementById('chat-messages');
     const verdictEl = document.createElement('div');
-    verdictEl.className = 'hive-verdict';
+    verdictEl.className = 'hive-verdict hive-verdict-viral';
 
-    // Build compact votes HTML with bee images, descriptions, and staggered animation
-    let votesHtml = '';
-    if (verdict.votes && verdict.votes.length > 0) {
-        votesHtml = '<div class="verdict-votes">';
-        verdict.votes.forEach((vote, i) => {
-            const pid = getPersonalityFromName(vote.name || '');
-            const iconPath = pid ? getBeeIconPath(pid) : '/images/bee-icons/default bee icon.png';
-            const beeImg = `<img class="bee-avatar-sm" src="${iconPath}" alt="" onerror="this.src='/images/bee-icons/default bee icon.png'">`;
-            const reasonHtml = vote.reason ? `<span class="vote-reason">${escapeHtml(vote.reason)}</span>` : '';
-            const descHtml = vote.description ? `<span class="vote-description">${escapeHtml(vote.description)}</span>` : '';
-            const delay = i * 150;
-            votesHtml += `<div class="verdict-vote" style="animation-delay: ${delay}ms;">${beeImg}<span class="name">${escapeHtml(vote.name || '')}</span><span class="arrow">→</span><span class="choice">${escapeHtml(vote.choice || '-')}</span>${reasonHtml}${descHtml}</div>`;
-        });
-        votesHtml += '</div>';
+    const beeNameToId = {
+        'Sunny': 'chaos-optimist', 'Murphy': 'chaos-pessimist', 'Jordan': 'chaos-realist', 'Rebel': 'chaos-contrarian', 'Cyndi': 'chaos-cynic',
+        'BFF': 'friend-bestie', 'Truth': 'friend-honest', 'Giggles': 'friend-funny', 'Sage': 'friend-wise', 'Fixer': 'friend-practical',
+        'Brick': 'billionaire-builder', 'Money': 'billionaire-investor', 'Chess': 'billionaire-strategist', 'Blitz': 'billionaire-disruptor', 'Dream': 'billionaire-visionary',
+        'Anon': 'internet-redditor', 'Clout': 'internet-influencer', 'Dev': 'internet-coder', 'Pixel': 'internet-gamer', 'Flame': 'internet-troll',
+        'Zoey': 'gen-z', 'Avery': 'gen-millennial', 'Dale': 'gen-x', 'Walt': 'gen-boomer', 'Neo': 'gen-future',
+        'Honor': 'court-judge', 'Blade': 'court-prosecutor', 'Haven': 'court-defense', 'Echo': 'court-witness', 'Will': 'court-jury',
+        'Lucifer': 'special-devils-advocate', 'Joker': 'special-wild-card'
+    };
+    const splitColors = ['#facc15', '#8b5cf6', '#3b82f6', '#10b981', '#ef4444', '#ec4899', '#06b6d4'];
+
+    const votes = verdict.votes || [];
+    const totalVotes = votes.length || 1;
+
+    // Count votes per choice
+    const choiceCounts = {};
+    votes.forEach(vote => {
+        const c = vote.choice || 'Unknown';
+        choiceCounts[c] = (choiceCounts[c] || 0) + 1;
+    });
+    const choices = Object.keys(choiceCounts);
+
+    // Winner
+    const winnerChoice = verdict.hive_decision || choices[0] || 'No consensus';
+    let winnerPct = verdict.confidence || 0;
+    if (!winnerPct && choices.length > 0) {
+        const maxCount = Math.max(...Object.values(choiceCounts));
+        winnerPct = Math.round((maxCount / totalVotes) * 100);
     }
 
-    // Check if the decision indicates more info is needed
+    // Get current hive name
+    let hiveName = '';
+    const hiveId = window.selectedHiveId || localStorage.getItem('selectedHive') || 'chaos';
+    if (window.allHives) {
+        const hive = window.allHives.find(h => h.id === hiveId);
+        if (hive) hiveName = hive.name;
+    }
+
+    const titleText = verdict.title || '';
+
+    // Timing for animations
+    const speedFactor = fromHistory ? 0.3 : 1;
+    const chatStart = 0.3 * speedFactor;
+    const chatDuration = 3.0 * speedFactor;
+    const chatStep = votes.length > 1 ? chatDuration / (votes.length - 1) : 0;
+
+    // Build mini group-chat
+    const chatHtml = votes.map((vote, i) => {
+        const pid = beeNameToId[vote.name] || getPersonalityFromName(vote.name || '') || '';
+        const iconPath = pid ? getBeeIconPath(pid) : '/images/bee-icons/default bee icon.png?v=3';
+        const colors = pid ? getPersonalityColor(pid) : { text: 'var(--text-secondary)' };
+        const isLeft = i % 2 === 0;
+        const delay = (chatStart + i * chatStep).toFixed(2);
+        return `<div class="bc-chat-msg ${isLeft ? 'bc-left' : 'bc-right'}" style="animation-delay:${delay}s">
+            <img class="bc-chat-avi" src="${iconPath}" alt="" onerror="this.src='/images/bee-icons/default bee icon.png?v=3'">
+            <div class="bc-chat-bubble">
+                <span class="bc-chat-name" style="color:${colors.text}">${escapeHtml(vote.name || '')}</span>
+                <span class="bc-chat-text">${escapeHtml(vote.reason || vote.choice || '')}</span>
+            </div>
+        </div>`;
+    }).join('');
+
+    // Vote bars
+    const barStart = (chatStart + chatDuration + 0.8) * speedFactor;
+    const barStep = choices.length > 1 ? (1.0 * speedFactor) / (choices.length - 1) : 0;
+    const barHtml = choices.map((c, i) => {
+        const pct = Math.round((choiceCounts[c] / totalVotes) * 100);
+        const color = splitColors[i % splitColors.length];
+        const barDelay = (barStart + i * barStep).toFixed(2);
+        return `<div class="bc-bar-row" style="animation-delay:${barDelay}s">
+            <span class="bc-bar-label">${escapeHtml(c)}</span>
+            <div class="bc-bar-track"><div class="bc-bar-fill" style="--bar-pct:${pct}%;background:${color};animation-delay:${barDelay}s"></div></div>
+            <span class="bc-bar-pct">${pct}%</span>
+        </div>`;
+    }).join('');
+
+    // Reveal timing
+    const revealDelay = (barStart + 1.5 * speedFactor).toFixed(2);
+    const actionsDelay = (parseFloat(revealDelay) + 0.8 * speedFactor).toFixed(2);
+
+    // Check if needs more info
     const needsMoreInfo = verdict.hive_decision &&
         (verdict.hive_decision.toLowerCase().includes('options needed') ||
          verdict.hive_decision.toLowerCase().includes('more info') ||
@@ -1738,30 +3094,222 @@ function renderHiveVerdict(verdict) {
         : '';
 
     verdictEl.innerHTML = `
-        <div class="verdict-decision">
-            <img src="/images/bee-icons/default bee icon.png" alt="" class="verdict-bee" style="width: 36px; height: 36px; border-radius: 50%;">
-            <div class="verdict-main">
-                <div class="verdict-label">Hive Decision</div>
-                <div class="verdict-answer">${escapeHtml(verdict.hive_decision || 'No consensus')}</div>
+        <div class="bc-card bc-playing">
+            <div class="bc-hook bc-hook-bubble">
+                ${hiveName ? `<span class="decision-hive-badge" ${typeof getHiveBadgeStyle === 'function' ? getHiveBadgeStyle(hiveName) : ''}>${escapeHtml(hiveName)}</span>` : ''}
+                ${titleText ? `<div class="bc-hook-title">${escapeHtml(titleText)}</div>` : ''}
             </div>
-            ${verdict.confidence !== undefined ? `<div class="verdict-confidence">${verdict.confidence}% confidence</div>` : ''}
+            <div class="bc-chat">${chatHtml}</div>
+            <div class="bc-bars">${barHtml}</div>
+            <div class="bc-reveal" style="animation-delay:${revealDelay}s">
+                <div class="bc-winner">${escapeHtml(winnerChoice)}</div>
+                <div class="bc-winner-pct">${winnerPct}%</div>
+            </div>
+            <div class="verdict-actions bc-verdict-actions" style="opacity:0;animation:bcSlideIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) ${actionsDelay}s both;">
+                <button class="verdict-replay-btn" onclick="replayDebate()" title="Replay the debate">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+                    Replay
+                </button>
+            </div>
+            ${followUpHint}
         </div>
-        ${votesHtml}
-        <div class="verdict-actions">
-            <button class="verdict-action-btn try-another-hive" onclick="openHivesModalForRetry()">
-                <img src="/images/bee-icons/default bee icon.png" alt="" style="width: 42px; height: 42px; vertical-align: middle; margin-right: 6px; border-radius: 50%;"> Try Another Hive
-            </button>
-        </div>
-        ${followUpHint}
     `;
+
+    // Hide the question bubble when verdict is shown (class-based so we
+    // can reveal it on scroll-up without fighting inline styles).
+    container.querySelectorAll('.question-header').forEach(h => {
+        h.classList.add('verdict-hidden');
+    });
 
     container.appendChild(verdictEl);
     scrollToBottom(container);
+
+    // Scroll-up reveal: once the verdict is offscreen (user scrolling up to
+    // re-read the debate), show the question header + bee roster again and
+    // hide the text input. Mark all roster bees as "offline" to reinforce
+    // that this is post-debate context. Flip back when verdict re-enters.
+    _setupVerdictScrollReveal(verdictEl, container);
 }
 
-// Open hives modal for retry - allows choosing a different hive to re-ask the question
+function _setupVerdictScrollReveal(verdictEl, container) {
+    if (!verdictEl || !container) return;
+    if (!('IntersectionObserver' in window)) return;
+    const inputArea = document.getElementById('chat-input-area');
+    const io = new IntersectionObserver((entries) => {
+        for (const e of entries) {
+            const visible = e.isIntersecting && e.intersectionRatio > 0.02;
+            if (!visible) {
+                // User scrolled up away from the verdict — reveal the
+                // question bubble + roster, hide the input, mark bees offline
+                container.querySelectorAll('.question-header.verdict-hidden').forEach(h => {
+                    h.classList.add('scrolled-reveal');
+                });
+                if (inputArea) inputArea.classList.add('verdict-scroll-hidden');
+                _rosterMarkAllOffline(true);
+            } else {
+                container.querySelectorAll('.question-header.verdict-hidden').forEach(h => {
+                    h.classList.remove('scrolled-reveal');
+                });
+                if (inputArea) inputArea.classList.remove('verdict-scroll-hidden');
+                _rosterMarkAllOffline(false);
+            }
+        }
+    }, { root: container, threshold: [0, 0.02, 0.1] });
+    io.observe(verdictEl);
+    // Stash so it can be torn down when reset
+    window._verdictScrollIO = io;
+}
+
+function _rosterMarkAllOffline(offline) {
+    const strip = document.querySelector('.gc-roster-strip');
+    if (!strip) return;
+    strip.classList.toggle('gc-roster-all-offline', !!offline);
+}
+
+// Open hives modal for retry - after selecting a new hive, auto-send the same question
+// (Legacy entry point — now delegates to the Remix modal.)
 function openHivesModalForRetry() {
-    if (typeof window.openHivesModal === 'function') {
-        window.openHivesModal();
+    openRemixModal();
+}
+
+// Called after hive modal closes (if retry flag is set) - auto re-sends last question
+function retryWithNewHive() {
+    if (!window._retryAfterHiveSelect || !lastSentMessage) return;
+    window._retryAfterHiveSelect = false;
+
+    // Reset conversation for fresh start
+    window.continuingDebateId = null;
+    currentSessionId = null;
+
+    // Use the proper question flow (handleQuestionSubmit in app.js)
+    if (typeof handleQuestionSubmit === 'function') {
+        handleQuestionSubmit(lastSentMessage);
     }
 }
+
+// ============ REMIX MODAL (hive + vibe picker for same question) ============
+let _remixTempVibeId = null;
+
+function openRemixModal() {
+    const modal = document.getElementById('remix-modal');
+    if (!modal) return;
+    // Seed with currently selected hive + vibe
+    _remixTempVibeId = window.selectedVibeId || 'group-chat';
+    updateRemixHiveButton();
+    if (typeof renderVibeOptions === 'function') {
+        renderVibeOptions('remix-vibe-grid', (vibeId) => {
+            _remixTempVibeId = vibeId;
+        }, _remixTempVibeId);
+    }
+    modal.classList.add('active');
+}
+
+function closeRemixModal() {
+    const modal = document.getElementById('remix-modal');
+    if (modal) modal.classList.remove('active');
+}
+
+function updateRemixHiveButton() {
+    const nameEl = document.getElementById('remix-hive-name');
+    const iconEl = document.getElementById('remix-hive-icon');
+    if (!nameEl) return;
+    const hiveId = window.selectedHiveId || 'chaos';
+    const hive = (window.allHives || []).find(h => h.id === hiveId) ||
+                 (window.customHives || []).find(h => h.id === hiveId);
+    if (hive) {
+        nameEl.textContent = hive.name || 'Hive';
+    }
+}
+
+function setLastSentMessage(msg) { lastSentMessage = msg; }
+window.setLastSentMessage = setLastSentMessage;
+
+function submitRemix() {
+    closeRemixModal();
+    if (window.lastSentMessage) lastSentMessage = window.lastSentMessage;
+    if (!lastSentMessage) return;
+    // Apply the picked vibe
+    if (_remixTempVibeId && typeof selectVibe === 'function') {
+        selectVibe(_remixTempVibeId);
+    }
+    // Fresh session — no continuation context
+    window.continuingDebateId = null;
+    currentSessionId = null;
+    resetSessionBeeEntrances();
+    // Re-fire the same question through the normal flow
+    if (typeof handleQuestionSubmit === 'function') {
+        handleQuestionSubmit(lastSentMessage);
+    }
+}
+
+window.openRemixModal = openRemixModal;
+window.closeRemixModal = closeRemixModal;
+window.submitRemix = submitRemix;
+window.updateRemixHiveButton = updateRemixHiveButton;
+
+// ============ REPLAY DEBATE ============
+// Rewind the current debate's bubbles + verdict and replay them from scratch,
+// using the same stored short/long text so the replay is identical to the original.
+function replayDebate() {
+    const container = document.getElementById('chat-messages');
+    if (!container) return;
+
+    // Collect the current debate's bubbles in chat order. Filter out any
+    // leftover typing-pill wrappers — those have .gc-typing-wrap but no
+    // stored short text, and would replay as empty bubbles.
+    const bubbles = [...container.querySelectorAll('.message.ai-individual')]
+        .filter(b => !b.classList.contains('gc-typing-wrap'));
+    if (bubbles.length === 0) return;
+
+    // Extract full replay script from the DOM — preserve side, replyTo,
+    // and any reactions that were dropped by this bee, so the replay
+    // faithfully reproduces the original conversation instead of playing
+    // back a stripped-down version.
+    const script = bubbles.map(b => {
+        const contentEl = b.querySelector('.message-content');
+        let reactions = [];
+        try {
+            if (b.dataset.reactions) reactions = JSON.parse(b.dataset.reactions);
+        } catch (_) { /* ignore */ }
+        return {
+            modelName: b.dataset.model || '',
+            provider: b.dataset.provider || 'xai',
+            personalityId: b.dataset.personality || '',
+            roleName: '',
+            short: b.dataset.short || (contentEl ? contentEl.textContent : ''),
+            long: b.dataset.long || '',
+            side: b.dataset.rawSide || b.dataset.side || '',
+            replyTo: b.dataset.replyTo || '',
+            reactions: Array.isArray(reactions) ? reactions : [],
+            finished: true,
+            error: null,
+            text: ''
+        };
+    });
+
+    // Remember the verdict to re-render after the replay finishes
+    const verdictToRerender = window._lastVerdict || null;
+
+    // Wipe the bubbles and verdict card (keep question-header + roster intact)
+    bubbles.forEach(b => b.remove());
+    const existingVerdict = container.querySelector('.hive-verdict');
+    if (existingVerdict) existingVerdict.remove();
+
+    // Reset entrances so every bee gets the slam again
+    resetSessionBeeEntrances();
+
+    // Queue the script and play it back. Set the replay flag so _playAll
+    // skips the interleaveBeesBySide reorder — the script is ALREADY in
+    // the exact order the bees originally spoke, and reordering would
+    // turn the replay into a shuffled conversation.
+    beeQueue.reset();
+    beeQueue._replayMode = true;
+    script.forEach(s => beeQueue.bees.push(s));
+    beeQueue._playAll().then(() => {
+        beeQueue._replayMode = false;
+        if (verdictToRerender) {
+            renderHiveVerdict(verdictToRerender, false);
+        }
+    });
+}
+window.replayDebate = replayDebate;

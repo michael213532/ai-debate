@@ -38,61 +38,21 @@ SMTP_USER = os.getenv("SMTP_USER", "")
 SMTP_PASSWORD = os.getenv("SMTP_PASSWORD", "")
 SMTP_FROM = os.getenv("SMTP_FROM", "") or SMTP_USER
 
+# App-level API key (xAI/Grok only)
+XAI_API_KEY = os.getenv("XAI_API_KEY", "")
+
 # Free tier limits
-FREE_DEBATE_LIMIT = 99999  # Temporarily unlimited for testing
+GUEST_DEBATE_LIMIT = 5      # No account (total, tracked by IP)
+FREE_DEBATE_LIMIT = 20      # Logged in, no subscription
+# Pro users: unlimited
 
 # Available AI models by provider
 AI_MODELS = {
-    "openai": {
-        "name": "OpenAI",
-        "models": [
-            {"id": "gpt-5.2", "name": "GPT-5.2"},
-            {"id": "gpt-5", "name": "GPT-5"},
-            {"id": "gpt-5-mini", "name": "GPT-5 Mini"},
-            {"id": "gpt-4o", "name": "GPT-4o"},
-            {"id": "gpt-4o-mini", "name": "GPT-4o Mini"},
-            {"id": "gpt-4-turbo", "name": "GPT-4 Turbo"},
-            {"id": "gpt-4", "name": "GPT-4"},
-        ]
-    },
-    "anthropic": {
-        "name": "Anthropic",
-        "models": [
-            {"id": "claude-opus-4-6", "name": "Claude Opus 4.6"},
-            {"id": "claude-sonnet-4-5-20250929", "name": "Claude Sonnet 4.5"},
-            {"id": "claude-opus-4-5-20251101", "name": "Claude Opus 4.5"},
-            {"id": "claude-sonnet-4-20250514", "name": "Claude Sonnet 4"},
-            {"id": "claude-haiku-4-5-20251001", "name": "Claude Haiku 4.5"},
-        ]
-    },
-    "google": {
-        "name": "Google",
-        "models": [
-            {"id": "gemini-2.0-flash", "name": "Gemini 2.0 Flash"},
-            {"id": "gemini-1.5-pro", "name": "Gemini 1.5 Pro"},
-            {"id": "gemini-1.5-flash", "name": "Gemini 1.5 Flash"},
-        ]
-    },
-    "deepseek": {
-        "name": "Deepseek",
-        "models": [
-            {"id": "deepseek-chat", "name": "Deepseek V3.2"},
-            {"id": "deepseek-reasoner", "name": "Deepseek Reasoner"},
-        ]
-    },
     "xai": {
         "name": "xAI",
         "models": [
-            {"id": "grok-4-1-fast-non-reasoning", "name": "Grok 4.1"},
-            {"id": "grok-4-fast-non-reasoning", "name": "Grok 4"},
-            {"id": "grok-3-mini", "name": "Grok 3 Mini"},
+            {"id": "grok-4-fast-reasoning", "name": "Grok 4"},
         ]
-    },
-    "stability": {
-        "name": "Stability AI",
-        "models": [],  # No chat models, used for image generation only
-        "description": "Used for generating custom bee icons",
-        "image_only": True
     }
 }
 

@@ -34,7 +34,54 @@ const PERSONALITY_ICON_MAP = {
 
 function getBeeIconPath(personalityId) {
     const iconName = PERSONALITY_ICON_MAP[personalityId] || 'default bee icon';
-    return `/images/bee-icons/${iconName}.png?v=2`;
+    return `/images/bee-icons/${iconName}.png?v=3`;
+}
+
+// Built-in hive themes: gradient + accent color
+const HIVE_THEMES = {
+    'chaos':        { gradient: 'linear-gradient(135deg, #ff6b35 0%, #f7c948 100%)', accent: '#ff6b35', text: '#fff' },
+    'friend-group': { gradient: 'linear-gradient(135deg, #f472b6 0%, #c084fc 100%)', accent: '#f472b6', text: '#fff' },
+    'billionaire':  { gradient: 'linear-gradient(135deg, #fbbf24 0%, #a78bfa 100%)', accent: '#fbbf24', text: '#fff' },
+    'internet':     { gradient: 'linear-gradient(135deg, #34d399 0%, #22d3ee 100%)', accent: '#34d399', text: '#fff' },
+    'generations':  { gradient: 'linear-gradient(135deg, #60a5fa 0%, #818cf8 100%)', accent: '#60a5fa', text: '#fff' },
+    'courtroom':    { gradient: 'linear-gradient(135deg, #6b7280 0%, #374151 100%)', accent: '#9ca3af', text: '#fff' },
+};
+
+// Preset colors for custom hives
+const HIVE_COLOR_PRESETS = [
+    '#ef4444', '#f97316', '#facc15', '#84cc16', '#22c55e',
+    '#14b8a6', '#06b6d4', '#3b82f6', '#6366f1', '#8b5cf6',
+    '#a855f7', '#d946ef', '#ec4899', '#f43f5e', '#78716c',
+];
+
+function getHiveStyle(hiveId, customColor) {
+    if (HIVE_THEMES[hiveId]) return HIVE_THEMES[hiveId];
+    if (customColor) return { gradient: `linear-gradient(135deg, ${customColor} 0%, ${customColor}88 100%)`, accent: customColor, text: '#fff' };
+    return null;
+}
+
+function hiveCardStyleAttr(hiveId, customColor) {
+    const theme = getHiveStyle(hiveId, customColor);
+    if (!theme) return '';
+    return `style="background:${theme.gradient};border-color:${theme.accent}44;"`;
+}
+
+function hiveCardTextClass(hiveId, customColor) {
+    const theme = getHiveStyle(hiveId, customColor);
+    return theme ? 'hive-themed' : '';
+}
+
+// Reverse lookup: hive display name → hive ID for built-in themes
+const HIVE_NAME_TO_ID = {
+    'Chaos': 'chaos', 'Friend Group': 'friend-group', 'Billionaire': 'billionaire',
+    'Internet': 'internet', 'Generations': 'generations', 'Courtroom': 'courtroom',
+};
+
+function getHiveBadgeStyle(hiveName) {
+    const hiveId = HIVE_NAME_TO_ID[hiveName];
+    const theme = hiveId ? HIVE_THEMES[hiveId] : null;
+    if (theme) return `style="background:${theme.gradient};"`;
+    return '';
 }
 
 // Provider billing URLs
@@ -65,7 +112,7 @@ const ERROR_LABELS = {
     },
     '429': {
         label: 'Rate Limited',
-        color: '#f59e0b',
+        color: '#facc15',
         help: 'Too many requests. Wait a minute or upgrade your plan for higher limits.',
         actionType: 'billing'
     },
@@ -243,29 +290,11 @@ async function checkAuth() {
 
 // Show UI for guests (not logged in)
 function showGuestUI() {
-    // Hide sidebar and toggle
-    const sidebar = document.getElementById('sidebar');
-    const sidebarToggle = document.getElementById('sidebar-toggle');
-    if (sidebar) sidebar.style.display = 'none';
-    if (sidebarToggle) sidebarToggle.style.display = 'none';
-
-    // Remove sidebar margin from layout
-    const chatLayout = document.querySelector('.chat-layout');
-    if (chatLayout) chatLayout.style.marginLeft = '0';
-
-    // Remove sidebar margin from header and voices
-    const mainHeader = document.querySelector('.main-logo-header');
-    const voicesBar = document.querySelector('.voices-bar');
-    if (mainHeader) mainHeader.style.marginLeft = '0';
-    if (voicesBar) voicesBar.style.marginLeft = '0';
-
-    // Remove sidebar offset from input area
-    const inputArea = document.querySelector('.chat-input-area');
-    if (inputArea) inputArea.style.left = '0';
-
-    // Center the empty state (remove sidebar offset)
-    const emptyChat = document.querySelector('.empty-chat');
-    if (emptyChat) emptyChat.style.marginLeft = '0';
+    // Hide sidebar toggle for guests (no debate history)
+    const desktopToggle = document.getElementById('desktop-sidebar-toggle');
+    const mobileToggle = document.getElementById('sidebar-toggle');
+    if (desktopToggle) desktopToggle.style.display = 'none';
+    if (mobileToggle) mobileToggle.style.display = 'none';
 
     // Show the guest menu in the header
     const guestMenuWrapper = document.getElementById('guest-menu-wrapper');
@@ -287,7 +316,7 @@ function updateGuestDropdown(dropdownId) {
     const header = dropdown.querySelector('.profile-dropdown-header');
     if (header) {
         header.innerHTML = `
-            <a href="/login" style="display: flex; align-items: center; justify-content: center; width: 100%; padding: 6px 12px; background: var(--primary-color); color: white; border-radius: 6px; font-weight: 500; font-size: 0.85rem; text-decoration: none;">
+            <a href="/login#register" style="display: flex; align-items: center; justify-content: center; width: 100%; padding: 6px 12px; background: var(--primary-color); color: #ffffff; border-radius: 6px; font-weight: 500; font-size: 0.85rem; text-decoration: none;">
                 Sign Up
             </a>
         `;
@@ -314,23 +343,62 @@ function updateGuestDropdown(dropdownId) {
     }
 }
 
-// Initialize guest menu dropdown
+// Initialize guest menu - uses full-screen overlay approach
 function initGuestMenu() {
-    const btn = document.getElementById('guest-menu-btn');
-    const dropdown = document.getElementById('guest-menu-dropdown');
-    const themeToggle = document.getElementById('theme-toggle-guest');
+    const overlay = document.getElementById('guest-menu-overlay');
+    const backdrop = document.getElementById('guest-menu-backdrop');
+    const themeToggle = document.getElementById('guest-theme-toggle');
 
-    if (btn && dropdown) {
-        btn.addEventListener('click', (e) => {
+    if (!overlay) return;
+
+    const panel = document.getElementById('guest-menu-panel');
+
+    function toggleOverlay(fromRight) {
+        if (overlay.style.display === 'none' || !overlay.style.display) {
+            if (panel) {
+                if (fromRight) {
+                    panel.style.left = 'auto';
+                    panel.style.right = '8px';
+                } else {
+                    panel.style.left = '8px';
+                    panel.style.right = 'auto';
+                }
+            }
+            overlay.style.display = 'block';
+        } else {
+            overlay.style.display = 'none';
+        }
+    }
+
+    // Desktop three dots (left side)
+    const desktopBtn = document.getElementById('guest-menu-btn');
+    if (desktopBtn) {
+        desktopBtn.addEventListener('click', (e) => {
             e.stopPropagation();
-            dropdown.classList.toggle('open');
-        });
-
-        document.addEventListener('click', () => {
-            dropdown.classList.remove('open');
+            toggleOverlay(false);
         });
     }
 
+    // Mobile three dots (right side)
+    const mobileBtn = document.getElementById('mobile-profile-btn');
+    if (mobileBtn) {
+        // Remove old listeners by cloning
+        const newBtn = mobileBtn.cloneNode(true);
+        mobileBtn.parentNode.replaceChild(newBtn, mobileBtn);
+        newBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            toggleOverlay(true);
+        });
+    }
+
+    // Close on backdrop click
+    if (backdrop) {
+        backdrop.addEventListener('click', () => {
+            overlay.style.display = 'none';
+        });
+    }
+
+    // Theme toggle
     if (themeToggle) {
         themeToggle.checked = document.documentElement.getAttribute('data-theme') === 'dark';
         themeToggle.addEventListener('change', () => {
@@ -343,15 +411,37 @@ function initGuestMenu() {
 
 // Show UI for logged-in users
 function showLoggedInUI() {
-    // Show sidebar and toggle
-    const sidebar = document.getElementById('sidebar');
-    const sidebarToggle = document.getElementById('sidebar-toggle');
-    if (sidebar) sidebar.style.display = '';
-    if (sidebarToggle) sidebarToggle.style.display = '';
+    // Show sidebar toggle (hamburger)
+    const desktopToggle = document.getElementById('desktop-sidebar-toggle');
+    const mobileToggle = document.getElementById('sidebar-toggle');
+    if (desktopToggle) desktopToggle.style.display = 'flex';
+    if (mobileToggle) mobileToggle.style.display = 'flex';
 
     // Hide guest menu
     const guestMenuWrapper = document.getElementById('guest-menu-wrapper');
     if (guestMenuWrapper) guestMenuWrapper.style.display = 'none';
+
+    // Show desktop three-dots menu
+    const desktopProfileWrapper = document.getElementById('desktop-profile-wrapper');
+    if (desktopProfileWrapper) desktopProfileWrapper.style.display = 'block';
+
+    // Wire up desktop three-dots to open the mobile profile dropdown (reuse same dropdown)
+    const desktopProfileBtn = document.getElementById('desktop-profile-btn');
+    if (desktopProfileBtn && !desktopProfileBtn._bound) {
+        desktopProfileBtn._bound = true;
+        desktopProfileBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const dropdown = document.getElementById('mobile-profile-dropdown');
+            if (dropdown) dropdown.classList.toggle('open');
+        });
+    }
+
+    // Show admin buttons if admin (run here too to catch all elements)
+    const isAdmin = currentUser && currentUser.email && currentUser.email.toLowerCase() === 'michael24011@icloud.com';
+    ['desktop-admin-btn', 'mobile-admin-btn'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.style.display = isAdmin ? 'flex' : 'none';
+    });
 }
 
 // Show privacy policy modal for existing users
@@ -409,6 +499,53 @@ function closeUpgradeModal() {
     }
 }
 
+// Session-based guest buzz tracking (resets every new tab/session)
+const GUEST_SESSION_LIMIT = 3;
+
+function getGuestBuzzesUsed() {
+    return parseInt(sessionStorage.getItem('guestBuzzes') || '0', 10);
+}
+
+function incrementGuestBuzzes() {
+    const used = getGuestBuzzesUsed() + 1;
+    sessionStorage.setItem('guestBuzzes', String(used));
+    return used;
+}
+
+function checkGuestSessionLimit() {
+    if (localStorage.getItem('token')) return true; // logged in, skip
+    return getGuestBuzzesUsed() < GUEST_SESSION_LIMIT;
+}
+
+function showLimitNotification(detail) {
+    const overlay = document.getElementById('limit-notification');
+    const title = document.getElementById('limit-title');
+    const message = document.getElementById('limit-message');
+    const buttons = document.getElementById('limit-buttons');
+    if (!overlay) return;
+
+    const isGuest = !localStorage.getItem('token');
+
+    if (isGuest) {
+        title.textContent = 'Want More Buzzes?';
+        message.textContent = 'You\'ve used your free buzzes for this session. Create a free account to get 20 buzzes per month!';
+        buttons.innerHTML = `
+            <button class="btn btn-secondary" onclick="document.getElementById('limit-notification').style.display='none'">Maybe Later</button>
+            <button class="btn btn-primary" onclick="window.location.href='/login#register'">Sign Up Free</button>
+        `;
+    } else {
+        title.textContent = 'Monthly Limit Reached';
+        message.textContent = 'You\'ve used all 20 buzzes this month. Upgrade to Pro for unlimited buzzes!';
+        buttons.innerHTML = `
+            <button class="btn btn-secondary" onclick="document.getElementById('limit-notification').style.display='none'">Maybe Later</button>
+            <button class="btn btn-primary" onclick="window.location.href='/pricing'">Upgrade to Pro</button>
+        `;
+    }
+
+    overlay.style.display = 'flex';
+}
+window.showLimitNotification = showLimitNotification;
+
 // Load available models
 async function loadModels() {
     try {
@@ -428,22 +565,9 @@ async function loadModels() {
 
 // Load configured providers
 async function loadConfiguredProviders() {
-    try {
-        const response = await fetch(`${API_BASE}/api/keys`, {
-            headers: getAuthHeaders()
-        });
-
-        if (!response.ok) throw new Error('Failed to load providers');
-
-        const providers = await response.json();
-        configuredProviders = new Set(
-            providers.filter(p => p.configured).map(p => p.provider)
-        );
-        window.configuredProviders = configuredProviders;
-        // Don't render yet - wait until selectedModels are loaded
-    } catch (error) {
-        console.error('Error loading providers:', error);
-    }
+    // All models use app-level xAI key
+    configuredProviders = new Set(['xai']);
+    window.configuredProviders = configuredProviders;
 }
 
 // Load subscription status
@@ -490,63 +614,10 @@ document.getElementById('mobile-dropdown-upgrade-btn')?.addEventListener('click'
     window.location.href = '/pricing';
 });
 
-// Render model tags - only show models with configured providers
+// Model selection hidden - all bees use Grok
 function renderModelTags() {
-    const container = document.getElementById('model-tags');
-    if (!container) return;
-
-    // Enable drag scrolling for mobile (only once)
-    if (!container.dataset.dragEnabled) {
-        enableDragScroll(container);
-        container.dataset.dragEnabled = 'true';
-    }
-
-    container.innerHTML = '';
-
-    // Filter to only show models with configured providers
-    const visibleModels = availableModels.filter(model => configuredProviders.has(model.provider));
-
-    if (visibleModels.length === 0) {
-        // Show "no models" message
-        const noModelsMsg = document.createElement('div');
-        noModelsMsg.className = 'no-models-message';
-        noModelsMsg.innerHTML = `
-            <span style="color: var(--text-secondary); font-size: 0.9rem;">
-                No models available. <a href="#" onclick="openSettingsModal(); return false;" style="color: var(--primary-color);">Add at least 2 API keys</a> to get started.
-            </span>
-        `;
-        container.appendChild(noModelsMsg);
-        return;
-    }
-
-    visibleModels.forEach((model) => {
-        const originalIndex = availableModels.indexOf(model);
-        const isSelected = selectedModels.some(m => m.model_id === model.id && m.provider === model.provider);
-
-        const tag = document.createElement('span');
-        tag.className = `model-tag ${isSelected ? 'selected' : ''}`;
-        tag.dataset.modelIndex = originalIndex;
-        tag.textContent = model.name;
-        tag.title = model.provider_name;
-
-        container.appendChild(tag);
-    });
-
-    // Remove any selected models that are no longer visible (provider key was deleted)
-    // But only if we have models loaded (to avoid clearing during init)
-    if (visibleModels.length > 0 && selectedModels.length > 0) {
-        const visibleModelIds = new Set(visibleModels.map(m => `${m.provider}:${m.id}`));
-        const filtered = selectedModels.filter(m => visibleModelIds.has(`${m.provider}:${m.model_id}`));
-        if (filtered.length !== selectedModels.length) {
-            selectedModels = filtered;
-            saveSelectedModels();
-        }
-    }
-
-    // Update header count display
-    if (typeof window.updateHeaderModelsCount === 'function') {
-        window.updateHeaderModelsCount();
-    }
+    const section = document.getElementById('setup-section');
+    if (section) section.style.display = 'none';
 }
 
 // Handle model tag clicks
@@ -648,19 +719,9 @@ document.getElementById('mobile-dropdown-logout-btn')?.addEventListener('click',
     window.location.href = '/';
 });
 
-// Settings button (if it exists)
-document.getElementById('settings-btn')?.addEventListener('click', () => {
-    openSettingsModal();
-});
-
 // Help button - reopen tutorial
 document.getElementById('help-btn')?.addEventListener('click', () => {
     showTutorial();
-});
-
-// Inline settings button
-document.getElementById('settings-btn-inline')?.addEventListener('click', () => {
-    openSettingsModal();
 });
 
 // Profile dropdown toggle (desktop - in sidebar)
@@ -709,10 +770,12 @@ if (mobileProfileBtn && mobileProfileDropdown) {
 
 // Close all dropdowns when clicking outside
 document.addEventListener('click', (e) => {
-    if (profileDropdown && !profileDropdown.contains(e.target) && !profileBtn?.contains(e.target)) {
+    const desktopProfileBtn = document.getElementById('desktop-profile-btn');
+    if (profileDropdown && !profileDropdown.contains(e.target) && !profileBtn?.contains(e.target) && !desktopProfileBtn?.contains(e.target)) {
         profileDropdown.classList.remove('open');
     }
-    if (mobileProfileDropdown && !mobileProfileDropdown.contains(e.target) && !mobileProfileBtn?.contains(e.target)) {
+    const deskProfileBtn = document.getElementById('desktop-profile-btn');
+    if (mobileProfileDropdown && !mobileProfileDropdown.contains(e.target) && !mobileProfileBtn?.contains(e.target) && !deskProfileBtn?.contains(e.target)) {
         mobileProfileDropdown.classList.remove('open');
     }
 });
@@ -758,6 +821,13 @@ function updateProfileDisplay(email, isPro) {
     ['dropdown-upgrade-btn', 'mobile-dropdown-upgrade-btn'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.style.display = isPro ? 'none' : 'flex';
+    });
+
+    // Show admin button only for admin email
+    const isAdmin = email && email.toLowerCase() === 'michael24011@icloud.com';
+    ['desktop-admin-btn', 'mobile-admin-btn'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.style.display = isAdmin ? 'flex' : 'none';
     });
 
     // Always show detail mode toggle (but with PRO badge for free users)
@@ -849,6 +919,8 @@ function updateModeSelectorBubble() {
 // Initialize mode selector on load
 document.addEventListener('DOMContentLoaded', () => {
     updateModeSelectorBubble();
+    // Initialize the main tab indicator position
+    requestAnimationFrame(() => requestAnimationFrame(() => updateMainTabIndicator()));
 });
 
 // Mode selector dropdown toggle
@@ -908,6 +980,12 @@ if (chatInput) {
         // Auto-resize
         chatInput.style.height = 'auto';
         chatInput.style.height = Math.min(chatInput.scrollHeight, 150) + 'px';
+        // Hide quick template chips when typing — use a class (not display:none)
+        // so the marquee animation keeps running while hidden and never restarts.
+        const quickTemplates = document.getElementById('quick-templates');
+        if (quickTemplates) {
+            quickTemplates.classList.toggle('is-hidden', !!chatInput.value.trim());
+        }
     });
 
     chatInput.addEventListener('keydown', (e) => {
@@ -956,9 +1034,15 @@ if (chatInput) {
         loadSelectedModels();
 
         // Load chat history (sidebar is always visible)
-        if (typeof loadChatHistory === 'function') {
-            loadChatHistory();
+        // chat.js may not have loaded yet, so retry after a delay
+        function tryLoadHistory() {
+            if (typeof loadChatHistory === 'function') {
+                loadChatHistory();
+            } else {
+                setTimeout(tryLoadHistory, 200);
+            }
         }
+        tryLoadHistory();
 
         // Check for subscription success/cancel from URL
         const urlParams = new URLSearchParams(window.location.search);
@@ -973,6 +1057,15 @@ if (chatInput) {
             window.history.replaceState({}, '', '/');
             // Small delay to ensure DOM is fully ready
             setTimeout(() => showTutorial(), 100);
+            return;
+        }
+
+        // Check if this is a shared decision deep link
+        const pathMatch = window.location.pathname.match(/^\/decision\/([a-zA-Z0-9-]+)/);
+        if (pathMatch) {
+            const decisionId = pathMatch[1];
+            // Open decisions feed and scroll to this specific decision
+            setTimeout(() => openSharedDecision(decisionId), 300);
             return;
         }
 
@@ -1045,102 +1138,25 @@ function updateSetupUI() {
     const appOverlay = document.getElementById('app-setup-overlay');
     const nextBtn = document.getElementById('tutorial-next');
 
-    const hasEnoughModels = selectedModels.length >= 2;
-
-    // Show/hide overlay on main app
+    // Hide overlay - no longer needed (app uses server-side API keys)
     if (appOverlay) {
-        appOverlay.style.display = hasEnoughModels || setupComplete ? 'none' : 'block';
+        appOverlay.style.display = 'none';
     }
 
-    // Update next button based on current step
-    if (nextBtn && tutorialStep === 1) {
-        nextBtn.disabled = !hasEnoughModels;
-        if (!hasEnoughModels) {
-            nextBtn.textContent = 'Select 2+ Models';
-        } else {
-            nextBtn.textContent = 'Next';
-        }
-    }
-
-    // Update provider bubbles to show connected state
-    updateProviderBubbles();
-
-    // Also refresh model selection when providers change
-    if (tutorialStep === 1) {
-        populateSetupModels();
+    // Next button is always enabled (just a welcome screen now)
+    if (nextBtn) {
+        nextBtn.disabled = false;
     }
 }
 
 function updateTutorialStep() {
-    // Hide all steps
-    document.querySelectorAll('.tutorial-step').forEach(step => {
-        step.style.display = 'none';
-    });
+    // Show the single welcome step
+    const currentStep = document.querySelector('.tutorial-step[data-step="1"]');
+    if (currentStep) currentStep.style.display = 'block';
 
-    // Show current step
-    const currentStep = document.querySelector(`.tutorial-step[data-step="${tutorialStep}"]`);
-    if (currentStep) {
-        currentStep.style.display = 'block';
-    }
-
-    // Update dots
-    document.querySelectorAll('.tutorial-dot').forEach(dot => {
-        dot.classList.remove('active');
-        if (parseInt(dot.dataset.step) === tutorialStep) {
-            dot.classList.add('active');
-        }
-    });
-
-    // Update buttons
-    const prevBtn = document.getElementById('tutorial-prev');
-    const nextBtn = document.getElementById('tutorial-next');
-
-    if (prevBtn) {
-        prevBtn.style.visibility = tutorialStep === 1 ? 'hidden' : 'visible';
-    }
-
-    if (nextBtn) {
-        if (tutorialStep === 1) {
-            // Model selection step - need 2+ models
-            const hasEnoughModels = selectedModels.length >= 2;
-            nextBtn.disabled = !hasEnoughModels;
-            if (!hasEnoughModels) {
-                nextBtn.textContent = 'Select 2+ Models';
-            } else {
-                nextBtn.textContent = 'Next';
-            }
-        } else if (tutorialStep === totalSteps) {
-            // Final step
-            nextBtn.disabled = false;
-            nextBtn.textContent = "Start Chatting";
-        } else {
-            nextBtn.disabled = false;
-            nextBtn.textContent = 'Next';
-        }
-    }
-
-    // Update title
-    const titles = {
-        1: "Setup",
-        2: "Ready to Go!"
-    };
     const titleEl = document.getElementById('tutorial-title');
-    if (titleEl) {
-        titleEl.textContent = titles[tutorialStep] || '';
-    }
+    if (titleEl) titleEl.textContent = 'Welcome';
 
-    // Setup API key + models step
-    if (tutorialStep === 1) {
-        setupApiKeyStep();
-        populateSetupModels();
-    }
-
-    // Update connected count on last step
-    if (tutorialStep === 2) {
-        updateSetupConnectedCount();
-    }
-
-    // Update setup UI state
     updateSetupUI();
 }
 
@@ -1357,34 +1373,11 @@ function updateProviderBubbles() {
 // Setup tutorial event listeners
 function setupTutorialListeners() {
     const nextBtn = document.getElementById('tutorial-next');
-    const prevBtn = document.getElementById('tutorial-prev');
-
     if (nextBtn) {
         nextBtn.addEventListener('click', () => {
-            if (tutorialStep < totalSteps) {
-                tutorialStep++;
-                updateTutorialStep();
-            } else {
-                hideTutorial();
-            }
+            hideTutorial();
         });
     }
-
-    if (prevBtn) {
-        prevBtn.addEventListener('click', () => {
-            if (tutorialStep > 1) {
-                tutorialStep--;
-                updateTutorialStep();
-            }
-        });
-    }
-
-    document.querySelectorAll('.tutorial-dot').forEach(dot => {
-        dot.addEventListener('click', () => {
-            tutorialStep = parseInt(dot.dataset.step);
-            updateTutorialStep();
-        });
-    });
 }
 
 // Check if should show setup wizard
@@ -1393,12 +1386,8 @@ function checkShowTutorial() {
     setupTutorialListeners();
 
     const completed = localStorage.getItem('tutorialCompleted');
-    const hasEnoughModels = isSetupComplete();
 
-    // Show setup wizard if:
-    // 1. Tutorial was never completed, OR
-    // 2. User doesn't have at least 2 models selected
-    if (!completed || !hasEnoughModels) {
+    if (!completed) {
         setupComplete = false;
         showTutorial();
     } else {
@@ -1542,7 +1531,7 @@ const BEE_COLORS = {
     // Chaos Hive - warm reds/oranges
     'chaos-optimist': { bg: 'rgba(34, 197, 94, 0.15)', border: '#22c55e', text: '#16a34a' },      // Green
     'chaos-pessimist': { bg: 'rgba(239, 68, 68, 0.15)', border: '#ef4444', text: '#dc2626' },     // Red
-    'chaos-realist': { bg: 'rgba(107, 114, 128, 0.15)', border: '#6b7280', text: '#4b5563' },     // Gray
+    'chaos-realist': { bg: 'rgba(20, 184, 166, 0.15)', border: '#14b8a6', text: '#14b8a6' },     // Teal
     'chaos-contrarian': { bg: 'rgba(249, 115, 22, 0.15)', border: '#f97316', text: '#ea580c' },   // Orange
     'chaos-cynic': { bg: 'rgba(162, 28, 175, 0.15)', border: '#a21caf', text: '#86198f' },        // Fuchsia
 
@@ -1554,7 +1543,7 @@ const BEE_COLORS = {
     'friend-practical': { bg: 'rgba(20, 184, 166, 0.15)', border: '#14b8a6', text: '#0d9488' },   // Teal
 
     // Billionaire Hive - golds/greens
-    'billionaire-builder': { bg: 'rgba(245, 158, 11, 0.15)', border: '#f59e0b', text: '#d97706' }, // Amber
+    'billionaire-builder': { bg: 'rgba(250, 204, 21, 0.15)', border: '#facc15', text: '#eab308' }, // Amber
     'billionaire-investor': { bg: 'rgba(16, 185, 129, 0.15)', border: '#10b981', text: '#059669' }, // Emerald
     'billionaire-strategist': { bg: 'rgba(99, 102, 241, 0.15)', border: '#6366f1', text: '#4f46e5' }, // Indigo
     'billionaire-disruptor': { bg: 'rgba(239, 68, 68, 0.15)', border: '#ef4444', text: '#dc2626' }, // Red
@@ -1569,13 +1558,13 @@ const BEE_COLORS = {
 
     // Generations Hive - varied
     'gen-z': { bg: 'rgba(236, 72, 153, 0.15)', border: '#ec4899', text: '#db2777' },              // Pink
-    'gen-millennial': { bg: 'rgba(245, 158, 11, 0.15)', border: '#f59e0b', text: '#d97706' },     // Amber
-    'gen-x': { bg: 'rgba(107, 114, 128, 0.15)', border: '#6b7280', text: '#4b5563' },             // Gray
+    'gen-millennial': { bg: 'rgba(250, 204, 21, 0.15)', border: '#facc15', text: '#eab308' },     // Amber
+    'gen-x': { bg: 'rgba(249, 115, 22, 0.15)', border: '#f97316', text: '#f97316' },             // Orange
     'gen-boomer': { bg: 'rgba(59, 130, 246, 0.15)', border: '#3b82f6', text: '#2563eb' },         // Blue
     'gen-future': { bg: 'rgba(6, 182, 212, 0.15)', border: '#06b6d4', text: '#0891b2' },          // Cyan
 
     // Courtroom Hive - formal colors
-    'court-judge': { bg: 'rgba(30, 41, 59, 0.15)', border: '#1e293b', text: '#0f172a' },          // Slate
+    'court-judge': { bg: 'rgba(148, 163, 184, 0.15)', border: '#94a3b8', text: '#cbd5e1' },      // Slate (dark-mode friendly)
     'court-prosecutor': { bg: 'rgba(239, 68, 68, 0.15)', border: '#ef4444', text: '#dc2626' },    // Red
     'court-defense': { bg: 'rgba(59, 130, 246, 0.15)', border: '#3b82f6', text: '#2563eb' },      // Blue
     'court-witness': { bg: 'rgba(250, 204, 21, 0.15)', border: '#facc15', text: '#ca8a04' },      // Yellow
@@ -1590,7 +1579,7 @@ const BEE_COLORS = {
 const HIVE_COLORS = {
     'chaos': { bg: 'rgba(239, 68, 68, 0.15)', border: '#ef4444', text: '#dc2626' },
     'friend-group': { bg: 'rgba(236, 72, 153, 0.15)', border: '#ec4899', text: '#db2777' },
-    'billionaire': { bg: 'rgba(245, 158, 11, 0.15)', border: '#f59e0b', text: '#d97706' },
+    'billionaire': { bg: 'rgba(250, 204, 21, 0.15)', border: '#facc15', text: '#eab308' },
     'internet': { bg: 'rgba(6, 182, 212, 0.15)', border: '#06b6d4', text: '#0891b2' },
     'generations': { bg: 'rgba(139, 92, 246, 0.15)', border: '#8b5cf6', text: '#7c3aed' },
     'courtroom': { bg: 'rgba(16, 185, 129, 0.15)', border: '#10b981', text: '#059669' },
@@ -1638,6 +1627,12 @@ let editingBeeIndex = null;  // Index in currentEditingBees being edited
 let selectedSpecialBees = loadSelectedSpecialBees();
 let selectedPersonalities = loadSelectedBees();
 let currentQuestion = '';
+
+// Expose hive state to window for cross-script access (chat.js)
+window.selectedHiveId = selectedHiveId;
+window.customHives = customHives;
+window.selectedSpecialBees = selectedSpecialBees;
+window.selectedPersonalities = selectedPersonalities;
 
 // Load selected hive from localStorage
 function loadSelectedHive() {
@@ -1710,6 +1705,101 @@ async function fetchHives() {
     }
 }
 
+// ============ DEBATE VIBES ============
+const FALLBACK_VIBES = [
+    { id: 'group-chat', name: 'Group Chat', emoji: '💬', description: 'Casual iMessage banter. Short quips, reactions, interruptions.' },
+    { id: 'brawl', name: 'Brawl', emoji: '🥊', description: 'Chaos. Bees interrupt and pile on.' },
+    { id: 'courtroom', name: 'Courtroom', emoji: '⚖️', description: 'Formal proceedings. Prosecution vs defense.' },
+    { id: 'boardroom', name: 'Boardroom', emoji: '💼', description: 'Executive meeting. Strategic plays.' },
+    { id: 'panel-show', name: 'Panel Show', emoji: '🎤', description: 'Game-show panel. Rapid takes.' }
+];
+let allVibes = [...FALLBACK_VIBES];
+let selectedVibeId = loadSelectedVibe();
+window.allVibes = allVibes;
+window.selectedVibeId = selectedVibeId;
+
+function loadSelectedVibe() {
+    try { return localStorage.getItem('selectedVibe') || 'group-chat'; }
+    catch (e) { return 'group-chat'; }
+}
+function saveSelectedVibe() {
+    try { localStorage.setItem('selectedVibe', selectedVibeId); } catch (e) {}
+}
+
+async function fetchVibes() {
+    try {
+        const response = await fetch(`${API_BASE}/api/vibes`);
+        if (response.ok) {
+            const data = await response.json();
+            if (Array.isArray(data) && data.length > 0) {
+                allVibes = data;
+                window.allVibes = allVibes;
+            }
+        }
+    } catch (error) {
+        console.error('Error fetching vibes:', error);
+    }
+    updateVibeChip();
+}
+
+function updateVibeChip() {
+    const emojiEl = document.getElementById('vibe-chip-emoji');
+    const nameEl = document.getElementById('vibe-chip-name');
+    const vibe = allVibes.find(v => v.id === selectedVibeId) || allVibes[0];
+    if (emojiEl && vibe) emojiEl.textContent = vibe.emoji;
+    if (nameEl && vibe) nameEl.textContent = vibe.name;
+}
+
+function openVibeModal() {
+    const modal = document.getElementById('vibe-modal');
+    if (!modal) return;
+    renderVibeOptions('vibe-grid', (vibeId) => {
+        selectVibe(vibeId);
+        closeVibeModal();
+    });
+    modal.classList.add('active');
+}
+function closeVibeModal() {
+    const modal = document.getElementById('vibe-modal');
+    if (modal) modal.classList.remove('active');
+}
+
+function renderVibeOptions(gridId, onSelect, currentId) {
+    const grid = document.getElementById(gridId);
+    if (!grid) return;
+    const activeId = currentId || selectedVibeId;
+    grid.innerHTML = allVibes.map(v => `
+        <button type="button" class="vibe-option ${v.id === activeId ? 'selected' : ''}" data-vibe-id="${escapeHtml(v.id)}">
+            <span class="vibe-option-emoji">${v.emoji || '💬'}</span>
+            <div class="vibe-option-text">
+                <span class="vibe-option-name">${escapeHtml(v.name || '')}</span>
+                <span class="vibe-option-desc">${escapeHtml(v.description || '')}</span>
+            </div>
+        </button>
+    `).join('');
+    grid.querySelectorAll('.vibe-option').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const id = btn.dataset.vibeId;
+            grid.querySelectorAll('.vibe-option').forEach(b => b.classList.remove('selected'));
+            btn.classList.add('selected');
+            if (typeof onSelect === 'function') onSelect(id);
+        });
+    });
+}
+
+function selectVibe(vibeId) {
+    selectedVibeId = vibeId;
+    window.selectedVibeId = vibeId;
+    saveSelectedVibe();
+    updateVibeChip();
+}
+
+window.openVibeModal = openVibeModal;
+window.closeVibeModal = closeVibeModal;
+window.selectVibe = selectVibe;
+window.renderVibeOptions = renderVibeOptions;
+window.updateVibeChip = updateVibeChip;
+
 // Fallback special bees data in case API fails
 const FALLBACK_SPECIAL_BEES = [
     { id: "special-devils-advocate", name: "Devil's Advocate", human_name: "Lucifer", emoji: "😈", description: "Challenges consensus, prevents echo chambers", is_special: true },
@@ -1740,6 +1830,7 @@ async function fetchPersonalities() {
     await fetchHives();
     await fetchSpecialBees();
     await fetchCustomHives();
+    await fetchVibes();
     updateAllPersonalities();
 }
 
@@ -1813,42 +1904,96 @@ function confirmHiveSelection() {
 }
 
 function selectHive(hiveId) {
+    // If clicking Select on the already-current hive, DO NOT reset the
+    // user's in-modal toggles — just close the modal. Previously this was
+    // overwriting selectedPersonalities with the full hive bee list,
+    // undoing any bees the user had just toggled off.
+    const wasAlreadySelected = hiveId === selectedHiveId;
+
     selectedHiveId = hiveId;
+    window.selectedHiveId = hiveId;
     saveSelectedHive();
     updateAllPersonalities();
 
-    // Reset selected personalities to all bees in the hive
-    // First check if it's a custom hive
-    const customHive = customHives.find(h => h.id === hiveId);
-    if (customHive) {
-        selectedPersonalities = customHive.bees.map(p => p.id);
-        // Add any selected special bees
-        selectedSpecialBees.forEach(specialId => {
-            if (!selectedPersonalities.includes(specialId)) {
-                selectedPersonalities.push(specialId);
-            }
-        });
-        saveSelectedBees();
-    } else {
-        // Built-in hive
-        const hive = allHives.find(h => h.id === hiveId);
-        if (hive) {
-            selectedPersonalities = hive.personalities.map(p => p.id);
-            // Add any selected special bees
-            selectedSpecialBees.forEach(specialId => {
-                if (!selectedPersonalities.includes(specialId)) {
-                    selectedPersonalities.push(specialId);
+    if (!wasAlreadySelected) {
+        // Switching to a different hive — seed selectedPersonalities from
+        // the user's stored per-hive toggles (if any), else default to all.
+        const storedSelections = window._hiveBeeSelections && window._hiveBeeSelections[hiveId];
+        if (storedSelections && storedSelections.length > 0) {
+            selectedPersonalities = [...storedSelections]; window.selectedPersonalities = selectedPersonalities;
+        } else {
+            const customHive = customHives.find(h => h.id === hiveId);
+            if (customHive) {
+                selectedPersonalities = customHive.bees.map(p => p.id); window.selectedPersonalities = selectedPersonalities;
+            } else {
+                const hive = allHives.find(h => h.id === hiveId);
+                if (hive) {
+                    selectedPersonalities = hive.personalities.map(p => p.id); window.selectedPersonalities = selectedPersonalities;
                 }
-            });
-            saveSelectedBees();
+            }
         }
     }
+    // Always make sure special bees are represented regardless of path
+    selectedSpecialBees.forEach(specialId => {
+        if (!selectedPersonalities.includes(specialId)) {
+            selectedPersonalities.push(specialId);
+        }
+    });
+    saveSelectedBees();
+
+    // Clear stored selections for this hive since it's now the active one
+    if (window._hiveBeeSelections) delete window._hiveBeeSelections[hiveId];
 
     // Update UI
     renderVoicesBar();
-    renderHivesModal();
     updateCurrentHiveDisplay();
     closeHivesModal();
+}
+
+// Select hive from within modal (doesn't close modal, shows bee toggles)
+function selectHiveInModal(hiveId) {
+    if (hiveId === selectedHiveId) return; // Already selected
+    selectedHiveId = hiveId;
+    window.selectedHiveId = hiveId;
+    saveSelectedHive();
+    updateAllPersonalities();
+
+    // Use stored per-hive selections if available, otherwise all bees
+    const storedSelections = window._hiveBeeSelections && window._hiveBeeSelections[hiveId];
+    if (storedSelections && storedSelections.length > 0) {
+        selectedPersonalities = [...storedSelections];
+    } else {
+        const customHive = customHives.find(h => h.id === hiveId);
+        if (customHive) {
+            selectedPersonalities = customHive.bees.map(p => p.id); window.selectedPersonalities = selectedPersonalities;
+        } else {
+            const hive = allHives.find(h => h.id === hiveId);
+            if (hive) {
+                selectedPersonalities = hive.personalities.map(p => p.id); window.selectedPersonalities = selectedPersonalities;
+            }
+        }
+    }
+    // Add any selected special bees
+    selectedSpecialBees.forEach(specialId => {
+        if (!selectedPersonalities.includes(specialId)) {
+            selectedPersonalities.push(specialId);
+        }
+    });
+    saveSelectedBees();
+
+    // Clear stored selections for this hive since it's now the active one
+    if (window._hiveBeeSelections) delete window._hiveBeeSelections[hiveId];
+
+    updateCurrentHiveDisplay();
+    renderVoicesBar();
+    renderHivesModal();
+}
+
+// Toggle special bee from within hive modal
+function toggleSpecialBeeInModal(beeId) {
+    toggleSpecialBee(beeId);
+    renderHivesModal();
+    updateEmptyStateHiveCard();
 }
 
 // Toggle special bee selection
@@ -1892,15 +2037,122 @@ function updateCurrentHiveDisplay() {
 
     if (nameEl) nameEl.textContent = hiveName;
     if (mobileNameEl) mobileNameEl.textContent = hiveName;
+
+    // Update empty state hive card
+    updateEmptyStateHiveCard();
+
+    // Update hive chip in input area
+    updateHiveChip();
+}
+
+function updateHiveChip() {
+    const chipBar = document.getElementById('hive-chip-bar');
+    const chipName = document.getElementById('hive-chip-name');
+    const chipIcon = document.getElementById('hive-chip-icon');
+    if (!chipBar || !chipName) return;
+
+    let hiveName = 'Choose Hive';
+    let iconSrc = '/bee-icon.png';
+
+    const customHive = customHives.find(h => h.id === selectedHiveId);
+    if (customHive) {
+        hiveName = customHive.name;
+    } else {
+        const hive = allHives.find(h => h.id === selectedHiveId);
+        if (hive) {
+            hiveName = hive.name;
+            // Use first bee's icon as hive icon
+            if (hive.personalities && hive.personalities.length > 0) {
+                const pid = hive.personalities[0].id;
+                if (typeof getBeeIconPath === 'function') {
+                    iconSrc = getBeeIconPath(pid);
+                }
+            }
+        }
+    }
+
+    chipName.textContent = hiveName;
+    if (chipIcon) chipIcon.src = iconSrc;
+}
+
+function updateEmptyStateHiveCard() {
+    const card = document.getElementById('empty-state-hive-card');
+    if (!card) return;
+
+    const nameEl = document.getElementById('empty-hive-name');
+    const descEl = document.getElementById('empty-hive-desc');
+    const beesEl = document.getElementById('empty-hive-bees');
+
+    // Find current hive data
+    const customHive = customHives.find(h => h.id === selectedHiveId);
+    let hiveName = 'Choose Hive';
+    let hiveDesc = 'Tap to select a hive';
+    let bees = [];
+    let isCustom = false;
+
+    if (customHive) {
+        hiveName = customHive.name;
+        hiveDesc = customHive.description || 'Your custom hive';
+        bees = customHive.bees || [];
+        isCustom = true;
+    } else {
+        const hive = allHives.find(h => h.id === selectedHiveId);
+        if (hive) {
+            hiveName = hive.name;
+            hiveDesc = hive.description || '';
+            bees = hive.personalities || [];
+        }
+    }
+
+    // Add special bees
+    const specialBees = [];
+    selectedSpecialBees.forEach(specialId => {
+        const sb = allSpecialBees.find(b => b.id === specialId);
+        if (sb) specialBees.push(sb);
+    });
+
+    if (nameEl) nameEl.innerHTML = hiveName + ' <svg class="hive-name-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>';
+    if (descEl) descEl.textContent = hiveDesc;
+    if (beesEl) beesEl.innerHTML = renderHoneycombHex(bees, specialBees, isCustom);
+
+    // Apply hive accent color to name
+    const theme = getHiveStyle(isCustom ? null : selectedHiveId, isCustom ? (customHive && customHive.color) : null);
+    if (nameEl) {
+        nameEl.style.color = theme ? theme.accent : 'var(--text-primary)';
+    }
 }
 
 // Open hives modal
-function openHivesModal() {
+async function openHivesModal() {
     const modal = document.getElementById('hives-modal');
     if (modal) {
         pendingHiveId = null;
+        window._expandedHiveId = selectedHiveId; // Auto-expand current hive
         modal.classList.add('active');
+        // Clear search
+        const searchInput = document.getElementById('hives-search-input');
+        if (searchInput) searchInput.value = '';
+        window._hivesSearchQuery = '';
+        // Load favorites + community hives in parallel
+        const token = localStorage.getItem('token');
+        const promises = [];
+        if (token) {
+            promises.push(
+                fetch(`${API_BASE}/api/custom-hives/favorites`, { headers: getAuthHeaders() })
+                    .then(r => r.ok ? r.json() : []).catch(() => [])
+                    .then(data => { window._favoritedHives = data; })
+            );
+        }
+        // Fetch community hives
+        const communityHeaders = token ? { 'Authorization': `Bearer ${token}` } : {};
+        promises.push(
+            fetch(`${API_BASE}/api/custom-hives/explore?sort=popular`, { headers: communityHeaders })
+                .then(r => r.ok ? r.json() : []).catch(() => [])
+                .then(data => { window._communityHives = data; })
+        );
+        await Promise.all(promises);
         renderHivesModal();
+        renderCommunityHives();
     }
 }
 
@@ -1910,68 +2162,341 @@ function closeHivesModal() {
     if (modal) {
         modal.classList.remove('active');
     }
+    // If we were picking a hive from inside the Remix flow, refresh remix UI.
+    if (window._remixPickingHive && typeof window.updateRemixHiveButton === 'function') {
+        window._remixPickingHive = false;
+        window.updateRemixHiveButton();
+    }
+    // If retry flag was set (from legacy "Try Another Hive" button), auto-send
+    if (window._retryAfterHiveSelect && typeof retryWithNewHive === 'function') {
+        setTimeout(() => retryWithNewHive(), 100);
+    }
+}
+
+// Track which hive card is expanded
+window._expandedHiveId = null;
+
+// Expand a hive card to show bee toggles
+function expandHiveCard(hiveId) {
+    if (window._expandedHiveId === hiveId) {
+        window._expandedHiveId = null;
+    } else {
+        window._expandedHiveId = hiveId;
+    }
+    renderHivesModal();
+}
+
+// Render honeycomb hexagon grid (7 slots: rows of 2-3-2)
+function renderHoneycombHex(hiveBees, specialBees, isCustom) {
+    // Only show bees the user has actually selected — deselected bees are
+    // dropped from the panel entirely, empty slots fill the rest.
+    const allBeeSlots = [];
+    hiveBees.forEach(p => {
+        if (selectedPersonalities.includes(p.id)) {
+            allBeeSlots.push({ bee: p, active: true, isCustom });
+        }
+    });
+    specialBees.forEach(p => {
+        if (selectedPersonalities.includes(p.id)) {
+            allBeeSlots.push({ bee: p, active: true, isCustom: false });
+        }
+    });
+
+    // Pad to 7 slots with empty hexes
+    while (allBeeSlots.length < 7) {
+        allBeeSlots.push({ bee: null, active: false, isCustom: false });
+    }
+
+    function renderHexSlot(slot) {
+        if (!slot.bee || !slot.active) {
+            return `<div class="hex-slot"><div class="hex-shape hex-empty"></div></div>`;
+        }
+        const p = slot.bee;
+        let iconHtml;
+        if (slot.isCustom) {
+            iconHtml = p.icon_base64
+                ? `<img class="hex-bee-icon" src="data:image/png;base64,${p.icon_base64}" alt="">`
+                : `<span class="hex-bee-emoji">${p.emoji || '🐝'}</span>`;
+        } else {
+            const iPath = getBeeIconPath(p.id);
+            iconHtml = `<img class="hex-bee-icon" src="${iPath}" alt="" onerror="this.src='/images/bee-icons/default bee icon.png'">`;
+        }
+        return `<div class="hex-slot" title="${p.human_name || p.name}"><div class="hex-shape hex-filled">${iconHtml}</div></div>`;
+    }
+
+    // Rows: 2 - 3 - 2
+    const row1 = allBeeSlots.slice(0, 2).map(renderHexSlot).join('');
+    const row2 = allBeeSlots.slice(2, 5).map(renderHexSlot).join('');
+    const row3 = allBeeSlots.slice(5, 7).map(renderHexSlot).join('');
+
+    return `<div class="hex-row">${row1}</div><div class="hex-row">${row2}</div><div class="hex-row">${row3}</div>`;
+}
+
+// Render small bee icon previews (used in hive modal collapsed state)
+function renderBeePreviewIcons(bees, isCustom) {
+    function beeIcon(p) {
+        if (isCustom) {
+            return p.icon_base64
+                ? `<img class="bee-preview-icon" src="data:image/png;base64,${p.icon_base64}" alt="">`
+                : `<span class="bee-preview-emoji">${p.emoji || '🐝'}</span>`;
+        }
+        const iPath = getBeeIconPath(p.id);
+        return `<img class="bee-preview-icon" src="${iPath}" alt="" onerror="this.src='/images/bee-icons/default bee icon.png'">`;
+    }
+    function hexItem(p) {
+        return `<div class="bee-preview-item" title="${p.human_name || p.name}">${beeIcon(p)}</div>`;
+    }
+    // Arrange in honeycomb rows: 2-3-2 for 5+, 1-2-1 for 4, 1-2 for 3, etc.
+    const items = bees.slice(0, 7);
+    let rows;
+    if (items.length >= 5) {
+        rows = [items.slice(0, 2), items.slice(2, 5), items.slice(5, 7)];
+    } else if (items.length === 4) {
+        rows = [items.slice(0, 1), items.slice(1, 3), items.slice(3, 4)];
+    } else if (items.length === 3) {
+        rows = [items.slice(0, 1), items.slice(1, 3)];
+    } else {
+        rows = [items];
+    }
+    return `<div class="mini-honeycomb">${rows.filter(r => r.length).map(row =>
+        `<div class="mini-hex-row">${row.map(p => hexItem(p)).join('')}</div>`
+    ).join('')}</div>`;
+}
+
+// Per-hive bee selections (tracks toggled bees for non-selected hives)
+if (!window._hiveBeeSelections) window._hiveBeeSelections = {};
+
+function getHiveBeeSelections(hiveId) {
+    if (hiveId === selectedHiveId) {
+        // For selected hive, use the actual selectedPersonalities (filter to this hive's bees)
+        const hiveBeeIds = getHiveBeeIds(hiveId);
+        return hiveBeeIds.filter(id => selectedPersonalities.includes(id));
+    }
+    if (window._hiveBeeSelections[hiveId]) return window._hiveBeeSelections[hiveId];
+    // Default: all bees selected
+    return getHiveBeeIds(hiveId);
+}
+
+// Render clickable bees for a hive card (expanded state)
+function renderHiveBeeToggles(bees, hiveId, isCustom) {
+    const activeBees = getHiveBeeSelections(hiveId);
+    return bees.map(p => {
+        const isActive = activeBees.includes(p.id);
+        let iconHtml;
+        if (isCustom) {
+            iconHtml = p.icon_base64
+                ? `<img class="bee-toggle-icon" src="data:image/png;base64,${p.icon_base64}" alt="">`
+                : `<span style="font-size:1.5rem;">${p.emoji || '🐝'}</span>`;
+        } else {
+            const iPath = getBeeIconPath(p.id);
+            iconHtml = `<img class="bee-toggle-icon" src="${iPath}" alt="" onerror="this.src='/images/bee-icons/default bee icon.png'">`;
+        }
+        const desc = p.description ? `<div class="bee-toggle-desc">${p.description}</div>` : '';
+        return `<div class="hive-bee-toggle ${isActive ? 'active' : ''}" onclick="event.stopPropagation(); toggleBeeInModal('${p.id}', '${hiveId}')">
+            ${iconHtml}
+            <div>
+                <div class="bee-toggle-name">${p.human_name || p.name}</div>
+                ${desc}
+            </div>
+        </div>`;
+    }).join('');
+}
+
+// Toggle a bee on/off from within the hive modal
+function toggleBeeInModal(personalityId, hiveId) {
+    if (hiveId === selectedHiveId) {
+        // Toggle on the selected hive - directly update selectedPersonalities
+        const index = selectedPersonalities.indexOf(personalityId);
+        if (index >= 0) {
+            const hiveBeeIds = getHiveBeeIds(selectedHiveId);
+            const activeHiveBees = hiveBeeIds.filter(id => selectedPersonalities.includes(id));
+            if (activeHiveBees.length <= 1 && hiveBeeIds.includes(personalityId)) {
+                return; // Keep at least 1 bee selected
+            }
+            selectedPersonalities.splice(index, 1);
+        } else {
+            if (selectedPersonalities.length < 7) {
+                selectedPersonalities.push(personalityId);
+            }
+        }
+        saveSelectedBees();
+        updateAllPersonalities();
+        renderVoicesBar();
+    } else {
+        // Toggle on a non-selected hive - track separately
+        let selections = window._hiveBeeSelections[hiveId];
+        if (!selections) {
+            selections = getHiveBeeIds(hiveId); // start with all selected
+            window._hiveBeeSelections[hiveId] = selections;
+        }
+        const idx = selections.indexOf(personalityId);
+        if (idx >= 0) {
+            if (selections.length <= 1) return; // Keep at least 1
+            selections.splice(idx, 1);
+        } else {
+            if (selections.length < 7) selections.push(personalityId);
+        }
+    }
+    renderHivesModal();
+    updateEmptyStateHiveCard();
+}
+
+// Get bee IDs for a hive
+function getHiveBeeIds(hiveId) {
+    const customHive = customHives.find(h => h.id === hiveId);
+    if (customHive) return customHive.bees.map(p => p.id);
+    const builtIn = allHives.find(h => h.id === hiveId);
+    if (builtIn) return builtIn.personalities.map(p => p.id);
+    return [];
 }
 
 // Render hives modal content
 function renderHivesModal() {
     const hivesGrid = document.getElementById('hives-grid');
 
-    // Update create hive button state
-    updateCreateHiveButton();
-
     if (hivesGrid) {
-        // Render custom hives first (if any)
-        let customHtml = '';
-        if (customHives && customHives.length > 0) {
-            customHtml = customHives.map(hive => {
-                const isSelected = hive.id === selectedHiveId;
-                return `
-                <div class="hive-card ${hive.id === (pendingHiveId || selectedHiveId) ? 'selected' : ''}" onclick="previewHive('${hive.id}')">
-                    <div class="hive-card-header">
-                        <span class="hive-card-name">${hive.name}</span>
-                        <span class="custom-badge">Custom</span>
+        // Helper: render add-on bees inside a hive card (only for selected hive)
+        function renderAddonBeesForCard() {
+            if (!allSpecialBees.length) return '';
+            const addonBeesHtml = allSpecialBees.map(bee => {
+                const isActive = selectedSpecialBees.includes(bee.id);
+                const iconPath = getBeeIconPath(bee.id);
+                return `<div class="addon-bee-toggle ${isActive ? 'active' : ''}" data-bee="${bee.id}" onclick="event.stopPropagation(); toggleSpecialBeeInModal('${bee.id}')">
+                    <img class="bee-toggle-icon" src="${iconPath}" alt="" onerror="this.src='/images/bee-icons/default bee icon.png'">
+                    <div>
+                        <div class="bee-toggle-name">${bee.human_name}</div>
+                        <div class="bee-toggle-desc">${bee.description}</div>
                     </div>
-                    <div class="hive-card-desc">${hive.description || 'Your custom hive'}</div>
-                    <div class="hive-card-bees">
-                        ${hive.bees.map(p => `
-                            <span class="hive-bee-preview">
-                                ${p.icon_base64 ? `<img src="data:image/png;base64,${p.icon_base64}" style="width: 16px; height: 16px; border-radius: 50%;">` : `<span class="bee-emoji">${p.emoji || '🐝'}</span>`}
-                                <span>${p.human_name}</span>
-                            </span>
-                        `).join('')}
-                    </div>
-                    <div style="margin-top: 8px; display: flex; gap: 8px;">
-                        <button class="btn btn-secondary btn-small" onclick="event.stopPropagation(); openHiveCreator('${hive.id}')" style="font-size: 0.7rem; padding: 4px 8px;">Edit</button>
-                        <button class="btn btn-secondary btn-small" onclick="deleteCustomHive('${hive.id}', event)" style="font-size: 0.7rem; padding: 4px 8px; color: var(--error-color);">Delete</button>
-                    </div>
-                    <button class="hive-card-choose" onclick="event.stopPropagation(); selectHive('${hive.id}')">${isSelected ? 'Selected' : 'Choose Hive'}</button>
-                </div>
-            `}).join('');
+                </div>`;
+            }).join('');
+            return `<div class="hive-card-addon-section">
+                <div class="hive-modal-addon-title">+ Add-on Bees</div>
+                <div class="hive-modal-addon-bees">${addonBeesHtml}</div>
+            </div>`;
         }
 
-        // Render built-in hives
-        const builtInHtml = allHives.map(hive => {
+        // Helper: render a hive card (works for custom, fav, and built-in)
+        function renderHiveCard(hive, opts = {}) {
+            const { isCustom = false, isFav = false, badgeText = '', badgeStyle = '' } = opts;
             const isSelected = hive.id === selectedHiveId;
-            return `
-            <div class="hive-card ${hive.id === (pendingHiveId || selectedHiveId) ? 'selected' : ''}" onclick="previewHive('${hive.id}')">
-                <div class="hive-card-header">
-                    <span class="hive-card-name">${hive.name}</span>
-                </div>
-                <div class="hive-card-desc">${hive.description}</div>
-                <div class="hive-card-bees">
-                    ${hive.personalities.map(p => {
-                        const iPath = getBeeIconPath(p.id);
-                        return `<span class="hive-bee-preview">
-                            <img src="${iPath}" alt="" style="width: 60px; height: 60px; border-radius: 8px; object-fit: contain;" onerror="this.src='/images/bee-icons/default bee icon.png'">
-                            <span>${p.human_name}</span>
-                        </span>`;
-                    }).join('')}
-                </div>
-                <button class="hive-card-choose" onclick="event.stopPropagation(); selectHive('${hive.id}')">${isSelected ? 'Selected' : 'Choose Hive'}</button>
-            </div>
-        `}).join('');
+            const isExpanded = window._expandedHiveId === hive.id;
+            const bees = isCustom || isFav ? (hive.bees || []) : (hive.personalities || []);
+            const themed = hiveCardTextClass((!isCustom && !isFav) ? hive.id : null, (isCustom || isFav) ? hive.color : null);
+            const styleAttr = hiveCardStyleAttr((!isCustom && !isFav) ? hive.id : null, (isCustom || isFav) ? hive.color : null);
 
-        hivesGrid.innerHTML = customHtml + builtInHtml;
+            // Badge HTML
+            let badgeHtml = '';
+            if (badgeText) {
+                badgeHtml = `<span class="custom-badge" ${badgeStyle ? `style="${badgeStyle}"` : ''}>${badgeText}</span>`;
+            }
+
+            const hiveName = isCustom || isFav ? escapeHtml(hive.name) : hive.name;
+            const hiveDesc = isCustom || isFav ? escapeHtml(hive.description || (isCustom ? 'Your custom hive' : '')) : hive.description;
+
+            if (isExpanded) {
+                // Expanded: stacked layout with full bee toggles
+                const beesHtml = renderHiveBeeToggles(bees, hive.id, isCustom || isFav);
+
+                let customButtons = '';
+                if (isCustom) {
+                    customButtons = `<div style="display: flex; gap: 8px; margin-top: 4px;">
+                        <button class="btn btn-secondary btn-small" onclick="event.stopPropagation(); openHiveCreator('${hive.id}')" style="font-size: 0.7rem; padding: 4px 8px;">Edit Hive</button>
+                        <button class="btn btn-secondary btn-small" onclick="deleteCustomHive('${hive.id}', event)" style="font-size: 0.7rem; padding: 4px 8px; color: var(--error-color);">Delete</button>
+                    </div>`;
+                }
+
+                return `
+                <div class="hive-card expanded ${isSelected ? 'selected' : ''} ${themed}" ${styleAttr}>
+                    <div class="hive-card-header">
+                        <span class="hive-card-name">${hiveName}</span>
+                        ${badgeHtml}
+                        <button class="hive-card-collapse" onclick="event.stopPropagation(); expandHiveCard('${hive.id}')">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="18 15 12 9 6 15"/></svg>
+                        </button>
+                    </div>
+                    <div class="hive-card-desc">${hiveDesc}</div>
+                    <div class="hive-card-bees-expanded">
+                        ${beesHtml}
+                    </div>
+                    ${renderAddonBeesForCard()}
+                    ${customButtons}
+                    <button class="hive-card-choose hive-card-select" onclick="event.stopPropagation(); selectHive('${hive.id}')">
+                        ${isSelected ? 'Selected' : 'Select'}
+                    </button>
+                </div>`;
+            } else {
+                // Collapsed: horizontal row - [info] [previews] [button]
+                // For the currently-selected hive, only preview bees the user
+                // actually has selected so toggling in the modal immediately
+                // updates the card preview. Other hives show all their bees.
+                const previewBees = isSelected
+                    ? bees.filter(p => selectedPersonalities.includes(p.id))
+                    : bees;
+                const previewHtml = renderBeePreviewIcons(previewBees, isCustom || isFav);
+
+                return `
+                <div class="hive-card ${isSelected ? 'selected' : ''} ${themed}" ${styleAttr} onclick="expandHiveCard('${hive.id}')">
+                    <div class="hive-card-info">
+                        <div class="hive-card-header">
+                            <span class="hive-card-name">${hiveName}</span>
+                            ${badgeHtml}
+                        </div>
+                        <div class="hive-card-desc">${hiveDesc}</div>
+                    </div>
+                    <div class="hive-card-bees-preview">
+                        ${previewHtml}
+                    </div>
+                </div>`;
+            }
+        }
+
+        const query = (window._hivesSearchQuery || '').toLowerCase();
+
+        // Filter helper - searches hive name, description, and bee names
+        function matchesSearch(hive, isCustomOrFav) {
+            if (!query) return true;
+            const name = (hive.name || '').toLowerCase();
+            const desc = (hive.description || '').toLowerCase();
+            if (name.includes(query) || desc.includes(query)) return true;
+            // Search bee names
+            const bees = isCustomOrFav ? (hive.bees || []) : (hive.personalities || []);
+            return bees.some(b => {
+                const beeName = (b.human_name || b.name || '').toLowerCase();
+                const beeDesc = (b.description || '').toLowerCase();
+                return beeName.includes(query) || beeDesc.includes(query);
+            });
+        }
+
+        // Built-in hives first
+        const filteredBuiltIn = allHives.filter(h => matchesSearch(h, false));
+        const builtInHtml = filteredBuiltIn.map(hive => renderHiveCard(hive)).join('');
+
+        // Render custom hives
+        let customHtml = '';
+        if (customHives && customHives.length > 0) {
+            const filteredCustom = customHives.filter(h => matchesSearch(h, true));
+            if (filteredCustom.length > 0) {
+                customHtml = '<div class="hive-section-label">Your Hives</div>';
+                customHtml += filteredCustom.map(hive => renderHiveCard(hive, { isCustom: true, badgeText: 'Custom' })).join('');
+            }
+        }
+
+        // Render favorited hives
+        let favHtml = '';
+        if (window._favoritedHives && window._favoritedHives.length > 0) {
+            const filteredFav = window._favoritedHives.filter(h => matchesSearch(h, true));
+            if (filteredFav.length > 0) {
+                favHtml = '<div class="hive-section-label">Favorites</div>';
+                favHtml += filteredFav.map(hive => renderHiveCard(hive, { isFav: true, badgeText: 'Fav', badgeStyle: 'background:rgba(239,68,68,0.1);color:#ef4444;' })).join('');
+            }
+        }
+
+        // Show empty state if no results
+        if (!filteredBuiltIn.length && !customHtml && !favHtml && query) {
+            hivesGrid.innerHTML = '<div style="text-align:center;padding:24px;color:var(--text-secondary);font-size:0.9rem;">No hives found for "' + escapeHtml(query) + '"</div>';
+        } else {
+            hivesGrid.innerHTML = builtInHtml + customHtml + favHtml;
+        }
     }
 }
 
@@ -2002,6 +2527,7 @@ function renderSpecialBeesDropdown() {
 function toggleSpecialBeeFromDropdown(beeId) {
     toggleSpecialBee(beeId);
     renderSpecialBeesDropdown();
+    updateEmptyStateHiveCard();
 }
 
 // Toggle special bees dropdown
@@ -2030,12 +2556,84 @@ document.addEventListener('click', (e) => {
 window.setSpecialBeesJustOpened = (val) => { specialBeesJustOpened = val; };
 
 window.toggleSpecialBeesDropdown = toggleSpecialBeesDropdown;
+
+// Search hives in modal
+let _hivesSearchTimeout;
+function searchHivesModal() {
+    clearTimeout(_hivesSearchTimeout);
+    _hivesSearchTimeout = setTimeout(() => {
+        const q = document.getElementById('hives-search-input')?.value.trim() || '';
+        window._hivesSearchQuery = q;
+        // Collapse expanded cards when searching to show more results
+        if (q) window._expandedHiveId = null;
+        renderHivesModal();
+        renderCommunityHives();
+    }, 150);
+}
+window.searchHivesModal = searchHivesModal;
+
+// Render community hives in hive modal
+function renderCommunityHives() {
+    const grid = document.getElementById('community-hives-grid');
+    const section = document.getElementById('community-hives-section');
+    if (!grid || !section) return;
+
+    const hives = window._communityHives || [];
+    const query = (window._hivesSearchQuery || '').toLowerCase();
+    const filtered = query ? hives.filter(h =>
+        (h.name || '').toLowerCase().includes(query) ||
+        (h.description || '').toLowerCase().includes(query) ||
+        (h.tags || '').toLowerCase().includes(query) ||
+        (h.bees || []).some(b =>
+            (b.human_name || b.name || '').toLowerCase().includes(query) ||
+            (b.description || '').toLowerCase().includes(query)
+        )
+    ) : hives;
+
+    if (!filtered.length) {
+        section.style.display = query ? 'none' : 'block';
+        grid.innerHTML = '<div class="explore-empty" style="font-size:0.85rem;">No community hives yet.</div>';
+        return;
+    }
+    section.style.display = 'block';
+
+    grid.innerHTML = filtered.map(hive => {
+        const beesHtml = (hive.bees || []).slice(0, 5).map(bee => {
+            const iconSrc = bee.icon_base64
+                ? `data:image/png;base64,${bee.icon_base64}`
+                : '/images/bee-icons/default bee icon.png';
+            return `<div class="explore-card-bee" style="gap:4px;">
+                <img src="${iconSrc}" alt="" style="width:24px;height:24px;border-radius:50%;" onerror="this.src='/images/bee-icons/default bee icon.png'">
+                <span style="font-size:0.7rem;">${bee.human_name || bee.name}</span>
+            </div>`;
+        }).join('');
+
+        const heartClass = hive.is_favorited ? 'hearted' : '';
+        const favCount = hive.favorite_count || 0;
+        const ehStyle = hive.color ? `style="background:linear-gradient(135deg, ${hive.color}22 0%, ${hive.color}11 100%);border-color:${hive.color}44;"` : '';
+
+        return `<div class="explore-hive-card" ${ehStyle} onclick="openHiveDetail('${hive.id}')">
+            <div class="explore-card-header" style="margin-bottom:6px;">
+                <span class="explore-card-name" style="font-size:0.85rem;font-weight:600;">${escapeHtml(hive.name)}</span>
+                <button class="explore-heart-btn ${heartClass}" onclick="event.stopPropagation(); toggleFavorite('${hive.id}', this)" style="padding:2px;">
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="${hive.is_favorited ? '#ef4444' : 'none'}" stroke="${hive.is_favorited ? '#ef4444' : 'currentColor'}" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+                    <span class="fav-count" style="font-size:0.7rem;">${favCount}</span>
+                </button>
+            </div>
+            <div style="font-size:0.7rem;color:var(--text-secondary);margin-bottom:4px;">by ${escapeHtml(hive.creator_name || 'Anonymous')}</div>
+            ${hive.description ? `<div style="font-size:0.75rem;color:var(--text-secondary);margin-bottom:6px;">${escapeHtml(hive.description)}</div>` : ''}
+            <div style="display:flex;flex-wrap:wrap;gap:4px;">${beesHtml}</div>
+        </div>`;
+    }).join('');
+}
+window.renderCommunityHives = renderCommunityHives;
 window.toggleSpecialBeeFromDropdown = toggleSpecialBeeFromDropdown;
 
 // Make functions globally available
 window.openHivesModal = openHivesModal;
 window.closeHivesModal = closeHivesModal;
 window.selectHive = selectHive;
+window.handleQuestionSubmit = handleQuestionSubmit;
 window.previewHive = previewHive;
 window.confirmHiveSelection = confirmHiveSelection;
 window.toggleSpecialBee = toggleSpecialBee;
@@ -2049,7 +2647,7 @@ function renderPersonalitySelector(suggestedIds = []) {
 
     // Pre-select suggested personalities
     if (suggestedIds.length > 0 && selectedPersonalities.length === 0) {
-        selectedPersonalities = suggestedIds.slice(0, 3);
+        selectedPersonalities = suggestedIds.slice(0, 3); window.selectedPersonalities = selectedPersonalities;
     }
 
     allPersonalities.forEach(personality => {
@@ -2139,7 +2737,7 @@ async function handleQuestionSubmit(question) {
     // If no personalities selected yet, auto-select defaults
     if (selectedPersonalities.length < 2) {
         const suggested = await fetchPersonalitySuggestions(currentQuestion);
-        selectedPersonalities = suggested.slice(0, 3);
+        selectedPersonalities = suggested.slice(0, 3); window.selectedPersonalities = selectedPersonalities;
         saveSelectedBees();
         renderVoicesBar();
     }
@@ -2180,57 +2778,57 @@ async function startDebateWithPersonalities() {
         return;
     }
 
-    // Get configured models
-    const configuredModels = availableModels.filter(m => configuredProviders.has(m.provider));
-    if (configuredModels.length < selectedPersonalities.length) {
-        alert(`You need ${selectedPersonalities.length} API keys configured. Please add more in Settings.`);
-        showTutorial();
+    // Check guest session limit before starting
+    if (!checkGuestSessionLimit()) {
+        showLimitNotification('Session limit reached.');
         return;
     }
 
-    // Build models config with personality IDs, using saved role assignments
-    const usedModels = new Set();
-    const modelsConfig = selectedPersonalities.map((personalityId) => {
-        // Get model from settings, or fall back to next available
-        const remainingModels = configuredModels.filter(m => !usedModels.has(`${m.provider}:${m.id}`));
-        const model = window.getModelForPersonality ?
-            window.getModelForPersonality(personalityId, remainingModels) :
-            remainingModels[0];
-
-        if (model) {
-            usedModels.add(`${model.provider}:${model.id}`);
-        }
-
-        return {
-            provider: model?.provider || remainingModels[0]?.provider,
-            model_id: model?.id || remainingModels[0]?.id,
-            model_name: model?.name || remainingModels[0]?.name,
-            personality_id: personalityId,
-            role: ''
-        };
-    });
+    // All bees use Grok 4
+    const modelsConfig = selectedPersonalities.map(personalityId => ({
+        provider: 'xai',
+        model_id: 'grok-4-fast-reasoning',
+        model_name: 'Grok 4',
+        personality_id: personalityId,
+        role: ''
+    }));
 
     // Update selectedModels global (used by chat.js)
     selectedModels = modelsConfig;
     saveSelectedModels();
 
-    // Clear empty state
+    // Hide empty state
     const emptyState = document.getElementById('empty-state');
-    if (emptyState) emptyState.remove();
+    if (emptyState) emptyState.style.display = 'none';
 
     // Show chat input area
     const inputArea = document.getElementById('chat-input-area');
     if (inputArea) inputArea.style.display = 'block';
 
+    // Show and update hive chip
+    const hiveChipBar = document.getElementById('hive-chip-bar');
+    if (hiveChipBar) hiveChipBar.style.display = '';
+    updateHiveChip();
+
     // Add user message as big bold header
     const container = document.getElementById('chat-messages');
     const userMsg = document.createElement('div');
     userMsg.className = 'question-header';
-    userMsg.innerHTML = `<div class="question-header-text">${escapeHtml(currentQuestion)}</div>`;
+    userMsg.innerHTML = `<div class="question-header-text debate-running" onclick="stopDiscussion()"><span class="q-text">${escapeHtml(currentQuestion)}</span><button id="floating-stop-btn" class="q-pause-btn visible" onclick="event.stopPropagation(); stopDiscussion()"><svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg></button></div>`;
     container.appendChild(userMsg);
+
+    // Show buzz thinking indicator
+    if (typeof showBuzzThinking === 'function') {
+        showBuzzThinking();
+    }
 
     // Store question and start debate
     const questionToSend = currentQuestion;
+
+    // Save for "Try Another Hive" retry
+    if (typeof lastSentMessage !== 'undefined') {
+        lastSentMessage = questionToSend;
+    }
 
     // Reset question (but keep selected personalities)
     currentQuestion = '';
@@ -2247,7 +2845,8 @@ async function startDebateWithPersonalities() {
                 models: modelsConfig,
                 rounds: 1,
                 summarizer_index: summarizerIndex,
-                detail_mode: detailMode
+                detail_mode: detailMode,
+                vibe: selectedVibeId || 'group-chat'
             }
         };
 
@@ -2258,14 +2857,39 @@ async function startDebateWithPersonalities() {
         });
 
         if (response.status === 402) {
-            showUpgradeModal();
+            const errorData = await response.json().catch(() => ({}));
+            showLimitNotification(errorData.detail || 'Buzz limit reached.');
             return;
         }
 
-        if (!response.ok) throw new Error('Failed to start session');
-
-        const session = await response.json();
+        if (!response.ok) {
+            // Auto-retry once on server errors
+            if (response.status >= 500) {
+                console.log('[debate] Server error, retrying...');
+                await new Promise(r => setTimeout(r, 1000));
+                const retryResponse = await fetch(`${API_BASE}/api/debates`, {
+                    method: 'POST',
+                    headers: getAuthHeaders(),
+                    body: JSON.stringify(requestBody)
+                });
+                if (!retryResponse.ok) {
+                    const errData = await retryResponse.json().catch(() => ({}));
+                    throw new Error(errData.detail || 'Failed to start session');
+                }
+                var session = await retryResponse.json();
+            } else {
+                const errData = await response.json().catch(() => ({}));
+                throw new Error(errData.detail || 'Failed to start session');
+            }
+        } else {
+            var session = await response.json();
+        }
         currentSessionId = session.id;
+
+        // Track guest session buzzes
+        if (!localStorage.getItem('token')) {
+            incrementGuestBuzzes();
+        }
 
         // Switch to pause button mode
         if (typeof setInputLocked === 'function') {
@@ -2279,7 +2903,7 @@ async function startDebateWithPersonalities() {
         loadSubscriptionStatus();
     } catch (error) {
         console.error('Error starting debate:', error);
-        alert('Failed to start debate. Please try again.');
+        alert(error.message || 'Failed to start debate. Please try again.');
     }
 }
 
@@ -2295,6 +2919,11 @@ function attachQuestionFlowListeners() {
             if (chatInput) {
                 chatInput.value = question;
                 chatInput.focus();
+                // Blur the chip so :focus/:hover/:active don't stick on mobile
+                btn.blur();
+                // Hide chips immediately (class keeps marquee animation running)
+                const quickTemplates = document.getElementById('quick-templates');
+                if (quickTemplates) quickTemplates.classList.add('is-hidden');
                 // Trigger input event to enable send button
                 chatInput.dispatchEvent(new Event('input'));
             }
@@ -2307,6 +2936,68 @@ window.attachQuestionFlowListeners = attachQuestionFlowListeners;
 
 // Initial attachment
 attachQuestionFlowListeners();
+
+// Set up looping marquee for quick-template chips: measure one set, then duplicate for seamless loop
+function setupQuickTemplatesMarquee() {
+    const strip = document.getElementById('quick-templates');
+    if (!strip) return;
+    const track = strip.querySelector('.quick-templates-track');
+    if (!track || track.dataset.marqueeReady === '1') return;
+
+    const build = () => {
+        if (track.dataset.marqueeReady === '1') return;
+        if (!track.getBoundingClientRect().width) {
+            requestAnimationFrame(build);
+            return;
+        }
+        // Pause animation while we mutate so the loop doesn't visibly skip
+        track.style.animation = 'none';
+        const firstOriginal = track.children[0];
+        const originals = Array.from(track.children);
+        originals.forEach(el => {
+            const clone = el.cloneNode(true);
+            clone.setAttribute('aria-hidden', 'true');
+            clone.setAttribute('tabindex', '-1');
+            clone.addEventListener('click', () => {
+                const question = clone.dataset.question;
+                const chatInput = document.getElementById('chat-input');
+                if (chatInput) {
+                    chatInput.value = question;
+                    chatInput.focus();
+                    clone.blur();
+                    strip.classList.add('is-hidden');
+                    chatInput.dispatchEvent(new Event('input'));
+                }
+            });
+            track.appendChild(clone);
+        });
+        // Measure the EXACT distance from the first original to the first clone
+        // (this includes the inter-chip gap so the loop is seamless).
+        // Use getBoundingClientRect for sub-pixel precision — rounding here causes a
+        // visible 1px jump at the wrap point every loop.
+        const firstClone = track.children[originals.length];
+        const distance = firstClone.getBoundingClientRect().left - firstOriginal.getBoundingClientRect().left;
+        strip.style.setProperty('--marquee-distance', distance + 'px');
+        track.dataset.marqueeReady = '1';
+        // Force reflow then restart the animation cleanly
+        void track.offsetWidth;
+        track.style.animation = '';
+        // Touch pause: holding/dragging a finger over the strip pauses the marquee
+        const pause = () => strip.classList.add('paused');
+        const resume = () => strip.classList.remove('paused');
+        strip.addEventListener('touchstart', pause, { passive: true });
+        strip.addEventListener('touchend', resume, { passive: true });
+        strip.addEventListener('touchcancel', resume, { passive: true });
+    };
+
+    const start = () => requestAnimationFrame(() => requestAnimationFrame(build));
+    if (document.fonts && document.fonts.ready) {
+        document.fonts.ready.then(start);
+    } else {
+        start();
+    }
+}
+setupQuickTemplatesMarquee();
 
 // ============================================
 // Voices Horizontal Bar (Personality Chips)
@@ -2544,7 +3235,7 @@ async function initVoicesBar() {
 
         const hasInvalidIds = selectedPersonalities.some(id => !validIds.has(id));
         if (hasInvalidIds || selectedPersonalities.length === 0) {
-            selectedPersonalities = customHive.bees.map(p => p.id);
+            selectedPersonalities = customHive.bees.map(p => p.id); window.selectedPersonalities = selectedPersonalities;
             selectedSpecialBees = [];
             saveSelectedBees();
             saveSelectedSpecialBees();
@@ -2556,7 +3247,7 @@ async function initVoicesBar() {
 
         const hasInvalidIds = selectedPersonalities.some(id => !validIds.has(id));
         if (hasInvalidIds || selectedPersonalities.length === 0) {
-            selectedPersonalities = builtInHive.personalities.map(p => p.id);
+            selectedPersonalities = builtInHive.personalities.map(p => p.id); window.selectedPersonalities = selectedPersonalities;
             selectedSpecialBees = [];
             saveSelectedBees();
             saveSelectedSpecialBees();
@@ -2567,7 +3258,7 @@ async function initVoicesBar() {
         saveSelectedHive();
         const defaultHive = allHives.find(h => h.id === 'chaos');
         if (defaultHive) {
-            selectedPersonalities = defaultHive.personalities.map(p => p.id);
+            selectedPersonalities = defaultHive.personalities.map(p => p.id); window.selectedPersonalities = selectedPersonalities;
             selectedSpecialBees = [];
             saveSelectedBees();
             saveSelectedSpecialBees();
@@ -2606,6 +3297,7 @@ async function fetchCustomHives() {
 
         if (hivesRes.ok) {
             customHives = await hivesRes.json();
+            window.customHives = customHives;
             console.log('Loaded custom hives:', customHives.length);
         } else {
             console.log('Failed to load custom hives:', hivesRes.status);
@@ -2666,9 +3358,33 @@ function updateCreateHiveButton() {
 }
 
 // Open the hive creator modal
-function openHiveCreator(hiveId) {
-    console.log('openHiveCreator called', hiveId);
+let selectedHiveColor = '';
 
+function initColorPicker() {
+    const picker = document.getElementById('hive-color-picker');
+    if (!picker) return;
+    // Keep the "no color" option, add preset colors
+    const noColorBtn = picker.querySelector('.hive-color-option');
+    picker.innerHTML = '';
+    picker.appendChild(noColorBtn);
+    HIVE_COLOR_PRESETS.forEach(color => {
+        const opt = document.createElement('div');
+        opt.className = 'hive-color-option';
+        opt.dataset.color = color;
+        opt.style.background = color;
+        opt.onclick = function() { selectHiveColor(this, color); };
+        picker.appendChild(opt);
+    });
+}
+
+function selectHiveColor(el, color) {
+    selectedHiveColor = color;
+    document.querySelectorAll('.hive-color-option').forEach(o => o.classList.remove('selected'));
+    el.classList.add('selected');
+}
+window.selectHiveColor = selectHiveColor;
+
+function openHiveCreator(hiveId) {
     const token = localStorage.getItem('token');
     if (!token) {
         alert('Please log in to create custom hives.');
@@ -2677,6 +3393,7 @@ function openHiveCreator(hiveId) {
 
     editingHiveId = hiveId || null;
     currentEditingBees = [];
+    selectedHiveColor = '';
 
     const modal = document.getElementById('hive-creator-modal');
     const titleEl = document.getElementById('hive-creator-title');
@@ -2684,7 +3401,7 @@ function openHiveCreator(hiveId) {
     const descInput = document.getElementById('hive-desc-input');
     const saveBtn = document.getElementById('save-hive-btn');
 
-    console.log('Modal element:', modal);
+    initColorPicker();
 
     if (hiveId) {
         // Editing existing hive
@@ -2695,15 +3412,33 @@ function openHiveCreator(hiveId) {
             descInput.value = hive.description || '';
             currentEditingBees = hive.bees.map(b => ({ ...b }));
             saveBtn.textContent = 'Save Changes';
+            // Restore color selection
+            if (hive.color) {
+                selectedHiveColor = hive.color;
+                const match = document.querySelector(`.hive-color-option[data-color="${hive.color}"]`);
+                if (match) {
+                    document.querySelectorAll('.hive-color-option').forEach(o => o.classList.remove('selected'));
+                    match.classList.add('selected');
+                }
+            }
         }
     } else {
         // Creating new hive
-        titleEl.textContent = 'Create Custom Hive';
+        titleEl.textContent = 'Create Hive';
         nameInput.value = '';
         descInput.value = '';
         currentEditingBees = [];
         saveBtn.textContent = 'Create Hive';
     }
+
+    // Reset visibility fields
+    const visSelect = document.getElementById('hive-visibility-select');
+    const tagsGroup = document.getElementById('hive-tags-group');
+    const tagsInput = document.getElementById('hive-tags-input');
+    if (visSelect) visSelect.value = 'private';
+    if (tagsGroup) tagsGroup.style.display = 'none';
+    if (tagsInput) tagsInput.value = '';
+    document.querySelectorAll('.preset-tag.selected').forEach(t => t.classList.remove('selected'));
 
     renderBeeSlots();
     updateSaveHiveButton();
@@ -2943,6 +3678,22 @@ async function regeneratePreviewIcon() {
 }
 
 // Save bee to slot
+// Open bee designer and pass the result back to the bee preview
+function openBeeDesignerForCurrentBee() {
+    openBeeDesigner((base64Icon) => {
+        // Store the designed icon for the current bee being edited
+        window._designedBeeIcon = base64Icon;
+        // Update preview
+        const previewEl = document.getElementById('bee-preview-icon');
+        if (previewEl) {
+            previewEl.innerHTML = `<img src="data:image/png;base64,${base64Icon}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">`;
+        }
+        const statusEl = document.getElementById('bee-preview-status');
+        if (statusEl) statusEl.textContent = 'Custom design saved!';
+    });
+}
+window.openBeeDesignerForCurrentBee = openBeeDesignerForCurrentBee;
+
 function saveBeeToSlot() {
     const humanName = document.getElementById('bee-human-name-input').value.trim();
     const name = document.getElementById('bee-name-input').value.trim();
@@ -2968,12 +3719,13 @@ function saveBeeToSlot() {
         role: role,
         emoji: existingBee?.emoji || '🐝',
         display_order: editingBeeIndex,
-        icon_base64: generatedIconBase64 || existingBee?.icon_base64 || null,
-        icon_generation_status: generatedIconBase64 ? 'completed' : 'pending'
+        icon_base64: window._designedBeeIcon || generatedIconBase64 || existingBee?.icon_base64 || null,
+        icon_generation_status: (window._designedBeeIcon || generatedIconBase64) ? 'completed' : 'pending'
     };
 
     currentEditingBees[editingBeeIndex] = bee;
-    generatedIconBase64 = null; // Reset
+    generatedIconBase64 = null;
+    window._designedBeeIcon = null; // Reset
 
     closeBeeCreator();
     renderBeeSlots();
@@ -3015,16 +3767,18 @@ async function saveCustomHive() {
             response = await fetch(`${API_BASE}/api/custom-hives/${editingHiveId}`, {
                 method: 'PUT',
                 headers: getAuthHeaders(),
-                body: JSON.stringify({ name, description })
+                body: JSON.stringify({ name, description, color: selectedHiveColor || null })
             });
 
             // TODO: Handle bee updates separately if needed
         } else {
             // Create new hive
+            const visibility = document.getElementById('hive-visibility-select')?.value || 'private';
+            const tags = document.getElementById('hive-tags-input')?.value?.trim() || null;
             response = await fetch(`${API_BASE}/api/custom-hives`, {
                 method: 'POST',
                 headers: getAuthHeaders(),
-                body: JSON.stringify({ name, description, bees })
+                body: JSON.stringify({ name, description, bees, visibility, tags, color: selectedHiveColor || null })
             });
         }
 
@@ -3112,3 +3866,1222 @@ document.getElementById('create-hive-btn')?.addEventListener('click', (e) => {
     console.log('Create hive button clicked');
     openHiveCreator();
 });
+
+// ============================================
+// Display Name
+// ============================================
+
+async function loadDisplayName() {
+    try {
+        const res = await fetch(`${API_BASE}/api/auth/me`, { headers: getAuthHeaders() });
+        if (!res.ok) return;
+        const data = await res.json();
+        const inputs = [document.getElementById('display-name-input'), document.getElementById('mobile-display-name-input')];
+        inputs.forEach(inp => { if (inp && data.display_name) inp.value = data.display_name; });
+    } catch (e) {}
+}
+
+async function saveDisplayName(prefix = '') {
+    const input = document.getElementById(prefix ? `${prefix}-display-name-input` : 'display-name-input');
+    const status = document.getElementById(prefix ? `${prefix}-display-name-status` : 'display-name-status');
+    if (!input) return;
+    const name = input.value.trim();
+    if (name.length < 2) { if (status) status.textContent = 'Min 2 characters'; return; }
+
+    try {
+        const res = await fetch(`${API_BASE}/api/auth/display-name`, {
+            method: 'PUT',
+            headers: getAuthHeaders(),
+            body: JSON.stringify({ display_name: name })
+        });
+        const data = await res.json();
+        if (!res.ok) { if (status) status.textContent = data.detail || 'Failed'; return; }
+        if (status) status.textContent = 'Saved!';
+        // Sync both inputs
+        const inputs = [document.getElementById('display-name-input'), document.getElementById('mobile-display-name-input')];
+        inputs.forEach(inp => { if (inp) inp.value = name; });
+        setTimeout(() => { if (status) status.textContent = ''; }, 3000);
+    } catch (e) { if (status) status.textContent = 'Failed to save'; }
+}
+window.saveDisplayName = saveDisplayName;
+
+// ============================================
+// Explore Hives
+// ============================================
+
+let exploreHivesData = [];
+let activeExploreTag = '';
+let exploreSortMode = 'popular';
+
+let currentDiscoverTab = 'explore';
+
+function openDiscover(tab) {
+    const hivesModal = document.querySelector('.hives-modal');
+    if (hivesModal) hivesModal.classList.remove('active');
+    const page = document.getElementById('discover-page');
+    if (page) page.classList.add('active');
+    switchDiscoverTab(tab || 'explore');
+}
+
+function closeDiscover() {
+    const page = document.getElementById('discover-page');
+    if (page) page.classList.remove('active');
+}
+
+function switchDiscoverTab(tab) {
+    currentDiscoverTab = tab;
+    // Update tab active states
+    document.getElementById('tab-explore').classList.toggle('active', tab === 'explore');
+    document.getElementById('tab-decisions').classList.toggle('active', tab === 'decisions');
+    // Switch panels
+    document.getElementById('panel-explore').classList.toggle('active', tab === 'explore');
+    document.getElementById('panel-decisions').classList.toggle('active', tab === 'decisions');
+    // Show/hide create button (visibility keeps layout stable)
+    const createBtn = document.getElementById('discover-create-btn');
+    if (createBtn) createBtn.style.visibility = tab === 'explore' ? 'visible' : 'hidden';
+    // Move indicator after layout
+    requestAnimationFrame(() => requestAnimationFrame(() => updateTabIndicator()));
+    // Load data
+    if (tab === 'explore') fetchExploreHives();
+    else fetchDecisions();
+}
+
+function updateTabIndicator() {
+    const indicator = document.getElementById('discover-tab-indicator');
+    const activeTab = document.getElementById(currentDiscoverTab === 'explore' ? 'tab-explore' : 'tab-decisions');
+    const tabsContainer = document.querySelector('.discover-tabs');
+    if (indicator && activeTab && tabsContainer) {
+        const containerRect = tabsContainer.getBoundingClientRect();
+        const tabRect = activeTab.getBoundingClientRect();
+        indicator.style.left = (tabRect.left - containerRect.left) + 'px';
+        indicator.style.width = tabRect.width + 'px';
+    }
+}
+
+window.addEventListener('resize', updateTabIndicator);
+
+// Legacy compat
+function openExploreHives() { openDiscover('explore'); }
+function closeExploreHives() { closeDiscover(); }
+
+async function fetchExploreHives(query = '', tag = '') {
+    const grid = document.getElementById('explore-grid');
+    grid.innerHTML = '<div class="explore-empty">Loading...</div>';
+
+    try {
+        let url = `${API_BASE}/api/custom-hives/explore`;
+        const params = [`sort=${exploreSortMode}`];
+        if (query) params.push(`q=${encodeURIComponent(query)}`);
+        if (tag) params.push(`tag=${encodeURIComponent(tag)}`);
+        url += '?' + params.join('&');
+
+        // Send auth token if available for is_favorited
+        const headers = {};
+        const token = localStorage.getItem('token');
+        if (token) headers['Authorization'] = `Bearer ${token}`;
+
+        const response = await fetch(url, { headers });
+        if (!response.ok) throw new Error('Failed to load');
+
+        exploreHivesData = await response.json();
+        renderExploreHives(exploreHivesData);
+        renderExploreTags(exploreHivesData);
+    } catch (e) {
+        console.error('Error loading explore hives:', e);
+        grid.innerHTML = '<div class="explore-empty">Failed to load hives. Try again later.</div>';
+    }
+}
+
+function renderExploreHives(hives) {
+    const grid = document.getElementById('explore-grid');
+    if (!hives.length) {
+        grid.innerHTML = '<div class="explore-empty">No public hives yet. Be the first to create one!</div>';
+        return;
+    }
+
+    grid.innerHTML = hives.map(hive => {
+        const beesHtml = (hive.bees || []).slice(0, 5).map(bee => {
+            const iconSrc = bee.icon_base64
+                ? `data:image/png;base64,${bee.icon_base64}`
+                : '/images/bee-icons/default bee icon.png';
+            return `<div class="explore-card-bee">
+                <img src="${iconSrc}" alt="" onerror="this.src='/images/bee-icons/default bee icon.png'">
+                <span>${bee.human_name || bee.name}</span>
+            </div>`;
+        }).join('');
+
+        const tagsHtml = hive.tags ? hive.tags.split(',').map(t => t.trim()).filter(Boolean)
+            .map(t => `<span class="explore-card-tag">#${t}</span>`).join('') : '';
+        const builtInTag = hive.is_built_in ? '<span class="explore-card-tag built-in">Built-in</span>' : '';
+
+        const heartClass = hive.is_favorited ? 'hearted' : '';
+        const favCount = hive.favorite_count || 0;
+
+        const ehThemed = hive.color ? 'hive-themed' : '';
+        const ehStyle = hive.color ? `style="background:linear-gradient(135deg, ${hive.color} 0%, ${hive.color}88 100%);border-color:${hive.color}44;"` : '';
+        return `<div class="explore-hive-card ${ehThemed}" ${ehStyle} onclick="openHiveDetail('${hive.id}')">
+            <div class="explore-card-header">
+                <span class="explore-card-name">${escapeHtml(hive.name)}</span>
+                <button class="explore-heart-btn ${heartClass}" onclick="event.stopPropagation(); toggleFavorite('${hive.id}', this)">
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="${hive.is_favorited ? '#ef4444' : 'none'}" stroke="${hive.is_favorited ? '#ef4444' : 'currentColor'}" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+                    <span class="fav-count">${favCount}</span>
+                </button>
+            </div>
+            <div class="explore-card-creator">by ${escapeHtml(hive.creator_name || 'Anonymous')}</div>
+            ${hive.description ? `<div class="explore-card-desc">${escapeHtml(hive.description)}</div>` : ''}
+            <div class="explore-card-bees">${beesHtml}</div>
+            <div class="explore-card-tags">${builtInTag}${tagsHtml}</div>
+        </div>`;
+    }).join('');
+}
+
+function renderExploreTags(hives) {
+    const container = document.getElementById('explore-tags');
+    const tagSet = new Set();
+    hives.forEach(h => {
+        if (h.tags) h.tags.split(',').forEach(t => { const tag = t.trim().toLowerCase(); if (tag) tagSet.add(tag); });
+    });
+    if (tagSet.size === 0) { container.innerHTML = ''; return; }
+    container.innerHTML = Array.from(tagSet).sort().map(tag =>
+        `<span class="explore-tag ${activeExploreTag === tag ? 'active' : ''}" onclick="filterByTag('${tag}')">#${tag}</span>`
+    ).join('');
+}
+
+function filterByTag(tag) {
+    if (activeExploreTag === tag) { activeExploreTag = ''; fetchExploreHives(); }
+    else { activeExploreTag = tag; fetchExploreHives('', tag); }
+}
+
+let _searchTimeout;
+function searchExploreHives() {
+    clearTimeout(_searchTimeout);
+    _searchTimeout = setTimeout(() => {
+        const q = document.getElementById('explore-search-input').value.trim();
+        activeExploreTag = '';
+        fetchExploreHives(q);
+    }, 300);
+}
+
+async function toggleFavorite(hiveId, btn) {
+    const token = localStorage.getItem('token');
+    if (!token) { alert('Please log in to favorite hives.'); return; }
+    if (btn.dataset.loading === 'true') return;
+    btn.dataset.loading = 'true';
+
+    try {
+        const res = await fetch(`${API_BASE}/api/custom-hives/${hiveId}/favorite`, {
+            method: 'POST', headers: getAuthHeaders()
+        });
+        if (!res.ok) throw new Error('Failed');
+        const data = await res.json();
+
+        // Update button
+        const svg = btn.querySelector('svg');
+        const countEl = btn.querySelector('.fav-count');
+        const hive = exploreHivesData.find(h => h.id === hiveId);
+
+        if (data.favorited) {
+            btn.classList.add('hearted');
+            svg.setAttribute('fill', '#ef4444');
+            svg.setAttribute('stroke', '#ef4444');
+            if (hive) hive.favorite_count = (hive.favorite_count || 0) + 1;
+            if (hive) hive.is_favorited = true;
+        } else {
+            btn.classList.remove('hearted');
+            svg.setAttribute('fill', 'none');
+            svg.setAttribute('stroke', 'currentColor');
+            if (hive) hive.favorite_count = Math.max(0, (hive.favorite_count || 0) - 1);
+            if (hive) hive.is_favorited = false;
+        }
+        if (countEl && hive) countEl.textContent = hive.favorite_count;
+    } catch (e) {
+        console.error('Favorite toggle failed:', e);
+    } finally {
+        btn.dataset.loading = 'false';
+    }
+}
+
+// Visibility toggle in hive creator
+function onVisibilityChange() {
+    const vis = document.getElementById('hive-visibility-select').value;
+    const tagsGroup = document.getElementById('hive-tags-group');
+    const saveBtn = document.getElementById('save-hive-btn');
+    if (vis === 'public') {
+        tagsGroup.style.display = '';
+        if (saveBtn && !editingHiveId) saveBtn.textContent = 'Create & Publish';
+    } else {
+        tagsGroup.style.display = 'none';
+        if (saveBtn && !editingHiveId) saveBtn.textContent = 'Create Hive';
+    }
+}
+
+// Load display name on page load if logged in
+if (localStorage.getItem('token')) setTimeout(loadDisplayName, 1000);
+
+function togglePresetTag(el) {
+    el.classList.toggle('selected');
+    // Sync selected preset tags with hidden input (strip # prefix)
+    const selected = Array.from(document.querySelectorAll('.preset-tag.selected'))
+        .map(t => t.textContent.replace('#', ''));
+    const customInput = document.getElementById('hive-tags-input');
+    customInput.value = selected.join(', ');
+}
+window.togglePresetTag = togglePresetTag;
+
+window.onVisibilityChange = onVisibilityChange;
+window.openExploreHives = openExploreHives;
+window.closeExploreHives = closeExploreHives;
+window.searchExploreHives = searchExploreHives;
+window.filterByTag = filterByTag;
+window.toggleFavorite = toggleFavorite;
+window.saveDisplayName = saveDisplayName;
+
+// ============================================
+// Hive Detail Modal
+// ============================================
+
+let _currentUserId = null;
+// Load current user ID
+(async function() {
+    try {
+        const token = localStorage.getItem('token');
+        if (!token) return;
+        const res = await fetch(`${API_BASE}/api/auth/me`, { headers: getAuthHeaders() });
+        if (res.ok) { const d = await res.json(); _currentUserId = d.id; }
+    } catch(e) {}
+})();
+
+function openHiveDetail(hiveId) {
+    const hive = exploreHivesData.find(h => h.id === hiveId);
+    if (!hive) return;
+
+    const modal = document.getElementById('hive-detail-modal');
+    const isOwner = _currentUserId && _currentUserId === hive.user_id;
+
+    const beesHtml = (hive.bees || []).map(bee => {
+        const iconSrc = bee.icon_base64
+            ? `data:image/png;base64,${bee.icon_base64}`
+            : '/images/bee-icons/default bee icon.png';
+        return `<div class="hive-detail-bee">
+            <img src="${iconSrc}" alt="" onerror="this.src='/images/bee-icons/default bee icon.png'">
+            <div class="hive-detail-bee-info">
+                <div class="hive-detail-bee-name">${escapeHtml(bee.human_name || bee.name)}</div>
+                <div class="hive-detail-bee-role">${escapeHtml(bee.name)}</div>
+                ${bee.description ? `<div class="hive-detail-bee-desc">${escapeHtml(bee.description)}</div>` : ''}
+            </div>
+        </div>`;
+    }).join('');
+
+    const tagsHtml = hive.tags ? hive.tags.split(',').map(t => t.trim()).filter(Boolean)
+        .map(t => `<span class="explore-card-tag">#${t}</span>`).join('') : '';
+
+    const favClass = hive.is_favorited ? 'hearted' : '';
+    const favText = hive.is_favorited ? 'Favorited' : 'Favorite';
+
+    let ownerHtml = '';
+    if (isOwner) {
+        ownerHtml = `
+            <button class="hive-detail-edit" onclick="event.stopPropagation(); makeHivePrivate('${hive.id}')">Make Private</button>
+            <button class="hive-detail-delete" onclick="event.stopPropagation(); deletePublicHive('${hive.id}')">Delete</button>
+        `;
+    }
+
+    modal.innerHTML = `
+        <div class="hive-detail-content">
+            <button class="hive-detail-close" onclick="closeHiveDetail()">&times;</button>
+            <div class="hive-detail-name">${escapeHtml(hive.name)}</div>
+            <div class="hive-detail-meta">
+                <span>by ${escapeHtml(hive.creator_name || 'Anonymous')}</span>
+                <span class="fav-count-inline">
+                    <svg viewBox="0 0 24 24" width="14" height="14" fill="#ef4444" stroke="#ef4444" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+                    ${hive.favorite_count || 0}
+                </span>
+            </div>
+            ${hive.description ? `<div class="hive-detail-desc">${escapeHtml(hive.description)}</div>` : ''}
+            ${tagsHtml ? `<div class="hive-detail-tags">${tagsHtml}</div>` : ''}
+            <div class="hive-detail-bees">${beesHtml}</div>
+            <div class="hive-detail-actions">
+                <button class="hive-detail-try" onclick="tryHive('${hive.id}')">Try It</button>
+                <button class="hive-detail-fav ${favClass}" id="detail-fav-btn" onclick="toggleFavoriteFromDetail('${hive.id}')">${favText}</button>
+                ${ownerHtml}
+            </div>
+        </div>
+    `;
+    modal.classList.add('active');
+}
+
+function closeHiveDetail() {
+    const modal = document.getElementById('hive-detail-modal');
+    modal.classList.remove('active');
+    modal.innerHTML = '';
+}
+
+let _favDetailLoading = false;
+async function toggleFavoriteFromDetail(hiveId) {
+    const token = localStorage.getItem('token');
+    if (!token) { alert('Please log in to favorite hives.'); return; }
+    if (_favDetailLoading) return;
+    _favDetailLoading = true;
+    try {
+        const res = await fetch(`${API_BASE}/api/custom-hives/${hiveId}/favorite`, {
+            method: 'POST', headers: getAuthHeaders()
+        });
+        if (!res.ok) throw new Error('Failed');
+        const data = await res.json();
+        const hive = exploreHivesData.find(h => h.id === hiveId);
+        if (hive) {
+            hive.is_favorited = data.favorited;
+            hive.favorite_count = data.favorited ? (hive.favorite_count || 0) + 1 : Math.max(0, (hive.favorite_count || 0) - 1);
+        }
+        // Re-render detail
+        openHiveDetail(hiveId);
+        // Re-render explore grid
+        renderExploreHives(exploreHivesData);
+    } catch(e) { console.error(e); } finally { _favDetailLoading = false; }
+}
+
+async function makeHivePrivate(hiveId) {
+    if (!confirm('Make this hive private? It will be removed from Explore Hives.')) return;
+    try {
+        const res = await fetch(`${API_BASE}/api/custom-hives/${hiveId}`, {
+            method: 'PUT',
+            headers: getAuthHeaders(),
+            body: JSON.stringify({ name: null, description: null, visibility: 'private' })
+        });
+        if (res.ok) {
+            closeHiveDetail();
+            fetchExploreHives();
+        }
+    } catch(e) { alert('Failed to update hive.'); }
+}
+
+async function deletePublicHive(hiveId) {
+    if (!confirm('Delete this hive permanently?')) return;
+    try {
+        const res = await fetch(`${API_BASE}/api/custom-hives/${hiveId}`, {
+            method: 'DELETE',
+            headers: getAuthHeaders()
+        });
+        if (res.ok) {
+            closeHiveDetail();
+            fetchExploreHives();
+            await fetchCustomHives();
+            renderHivesModal();
+        }
+    } catch(e) { alert('Failed to delete hive.'); }
+}
+
+// Try a hive - temporarily use it for a debate
+function tryHive(hiveId) {
+    const hive = exploreHivesData.find(h => h.id === hiveId);
+    if (!hive || !hive.bees || hive.bees.length < 2) { alert('This hive needs at least 2 bees.'); return; }
+
+    const token = localStorage.getItem('token');
+    if (!token) { alert('Please log in to try hives.'); return; }
+
+    // Save current state
+    window._tryingHive = hive;
+    window._savedHiveId = selectedHiveId;
+    window._savedPersonalities = [...selectedPersonalities];
+
+    // Inject hive temporarily into customHives
+    const tempHive = {
+        id: hive.id,
+        name: hive.name,
+        description: hive.description,
+        bees: hive.bees.map(b => ({
+            id: b.id,
+            name: b.name,
+            human_name: b.human_name,
+            emoji: b.emoji,
+            description: b.description,
+            role: b.role,
+            icon_base64: b.icon_base64,
+            display_order: b.display_order
+        })),
+        is_custom: true
+    };
+    if (!customHives.find(h => h.id === hive.id)) {
+        customHives.push(tempHive);
+    }
+
+    // Select this hive
+    selectHive(hive.id);
+
+    // Close modals
+    closeHiveDetail();
+    closeExploreHives();
+
+    // Focus chat
+    const chatInput = document.getElementById('chat-input');
+    if (chatInput) chatInput.focus();
+}
+
+// Called after a debate ends when trying a hive
+function showTryItBanner() {
+    if (!window._tryingHive) return;
+    const hive = window._tryingHive;
+    const container = document.getElementById('chat-messages');
+    if (!container) return;
+
+    const banner = document.createElement('div');
+    banner.className = 'try-it-banner';
+    banner.innerHTML = `
+        <div style="font-size:1.1rem;font-weight:700;color:var(--text-primary);margin-bottom:8px;">You tried "${escapeHtml(hive.name)}"!</div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;">
+            <button class="btn btn-primary" onclick="favoriteAndEndTry('${hive.id}')" style="padding:8px 20px;">Favorite This Hive</button>
+            <button class="btn btn-secondary" onclick="endTryIt(true)" style="padding:8px 20px;">Back to Explore</button>
+            <button class="btn btn-secondary" onclick="endTryIt(false)" style="padding:8px 20px;">Continue Chatting</button>
+        </div>
+    `;
+    container.appendChild(banner);
+    scrollToBottom(container);
+}
+
+async function favoriteAndEndTry(hiveId) {
+    try {
+        await fetch(`${API_BASE}/api/custom-hives/${hiveId}/favorite`, {
+            method: 'POST', headers: getAuthHeaders()
+        });
+    } catch(e) {}
+    endTryIt(true);
+}
+
+function endTryIt(returnToExplore) {
+    // Remove temp hive from customHives
+    if (window._tryingHive) {
+        const idx = customHives.findIndex(h => h.id === window._tryingHive.id);
+        if (idx !== -1 && window._savedHiveId !== window._tryingHive.id) {
+            customHives.splice(idx, 1);
+        }
+    }
+
+    // Restore state
+    if (window._savedHiveId) selectHive(window._savedHiveId);
+    if (window._savedPersonalities) {
+        selectedPersonalities = window._savedPersonalities; window.selectedPersonalities = selectedPersonalities;
+        saveSelectedBees();
+    }
+
+    window._tryingHive = null;
+    window._savedHiveId = null;
+    window._savedPersonalities = null;
+
+    if (returnToExplore) openHivesModal();
+}
+
+window.openHiveDetail = openHiveDetail;
+window.closeHiveDetail = closeHiveDetail;
+window.toggleFavoriteFromDetail = toggleFavoriteFromDetail;
+window.makeHivePrivate = makeHivePrivate;
+window.deletePublicHive = deletePublicHive;
+window.tryHive = tryHive;
+window.showTryItBanner = showTryItBanner;
+window.favoriteAndEndTry = favoriteAndEndTry;
+window.endTryIt = endTryIt;
+
+// ============================================
+// Decisions Feed
+// ============================================
+
+let decisionsData = [];
+let decisionsSortMode = 'newest';
+
+function openDecisionsFeed() { openDiscover('decisions'); }
+function closeDecisionsFeed() { closeDiscover(); }
+
+function sortDecisions(mode) {
+    decisionsSortMode = mode;
+    document.getElementById('sort-newest-btn')?.classList.toggle('active', mode === 'newest');
+    document.getElementById('sort-popular-btn')?.classList.toggle('active', mode === 'popular');
+    fetchDecisions();
+}
+
+async function fetchDecisions() {
+    const feed = document.getElementById('decisions-feed');
+    feed.innerHTML = '<div class="explore-empty">Loading...</div>';
+
+    try {
+        const headers = {};
+        const token = localStorage.getItem('token');
+        if (token) headers['Authorization'] = `Bearer ${token}`;
+
+        const res = await fetch(`${API_BASE}/api/decisions?sort=${decisionsSortMode}`, { headers });
+        if (!res.ok) throw new Error('Failed');
+
+        decisionsData = await res.json();
+        renderDecisions(decisionsData);
+    } catch (e) {
+        console.error('Failed to load decisions:', e);
+        feed.innerHTML = '<div class="explore-empty">Failed to load decisions.</div>';
+    }
+}
+
+function renderDecisions(decisions) {
+    const feed = document.getElementById('decisions-feed');
+    if (!decisions.length) {
+        feed.innerHTML = '<div class="explore-empty">No decisions yet. Start a debate to see the first one here!</div>';
+        return;
+    }
+
+    const beeNameToId = {
+        'Sunny': 'chaos-optimist', 'Murphy': 'chaos-pessimist', 'Jordan': 'chaos-realist', 'Rebel': 'chaos-contrarian', 'Cyndi': 'chaos-cynic',
+        'BFF': 'friend-bestie', 'Truth': 'friend-honest', 'Giggles': 'friend-funny', 'Sage': 'friend-wise', 'Fixer': 'friend-practical',
+        'Brick': 'billionaire-builder', 'Money': 'billionaire-investor', 'Chess': 'billionaire-strategist', 'Blitz': 'billionaire-disruptor', 'Dream': 'billionaire-visionary',
+        'Anon': 'internet-redditor', 'Clout': 'internet-influencer', 'Dev': 'internet-coder', 'Pixel': 'internet-gamer', 'Flame': 'internet-troll',
+        'Zoey': 'gen-z', 'Avery': 'gen-millennial', 'Dale': 'gen-x', 'Walt': 'gen-boomer', 'Neo': 'gen-future',
+        'Honor': 'court-judge', 'Blade': 'court-prosecutor', 'Haven': 'court-defense', 'Echo': 'court-witness', 'Will': 'court-jury',
+        'Lucifer': 'special-devils-advocate', 'Joker': 'special-wild-card'
+    };
+    const splitColors = ['#facc15', '#8b5cf6', '#3b82f6', '#10b981', '#ef4444', '#ec4899', '#06b6d4'];
+
+    feed.innerHTML = decisions.map(d => {
+        const v = d.verdict || {};
+        const votes = v.votes || [];
+
+        // Build vote split bar data
+        const choiceCounts = {};
+        votes.forEach(vote => {
+            const c = vote.choice || 'Unknown';
+            choiceCounts[c] = (choiceCounts[c] || 0) + 1;
+        });
+        const choices = Object.keys(choiceCounts);
+        const totalVotes = votes.length || 1;
+
+        const splitBarHtml = choices.length >= 1 ? `
+            <div class="decision-split-bar">
+                ${choices.map((c, i) => `<div class="decision-split-segment" style="width:${(choiceCounts[c] / totalVotes) * 100}%;background:${splitColors[i % splitColors.length]}"></div>`).join('')}
+            </div>
+            <div class="decision-split-legend">
+                ${choices.map((c, i) => `<span class="decision-split-label"><span class="decision-split-dot" style="background:${splitColors[i % splitColors.length]}"></span>${escapeHtml(c)} (${choiceCounts[c]})</span>`).join('')}
+            </div>` : '';
+
+        const votesHtml = votes.map(vote => {
+            const pid = beeNameToId[vote.name] || '';
+            const iconPath = pid ? getBeeIconPath(pid) : '/images/bee-icons/default bee icon.png';
+            return `<div class="decision-vote">
+                <div class="decision-vote-header"><img class="decision-vote-avatar" src="${iconPath}" alt="" onerror="this.src='/images/bee-icons/default bee icon.png'"><span class="name">${escapeHtml(vote.name || '')}</span><span class="arrow">→</span><span class="choice">${escapeHtml(vote.choice || '')}</span></div>
+                ${vote.reason ? `<div class="vote-reason">${escapeHtml(vote.reason)}</div>` : ''}
+            </div>`;
+        }).join('');
+
+        const titleText = v.title || d.topic;
+        const likedClass = d.is_liked ? 'liked' : '';
+        const timeAgo = d.created_at ? getTimeAgo(d.created_at) : '';
+
+        return `<div class="decision-card">
+            <div class="decision-card-content">
+                <div class="decision-title">${escapeHtml(titleText)}</div>
+                <div class="decision-meta">
+                    ${d.hive_name ? `<span class="decision-hive-badge" ${getHiveBadgeStyle(d.hive_name)}>${escapeHtml(d.hive_name)} Hive</span>` : ''}
+                    <span>${timeAgo}</span>
+                </div>
+                <div class="decision-answer">${escapeHtml(v.hive_decision || 'No consensus')}</div>
+                ${v.confidence !== undefined ? `<div class="decision-confidence">${v.confidence}% confidence</div>` : ''}
+                ${splitBarHtml}
+                <div class="decision-votes">${votesHtml}</div>
+                <div class="decision-side-actions">
+                    <div class="decision-side-group">
+                        <button class="decision-side-btn ${likedClass}" onclick="toggleDecisionLike('${d.id}', this)">
+                            <svg viewBox="0 0 24 24" fill="${d.is_liked ? '#ef4444' : 'none'}" stroke="${d.is_liked ? '#ef4444' : 'currentColor'}" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+                        </button>
+                        <span class="decision-side-label like-count">${d.likes || 0}</span>
+                    </div>
+                    <div class="decision-side-group">
+                        <button class="decision-side-btn" onclick="shareDecision('${d.id}')">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                        </button>
+                        <span class="decision-side-label">Share</span>
+                    </div>
+                    <div class="decision-side-group">
+                        <button class="decision-side-btn" onclick="tryDecision('${d.id}')">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></svg>
+                        </button>
+                        <span class="decision-side-label">Remix</span>
+                    </div>
+                </div>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+function getTimeAgo(dateStr) {
+    try {
+        const date = new Date(dateStr);
+        const now = new Date();
+        const diff = Math.floor((now - date) / 1000);
+        if (diff < 60) return 'just now';
+        if (diff < 3600) return Math.floor(diff / 60) + 'm ago';
+        if (diff < 86400) return Math.floor(diff / 3600) + 'h ago';
+        if (diff < 604800) return Math.floor(diff / 86400) + 'd ago';
+        return date.toLocaleDateString();
+    } catch (e) { return ''; }
+}
+
+async function toggleDecisionLike(decisionId, btn) {
+    const token = localStorage.getItem('token');
+    if (!token) { alert('Please log in to like decisions.'); return; }
+    if (btn.dataset.loading === 'true') return;
+    btn.dataset.loading = 'true';
+
+    try {
+        const res = await fetch(`${API_BASE}/api/decisions/${decisionId}/like`, {
+            method: 'POST', headers: getAuthHeaders()
+        });
+        if (!res.ok) throw new Error('Failed');
+        const data = await res.json();
+
+        const svg = btn.querySelector('svg');
+        const countEl = btn.parentElement.querySelector('.like-count');
+        const d = decisionsData.find(x => x.id === decisionId);
+
+        if (data.liked) {
+            btn.classList.add('liked');
+            svg.setAttribute('fill', '#ef4444');
+            svg.setAttribute('stroke', '#ef4444');
+            if (d) d.likes = (d.likes || 0) + 1;
+        } else {
+            btn.classList.remove('liked');
+            svg.setAttribute('fill', 'none');
+            svg.setAttribute('stroke', 'currentColor');
+            if (d) d.likes = Math.max(0, (d.likes || 0) - 1);
+        }
+        if (countEl && d) countEl.textContent = d.likes;
+    } catch (e) { console.error(e); } finally { btn.dataset.loading = 'false'; }
+}
+
+function tryDecision(decisionId) {
+    // Repurposed as Remix: open the remix modal pre-loaded with this
+    // decision's topic so the user can run the same question in a new
+    // hive+vibe combo.
+    const d = decisionsData.find(x => x.id === decisionId);
+    if (!d) return;
+    closeDecisionsFeed();
+    switchMainView('debates');
+    window.lastSentMessage = d.topic;
+    if (typeof openRemixModal === 'function') openRemixModal();
+}
+
+function shareDecision(decisionId) {
+    const d = decisionsData.find(x => x.id === decisionId);
+    if (!d) return;
+
+    const url = `https://www.beecision.com/decision/${decisionId}`;
+    const v = d.verdict || {};
+    const title = v.title || d.topic;
+    const text = `${title}\n\nHive Decision: ${v.hive_decision || 'No consensus'}${v.confidence ? ` (${v.confidence}% confidence)` : ''}`;
+
+    if (navigator.share) {
+        navigator.share({ title: 'Beecision - Hive Decision', text, url }).catch(() => {});
+    } else {
+        navigator.clipboard.writeText(url).then(() => {
+            alert('Link copied to clipboard!');
+        }).catch(() => {
+            prompt('Copy this link:', url);
+        });
+    }
+}
+
+async function openSharedDecision(decisionId) {
+    switchMainView('beecisions');
+    const feed = document.getElementById('beecisions-feed');
+    if (feed) feed.innerHTML = '<div class="explore-empty">Loading...</div>';
+
+    try {
+        const headers = {};
+        const token = localStorage.getItem('token');
+        if (token) headers['Authorization'] = `Bearer ${token}`;
+
+        const res = await fetch(`${API_BASE}/api/decisions/${decisionId}`, { headers });
+        if (!res.ok) throw new Error('Decision not found');
+
+        const decision = await res.json();
+        renderBeecisions([decision]);
+    } catch (e) {
+        console.error('Failed to load shared decision:', e);
+        if (feed) feed.innerHTML = '<div class="explore-empty">Decision not found.</div>';
+    }
+}
+
+window.openDiscover = openDiscover;
+window.closeDiscover = closeDiscover;
+window.switchDiscoverTab = switchDiscoverTab;
+window.openDecisionsFeed = openDecisionsFeed;
+window.closeDecisionsFeed = closeDecisionsFeed;
+window.sortDecisions = sortDecisions;
+window.toggleDecisionLike = toggleDecisionLike;
+window.tryDecision = tryDecision;
+window.shareDecision = shareDecision;
+
+// ============================================
+// Main View Switching (Debates / Beecisions)
+// ============================================
+
+let currentMainView = 'debates';
+
+function updateMainTabIndicator() {
+    // Use a fixed indicator width so it doesn't change size between tabs
+    function positionIndicator(tabsId, indicatorId, activeId) {
+        const tabs = document.getElementById(tabsId);
+        const indicator = document.getElementById(indicatorId);
+        const active = document.getElementById(activeId);
+        if (!tabs || !indicator || !active) return;
+        const containerRect = tabs.getBoundingClientRect();
+        const tabRect = active.getBoundingClientRect();
+        const tabCenter = tabRect.left - containerRect.left + tabRect.width / 2;
+        const fixedWidth = 48;
+        indicator.style.width = fixedWidth + 'px';
+        indicator.style.left = (tabCenter - fixedWidth / 2) + 'px';
+    }
+    positionIndicator('desktop-main-tabs', 'desktop-tab-indicator',
+        currentMainView === 'debates' ? 'tab-debates' : 'tab-beecisions');
+    positionIndicator('mobile-main-tabs', 'mobile-tab-indicator',
+        currentMainView === 'debates' ? 'mobile-tab-debates' : 'mobile-tab-beecisions');
+}
+
+window.addEventListener('resize', updateMainTabIndicator);
+
+function switchMainView(view) {
+    currentMainView = view;
+
+    // Update desktop tabs
+    document.getElementById('tab-debates')?.classList.toggle('active', view === 'debates');
+    document.getElementById('tab-beecisions')?.classList.toggle('active', view === 'beecisions');
+
+    // Update mobile tabs
+    document.getElementById('mobile-tab-debates')?.classList.toggle('active', view === 'debates');
+    document.getElementById('mobile-tab-beecisions')?.classList.toggle('active', view === 'beecisions');
+
+    // Slide the tab indicator
+    requestAnimationFrame(() => updateMainTabIndicator());
+
+    // Toggle views with smooth crossfade
+    const chatLayout = document.querySelector('.chat-layout');
+    const voicesBar = document.querySelector('.voices-bar');
+    const beecisionsView = document.getElementById('beecisions-view');
+    const chatInputArea = document.getElementById('chat-input-area');
+    const desktopHeader = document.getElementById('main-logo-header');
+    const mobileHeader = document.querySelector('.header');
+
+    // Toggle beecisions-active class on headers for 3-dots repositioning
+    if (desktopHeader) desktopHeader.classList.toggle('beecisions-active', view === 'beecisions');
+    if (mobileHeader) mobileHeader.classList.toggle('beecisions-active', view === 'beecisions');
+
+    // Hide hive button on beecisions view
+    const mobileHiveBtn = document.getElementById('mobile-hives-btn');
+    const desktopHiveBtn = document.getElementById('hives-btn');
+    if (mobileHiveBtn) mobileHiveBtn.style.display = view === 'beecisions' ? 'none' : '';
+    if (desktopHiveBtn) desktopHiveBtn.style.display = view === 'beecisions' ? 'none' : '';
+
+    // Hide hamburger (sidebar-toggle) on beecisions view or if not logged in
+    const isLoggedIn = !!localStorage.getItem('token');
+    document.querySelectorAll('.sidebar-toggle').forEach(btn => {
+        btn.style.display = (view === 'beecisions' || !isLoggedIn) ? 'none' : 'flex';
+    });
+
+    if (view === 'debates') {
+        if (chatLayout) { chatLayout.classList.remove('view-hidden'); chatLayout.classList.add('view-active'); }
+        if (beecisionsView) { beecisionsView.classList.remove('view-active'); beecisionsView.classList.add('view-hidden'); }
+        if (voicesBar) voicesBar.style.display = '';
+        if (chatInputArea) chatInputArea.style.display = '';
+        // Reload debate history when switching to debates tab
+        if (typeof loadChatHistory === 'function' && localStorage.getItem('token')) loadChatHistory();
+    } else {
+        if (chatLayout) { chatLayout.classList.remove('view-active'); chatLayout.classList.add('view-hidden'); }
+        if (beecisionsView) { beecisionsView.classList.remove('view-hidden'); beecisionsView.classList.add('view-active'); }
+        if (voicesBar) voicesBar.style.display = 'none';
+        if (chatInputArea) chatInputArea.style.display = 'none';
+        fetchBeecisions();
+    }
+}
+
+let beecisionsSortMode = 'newest';
+
+function sortBeecisions(mode) {
+    beecisionsSortMode = mode;
+    document.getElementById('bee-sort-newest-btn')?.classList.toggle('active', mode === 'newest');
+    document.getElementById('bee-sort-popular-btn')?.classList.toggle('active', mode === 'popular');
+    fetchBeecisions();
+}
+
+async function fetchBeecisions() {
+    const feed = document.getElementById('beecisions-feed');
+    if (!feed) return;
+    feed.innerHTML = '<div class="explore-empty">Loading...</div>';
+
+    try {
+        const headers = {};
+        const token = localStorage.getItem('token');
+        if (token) headers['Authorization'] = `Bearer ${token}`;
+
+        const res = await fetch(`${API_BASE}/api/decisions?sort=${beecisionsSortMode}`, { headers });
+        if (!res.ok) throw new Error('Failed');
+
+        const decisions = await res.json();
+        renderBeecisions(decisions);
+    } catch (e) {
+        console.error('Failed to load beecisions:', e);
+        feed.innerHTML = '<div class="explore-empty">Failed to load beecisions.</div>';
+    }
+}
+
+function renderBeecisions(decisions) {
+    const feed = document.getElementById('beecisions-feed');
+    if (!feed) return;
+    if (!decisions.length) {
+        feed.innerHTML = '<div class="explore-empty">No beecisions yet. Start a debate to see the first one here!</div>';
+        return;
+    }
+
+    const beeNameToId = {
+        'Sunny': 'chaos-optimist', 'Murphy': 'chaos-pessimist', 'Jordan': 'chaos-realist', 'Rebel': 'chaos-contrarian', 'Cyndi': 'chaos-cynic',
+        'BFF': 'friend-bestie', 'Truth': 'friend-honest', 'Giggles': 'friend-funny', 'Sage': 'friend-wise', 'Fixer': 'friend-practical',
+        'Brick': 'billionaire-builder', 'Money': 'billionaire-investor', 'Chess': 'billionaire-strategist', 'Blitz': 'billionaire-disruptor', 'Dream': 'billionaire-visionary',
+        'Anon': 'internet-redditor', 'Clout': 'internet-influencer', 'Dev': 'internet-coder', 'Pixel': 'internet-gamer', 'Flame': 'internet-troll',
+        'Zoey': 'gen-z', 'Avery': 'gen-millennial', 'Dale': 'gen-x', 'Walt': 'gen-boomer', 'Neo': 'gen-future',
+        'Honor': 'court-judge', 'Blade': 'court-prosecutor', 'Haven': 'court-defense', 'Echo': 'court-witness', 'Will': 'court-jury',
+        'Lucifer': 'special-devils-advocate', 'Joker': 'special-wild-card'
+    };
+    const splitColors = ['#facc15', '#8b5cf6', '#3b82f6', '#10b981', '#ef4444', '#ec4899', '#06b6d4'];
+
+    feed.innerHTML = decisions.map((d, cardIdx) => {
+        const v = d.verdict || {};
+        const votes = v.votes || [];
+
+        // Count votes per choice
+        const choiceCounts = {};
+        votes.forEach(vote => {
+            const c = vote.choice || 'Unknown';
+            choiceCounts[c] = (choiceCounts[c] || 0) + 1;
+        });
+        const choices = Object.keys(choiceCounts);
+        const totalVotes = votes.length || 1;
+
+        // Find winner
+        let winnerChoice = v.hive_decision || choices[0] || 'No consensus';
+        let winnerPct = v.confidence || 0;
+        if (!winnerPct && choices.length > 0) {
+            const maxCount = Math.max(...Object.values(choiceCounts));
+            winnerPct = Math.round((maxCount / totalVotes) * 100);
+        }
+
+        const titleText = v.title || d.topic;
+        const likedClass = d.is_liked ? 'liked' : '';
+
+        // Timing: spread over 8 seconds
+        // Chat: 0.5s – 4.5s (each bee ~0.6-0.8s apart)
+        const chatDuration = 4.0;
+        const chatStart = 0.5;
+        const chatStep = votes.length > 1 ? chatDuration / (votes.length - 1) : 0;
+
+        // Build mini group-chat debate — one punchy line per bee
+        const chatHtml = votes.map((vote, i) => {
+            const pid = beeNameToId[vote.name] || '';
+            const iconPath = pid ? getBeeIconPath(pid) : '/images/bee-icons/default bee icon.png';
+            const colors = pid ? getPersonalityColor(pid) : { text: 'var(--text-secondary)' };
+            const isLeft = i % 2 === 0;
+            const delay = (chatStart + i * chatStep).toFixed(2);
+            return `<div class="bc-chat-msg ${isLeft ? 'bc-left' : 'bc-right'}" style="animation-delay:${delay}s">
+                <img class="bc-chat-avi" src="${iconPath}" alt="" onerror="this.src='/images/bee-icons/default bee icon.png'">
+                <div class="bc-chat-bubble">
+                    <span class="bc-chat-name" style="color:${colors.text}">${escapeHtml(vote.name || '')}</span>
+                    <span class="bc-chat-text">${escapeHtml(vote.reason || vote.choice || '')}</span>
+                </div>
+            </div>`;
+        }).join('');
+
+        // Vote bars: 5.0s – 6.0s
+        const barStart = 5.0;
+        const barStep = choices.length > 1 ? 1.0 / (choices.length - 1) : 0;
+        const barHtml = choices.length >= 1 ? choices.map((c, i) => {
+            const pct = Math.round((choiceCounts[c] / totalVotes) * 100);
+            const color = splitColors[i % splitColors.length];
+            const barDelay = (barStart + i * barStep).toFixed(2);
+            return `<div class="bc-bar-row" style="animation-delay:${barDelay}s">
+                <span class="bc-bar-label">${escapeHtml(c)}</span>
+                <div class="bc-bar-track"><div class="bc-bar-fill" style="--bar-pct:${pct}%;background:${color};animation-delay:${barDelay}s"></div></div>
+                <span class="bc-bar-pct">${pct}%</span>
+            </div>`;
+        }).join('') : '';
+
+        // Winner: 6.5s, Poll: 7.5s
+        const revealDelay = '6.50';
+        const pollDelay = '7.50';
+
+        // Poll data
+        const pollYes = d.poll_yes || 0;
+        const pollNo = d.poll_no || 0;
+        const pollTotal = pollYes + pollNo;
+        const pollYesPct = pollTotal > 0 ? Math.round((pollYes / pollTotal) * 100) : 50;
+        const pollNoPct = pollTotal > 0 ? Math.round((pollNo / pollTotal) * 100) : 50;
+        const userVote = d.poll_vote || '';
+        const hasVoted = pollTotal > 0;
+
+        return `<div class="decision-card">
+            <div class="decision-card-content bc-card">
+                <div class="bc-hook">
+                    ${d.hive_name ? `<span class="decision-hive-badge" ${getHiveBadgeStyle(d.hive_name)}>${escapeHtml(d.hive_name)} Hive</span>` : ''}
+                    <div class="bc-hook-title">${escapeHtml(titleText)}</div>
+                </div>
+                <div class="bc-chat">${chatHtml}</div>
+                <div class="bc-bars">${barHtml}</div>
+                <div class="bc-reveal" style="animation-delay:${revealDelay}s">
+                    <div class="bc-winner">${escapeHtml(winnerChoice)}</div>
+                    <div class="bc-winner-pct">${winnerPct}%</div>
+                </div>
+                <div class="bc-poll" style="animation-delay:${pollDelay}s" data-decision="${d.id}">
+                    <div class="bc-poll-question">Do you agree?</div>
+                    <div class="bc-poll-btns">
+                        <button class="bc-poll-btn bc-poll-yes ${userVote === 'yes' ? 'bc-poll-voted' : ''}" onclick="votePoll('${d.id}','yes',this)">
+                            <span class="bc-poll-emoji">&#128077;</span> Yes
+                            <span class="bc-poll-bar-bg"><span class="bc-poll-bar-fill" style="width:${hasVoted ? pollYesPct : 0}%;background:#22c55e"></span></span>
+                            <span class="bc-poll-count">${hasVoted ? pollYesPct + '%' : ''}</span>
+                        </button>
+                        <button class="bc-poll-btn bc-poll-no ${userVote === 'no' ? 'bc-poll-voted' : ''}" onclick="votePoll('${d.id}','no',this)">
+                            <span class="bc-poll-emoji">&#128078;</span> No
+                            <span class="bc-poll-bar-bg"><span class="bc-poll-bar-fill" style="width:${hasVoted ? pollNoPct : 0}%;background:#ef4444"></span></span>
+                            <span class="bc-poll-count">${hasVoted ? pollNoPct + '%' : ''}</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="decision-side-actions">
+                <div class="decision-side-group">
+                    <button class="decision-side-btn ${likedClass}" onclick="toggleBeecisionLike('${d.id}', this)">
+                        <svg viewBox="0 0 24 24" fill="${d.is_liked ? '#ef4444' : 'none'}" stroke="${d.is_liked ? '#ef4444' : 'currentColor'}" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+                    </button>
+                    <span class="decision-side-label like-count">${d.likes || 0}</span>
+                </div>
+                <div class="decision-side-group">
+                    <button class="decision-side-btn" onclick="shareDecision('${d.id}')">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                    </button>
+                    <span class="decision-side-label">Share</span>
+                </div>
+                <div class="decision-side-group">
+                    <button class="decision-side-btn" onclick="tryBeecision('${d.id}')">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></svg>
+                    </button>
+                    <span class="decision-side-label">Remix</span>
+                </div>
+            </div>
+        </div>`;
+    }).join('');
+
+    // Trigger animations when card scrolls into view — replay every time
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            const card = entry.target.querySelector('.bc-card');
+            if (!card) return;
+            if (entry.isIntersecting) {
+                // Force restart all animations by cloning
+                card.classList.remove('bc-playing');
+                // Reset animations: remove and re-add animated elements' classes
+                card.querySelectorAll('.bc-chat-msg, .bc-bar-row, .bc-bar-fill, .bc-reveal, .bc-poll').forEach(el => {
+                    el.getAnimations().forEach(a => { a.cancel(); a.play(); });
+                });
+                // Small delay to ensure cancel takes effect
+                requestAnimationFrame(() => {
+                    card.classList.add('bc-playing');
+                });
+            } else {
+                card.classList.remove('bc-playing');
+            }
+        });
+    }, { threshold: 0.4 });
+    feed.querySelectorAll('.decision-card').forEach(card => observer.observe(card));
+}
+
+let _beecisionsData = [];
+async function toggleBeecisionLike(decisionId, btn) {
+    const token = localStorage.getItem('token');
+    if (!token) { alert('Please log in to like beecisions.'); return; }
+    if (btn.dataset.loading === 'true') return;
+    btn.dataset.loading = 'true';
+
+    try {
+        const res = await fetch(`${API_BASE}/api/decisions/${decisionId}/like`, {
+            method: 'POST', headers: getAuthHeaders()
+        });
+        if (!res.ok) throw new Error('Failed');
+        const data = await res.json();
+
+        const svg = btn.querySelector('svg');
+        const countEl = btn.parentElement.querySelector('.like-count');
+
+        if (data.liked) {
+            btn.classList.add('liked');
+            svg.setAttribute('fill', '#ef4444');
+            svg.setAttribute('stroke', '#ef4444');
+        } else {
+            btn.classList.remove('liked');
+            svg.setAttribute('fill', 'none');
+            svg.setAttribute('stroke', 'currentColor');
+        }
+        if (countEl) countEl.textContent = data.likes || 0;
+    } catch (e) { console.error(e); } finally { btn.dataset.loading = 'false'; }
+}
+
+function tryBeecision(decisionId) {
+    // Repurposed as Remix: open the remix modal pre-loaded with this
+    // decision's topic so the user can run it in a new hive+vibe combo.
+    switchMainView('debates');
+    fetch(`${API_BASE}/api/decisions/${decisionId}`, {
+        headers: localStorage.getItem('token') ? { 'Authorization': `Bearer ${localStorage.getItem('token')}` } : {}
+    }).then(r => r.json()).then(d => {
+        window.lastSentMessage = d.topic;
+        if (typeof openRemixModal === 'function') openRemixModal();
+    }).catch(() => {});
+}
+
+window.switchMainView = switchMainView;
+window.sortBeecisions = sortBeecisions;
+window.toggleBeecisionLike = toggleBeecisionLike;
+window.tryBeecision = tryBeecision;
+
+async function votePoll(decisionId, vote, btn) {
+    const token = localStorage.getItem('token');
+    if (!token) { alert('Please log in to vote.'); return; }
+    try {
+        const res = await fetch(`${API_BASE}/api/decisions/${decisionId}/poll`, {
+            method: 'POST',
+            headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+            body: JSON.stringify({ vote })
+        });
+        if (!res.ok) throw new Error('Failed');
+        const data = await res.json();
+        const total = data.yes + data.no;
+        const yesPct = total > 0 ? Math.round((data.yes / total) * 100) : 0;
+        const noPct = total > 0 ? Math.round((data.no / total) * 100) : 0;
+
+        // Update the poll UI
+        const pollEl = btn.closest('.bc-poll');
+        if (!pollEl) return;
+        const yesBtn = pollEl.querySelector('.bc-poll-yes');
+        const noBtn = pollEl.querySelector('.bc-poll-no');
+        [yesBtn, noBtn].forEach(b => b.classList.remove('bc-poll-voted'));
+        if (data.user_vote === 'yes') yesBtn.classList.add('bc-poll-voted');
+        if (data.user_vote === 'no') noBtn.classList.add('bc-poll-voted');
+
+        yesBtn.querySelector('.bc-poll-bar-fill').style.width = yesPct + '%';
+        noBtn.querySelector('.bc-poll-bar-fill').style.width = noPct + '%';
+        yesBtn.querySelector('.bc-poll-count').textContent = yesPct + '%';
+        noBtn.querySelector('.bc-poll-count').textContent = noPct + '%';
+    } catch (e) { console.error('Poll vote error:', e); }
+}
+window.votePoll = votePoll;
+
+// ============================================
+// Admin Panel
+// ============================================
+
+async function openAdminPanel() {
+    const modal = document.getElementById('admin-modal');
+    if (!modal) return;
+    modal.classList.add('active');
+    // Close profile dropdowns
+    document.getElementById('profile-dropdown')?.classList.remove('open');
+    document.getElementById('mobile-profile-dropdown')?.classList.remove('open');
+    await loadAdminUsers();
+}
+
+function closeAdminPanel() {
+    const modal = document.getElementById('admin-modal');
+    if (modal) modal.classList.remove('active');
+}
+
+let _adminUsersCache = [];
+
+async function loadAdminUsers() {
+    const list = document.getElementById('admin-users-list');
+    if (!list) return;
+    list.innerHTML = '<p style="color: var(--text-secondary); text-align: center;">Loading...</p>';
+    const searchInput = document.getElementById('admin-search');
+    if (searchInput) searchInput.value = '';
+    try {
+        const res = await fetch(`${API_BASE}/api/admin/users`, { headers: getAuthHeaders() });
+        if (!res.ok) throw new Error('Not authorized');
+        const data = await res.json();
+        _adminUsersCache = data.users || [];
+        renderAdminUsers(_adminUsersCache);
+    } catch (e) {
+        list.innerHTML = `<p style="color: #ef4444; text-align: center;">Error: ${e.message}</p>`;
+    }
+}
+
+function renderAdminUsers(users) {
+    const list = document.getElementById('admin-users-list');
+    if (!list) return;
+    if (!users || users.length === 0) {
+        list.innerHTML = '<p style="color: var(--text-secondary); text-align: center;">No users found.</p>';
+        return;
+    }
+    list.innerHTML = users.map(u => {
+        const month = u.debates_reset_month || '-';
+        const isCurrentMonth = month === new Date().toISOString().slice(0, 7);
+        const buzzes = isCurrentMonth ? (u.debates_used || 0) : 0;
+        const plan = u.subscription_status === 'active' ? '<span style="color: #22c55e; font-weight: 600;">PRO</span>' : '<span style="color: var(--text-secondary);">Free</span>';
+        return `<div style="background: var(--surface-light); border-radius: 12px; padding: 14px 16px; display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap;">
+            <div style="min-width: 0; flex: 1;">
+                <div style="font-weight: 600; font-size: 0.95rem; color: var(--text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${u.display_name || u.email}</div>
+                <div style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 2px;">${u.email} &middot; ${plan} &middot; ${buzzes} buzzes</div>
+            </div>
+            <div style="display: flex; gap: 6px; flex-shrink: 0;">
+                <button onclick="adminResetBuzzes('${u.id}')" style="padding: 6px 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--surface); color: var(--text-primary); cursor: pointer; font-size: 0.8rem;">Reset Buzzes</button>
+                <button onclick="adminTogglePro('${u.id}', '${u.subscription_status}')" style="padding: 6px 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--surface); color: var(--text-primary); cursor: pointer; font-size: 0.8rem;">${u.subscription_status === 'active' ? 'Remove Pro' : 'Give Pro'}</button>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+function filterAdminUsers(query) {
+    const q = query.toLowerCase().trim();
+    if (!q) {
+        renderAdminUsers(_adminUsersCache);
+        return;
+    }
+    const filtered = _adminUsersCache.filter(u =>
+        (u.email && u.email.toLowerCase().includes(q)) ||
+        (u.display_name && u.display_name.toLowerCase().includes(q))
+    );
+    renderAdminUsers(filtered);
+}
+
+async function adminResetBuzzes(userId) {
+    try {
+        const res = await fetch(`${API_BASE}/api/admin/reset-buzzes`, {
+            method: 'POST',
+            headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+            body: JSON.stringify({ user_id: userId })
+        });
+        if (!res.ok) throw new Error('Failed');
+        const data = await res.json();
+        alert(`Buzzes reset for ${data.email}`);
+        loadAdminUsers();
+    } catch (e) {
+        alert('Error: ' + e.message);
+    }
+}
+
+async function adminTogglePro(userId, currentStatus) {
+    const newStatus = currentStatus === 'active' ? 'free' : 'active';
+    try {
+        const res = await fetch(`${API_BASE}/api/admin/set-subscription`, {
+            method: 'POST',
+            headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+            body: JSON.stringify({ user_id: userId, status: newStatus })
+        });
+        if (!res.ok) throw new Error('Failed');
+        const data = await res.json();
+        alert(`${data.email} set to ${data.status}`);
+        loadAdminUsers();
+    } catch (e) {
+        alert('Error: ' + e.message);
+    }
+}
+
+window.openAdminPanel = openAdminPanel;
+window.closeAdminPanel = closeAdminPanel;
+window.adminResetBuzzes = adminResetBuzzes;
+window.adminTogglePro = adminTogglePro;
+window.filterAdminUsers = filterAdminUsers;

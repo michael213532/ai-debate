@@ -47,6 +47,8 @@ class UserResponse(BaseModel):
     id: str
     email: str
     privacy_accepted: bool = False
+    display_name: Optional[str] = None
+    display_name_changed_at: Optional[str] = None
 
 
 @router.post("/register", response_model=TokenResponse)
@@ -131,8 +133,45 @@ async def get_me(current_user: User = Depends(get_current_user)):
     return UserResponse(
         id=current_user.id,
         email=current_user.email,
-        privacy_accepted=current_user.privacy_accepted
+        privacy_accepted=current_user.privacy_accepted,
+        display_name=current_user.display_name,
+        display_name_changed_at=current_user.display_name_changed_at
     )
+
+
+class DisplayNameRequest(BaseModel):
+    display_name: str
+
+
+@router.put("/display-name")
+async def update_display_name(
+    request: DisplayNameRequest,
+    current_user: User = Depends(get_current_user)
+):
+    """Update display name. Can only change once per week."""
+    name = request.display_name.strip()
+    if len(name) < 2 or len(name) > 20:
+        raise HTTPException(status_code=400, detail="Display name must be 2-20 characters.")
+
+    # Check weekly cooldown
+    if current_user.display_name_changed_at:
+        try:
+            last_changed = datetime.fromisoformat(str(current_user.display_name_changed_at))
+            if datetime.utcnow() - last_changed < timedelta(days=7):
+                next_change = last_changed + timedelta(days=7)
+                raise HTTPException(status_code=400, detail=f"You can change your display name again on {next_change.strftime('%b %d, %Y')}.")
+        except (ValueError, TypeError):
+            pass
+
+    async with get_db() as db:
+        now = datetime.utcnow().isoformat()
+        await db.execute(
+            "UPDATE users SET display_name = ?, display_name_changed_at = ? WHERE id = ?",
+            (name, now, current_user.id)
+        )
+        await db.commit()
+
+    return {"success": True, "display_name": name}
 
 
 @router.post("/accept-privacy")

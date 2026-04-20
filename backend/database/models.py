@@ -17,6 +17,8 @@ class User:
     debates_reset_month: Optional[str] = None
     privacy_accepted: bool = False
     privacy_accepted_at: Optional[datetime] = None
+    display_name: Optional[str] = None
+    display_name_changed_at: Optional[str] = None
     created_at: Optional[datetime] = None
 
     @classmethod
@@ -32,6 +34,8 @@ class User:
             debates_reset_month=row["debates_reset_month"] if "debates_reset_month" in row.keys() else None,
             privacy_accepted=bool(row["privacy_accepted"]) if "privacy_accepted" in row.keys() else False,
             privacy_accepted_at=row["privacy_accepted_at"] if "privacy_accepted_at" in row.keys() else None,
+            display_name=row["display_name"] if "display_name" in row.keys() else None,
+            display_name_changed_at=row["display_name_changed_at"] if "display_name_changed_at" in row.keys() else None,
             created_at=row["created_at"]
         )
 
