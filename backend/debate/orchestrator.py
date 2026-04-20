@@ -767,10 +767,10 @@ class DebateOrchestrator:
                         )
                 elif last:
                     context += (
-                        f"\n👆 The most recent message is from **{last['model_name']}**. "
-                        f"If you have a take on what they just said, react to it directly "
-                        f"(set REPLY_TO: {last['model_name']} to quote them, or reference their point in your SHORT). "
-                        f"If you don't have anything to say about it, drop your own take instead.\n\n"
+                        f"\n👆 Most recent message was from **{last['model_name']}**. "
+                        f"Default: just drop your own take on the question. "
+                        f"Only react to them if you STRONGLY disagree/agree — and if you do, use REPLY_TO: {last['model_name']} to quote them. "
+                        f"Do NOT name-drop them in your SHORT text (no 'Sunny was right' style). Just say what YOU think.\n\n"
                     )
 
                 if forbidden:
@@ -1162,9 +1162,11 @@ If they asked "Cola vs Pepsi", SIDE is "Cola" or "Pepsi". Never "coconut water" 
 - NO em-dashes, NO semicolons, NO "I think"/"In my opinion"/"honestly,"/"fair but"/"you've got a point"/"Well,"/"Actually,".
 - NO LinkedIn voice, NO ChatGPT voice.
 
-🔁 REPLY_TO: quote-reply tool. Fill with another bee's name if your message is a direct reaction to ONE of their earlier messages. Otherwise leave blank.
+🚫 DON'T NAME-DROP OTHER BEES. Avoid phrases like "Sunny was spot on" / "Jordan's right" / "agreeing with Murphy" / "BFF nailed it". If you want to acknowledge another bee, either use REPLY_TO (the quote tool) or just drop your own take. Naming them in prose sounds forced. Default: don't reference other bees at all. Just say what YOU think.
 
-@ MENTION: pass-the-mic tool. Use @BeeName in SHORT only when you want that specific bee to answer next. Rare. Default is no @.
+🔁 REPLY_TO: quote-reply tool. Fill with another bee's name ONLY if your message is a direct reaction to ONE of their earlier messages. Use sparingly. Otherwise leave blank.
+
+@ MENTION: pass-the-mic tool. Use @BeeName in SHORT only when you want that specific bee to answer next. RARE — most messages have no @. Default: no @.
 
 Stay in character as {display_name}. Pick ONE side from the user's EXACT options. Never "both" or "it depends"."""
 
