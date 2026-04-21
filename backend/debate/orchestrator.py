@@ -1032,6 +1032,33 @@ class DebateOrchestrator:
                     if reactions:
                         recent_react_emojis.append(reactions[0]["emoji"])
 
+                # Backend mention enforcement — the prompt budget is a soft nudge
+                # Grok ignores. Hard-cap here to actually land at 1-2 per debate.
+                mention_pattern = re.compile(r"@[A-Za-z][\w']*")
+
+                def _strip_mentions(text: str) -> str:
+                    if not text or "@" not in text:
+                        return text
+                    out = mention_pattern.sub("", text)
+                    out = re.sub(r"\s+", " ", out)
+                    out = re.sub(r"\s+([,.!?])", r"\1", out)
+                    return out.strip(" ,")
+
+                _mentions_so_far = sum(
+                    1 for m in self.messages
+                    if m.get("personality_id") and "@" in (m.get("content") or "")
+                )
+                _has_mention = bool(mention_pattern.search(short or "")) or bool(mention_pattern.search(long or ""))
+                if _has_mention:
+                    if _mentions_so_far >= 2:
+                        # Budget full: strip every mention.
+                        short = _strip_mentions(short)
+                        long = _strip_mentions(long)
+                    elif _rand.random() < 0.75:
+                        # Budget has room: probabilistic wipe to keep frequency at 1-2/debate.
+                        short = _strip_mentions(short)
+                        long = _strip_mentions(long)
+
                 await _commit_turn(speaker, side, short, long, reply_to, reactions)
                 speak_counts[speaker["personality_id"]] += 1
                 last_speaker_pid = speaker["personality_id"]
