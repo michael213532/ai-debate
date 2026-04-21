@@ -711,8 +711,9 @@ class DebateOrchestrator:
 
             if self.grounding_facts:
                 context += (
-                    "📚 KEY FACTS / CONSIDERATIONS FOR THIS TOPIC "
-                    "(use these for real substance — don't just quote them, draw on them through your character's lens):\n"
+                    "📚 EXPERT BRIEFING ON THIS TOPIC — real facts, tradeoffs, hidden considerations, and expert-level angles. "
+                    "USE THIS. Draw on specific points that align with your character's lens. Name the actual numbers, products, and mechanisms. "
+                    "Do not just quote the memo — pull the specific fact that fits YOUR take and run with it.\n"
                     f"{self.grounding_facts}\n\n"
                 )
 
@@ -1116,6 +1117,10 @@ class DebateOrchestrator:
     async def _generate_grounding(self) -> str:
         """Single pre-debate call to gather real facts about the topic.
 
+        Uses a stronger model (full grok-4) than the bees (grok-4-fast-reasoning)
+        since this is one call per debate and its quality front-loads every bee's
+        context. Falls back to the bees' fast model if grok-4 errors.
+
         Output is injected into every bee's context so they have actual substance
         to draw on instead of winging it purely from the persona prompt.
         """
@@ -1125,26 +1130,45 @@ class DebateOrchestrator:
         provider_name = first.get("provider")
         if provider_name not in self.api_keys:
             return ""
-        try:
+
+        system_prompt = (
+            "You are a domain expert briefing a panel of personalities about to debate this topic. "
+            "Produce the kind of short research memo an informed adult would want before giving a take: "
+            "real numbers, real mechanisms, real tradeoffs, specific named things — not generic fluff.\n\n"
+            "Structure (numbered list, 8-10 points total, no intro, no summary):\n"
+            "  1-3. KEY FACTS — concrete data, figures, features, or rules that actually matter here. Name real products, laws, studies, price points, stats.\n"
+            "  4-6. REAL TRADEOFFS — what you gain vs. what you give up on each option. Each point should name BOTH sides of a specific axis.\n"
+            "  7-8. HIDDEN CONSIDERATIONS — non-obvious factors most people miss. Second-order effects, edge cases, context-dependent things.\n"
+            "  9-10. EXPERT-LEVEL ANGLES — what someone with actual domain experience (economist, doctor, engineer, etc) would flag that a layperson wouldn't.\n\n"
+            "Each point: one tight sentence. Specific, substantive, something a debater could actually USE. "
+            "If the topic is personal/subjective (e.g. pizza vs burgers), still give real substance — nutrition, history, variety, price-per-portion, regional preferences, etc."
+        )
+        user_message = f"Topic / question: {self.topic}\n\nProduce the research memo:"
+        messages = [{"role": "user", "content": user_message}]
+
+        # Try grok-4 first (smart). Fall back to bees' fast model on any error.
+        async def _run_with(model_id: str) -> str:
             provider_class = ProviderRegistry.get(provider_name)
             provider = provider_class(self.api_keys[provider_name])
-            system_prompt = (
-                "You are a topic researcher. Given a user's question or decision, "
-                "list 5-7 concrete facts, tradeoffs, or real-world considerations that "
-                "an informed expert would reference. Be TOPIC-SPECIFIC with real details "
-                "(actual names, numbers, mechanisms, known tradeoffs). No generic fluff. "
-                "One short sentence per point. Format: numbered list, no intro, no summary."
-            )
-            user_message = f"Topic / question: {self.topic}\n\nList the key facts and considerations:"
-            messages = [{"role": "user", "content": user_message}]
-            full = ""
-            async for chunk in provider.generate_stream(first["model_id"], messages, system_prompt, None):
+            out = ""
+            async for chunk in provider.generate_stream(model_id, messages, system_prompt, None):
                 if self._stopped:
                     break
-                full += chunk
-            return full.strip()
+                out += chunk
+            return out.strip()
+
+        if provider_name == "xai":
+            try:
+                result = await _run_with("grok-4")
+                if result:
+                    return result
+            except Exception as e:
+                print(f"[grounding] grok-4 failed, falling back: {e}")
+
+        try:
+            return await _run_with(first["model_id"])
         except Exception as e:
-            print(f"[grounding] failed: {e}")
+            print(f"[grounding] fallback also failed: {e}")
             return ""
 
     async def _build_system_prompt(self, model_name: str, role: str, round_num: int, personality_id: str = None) -> str:
