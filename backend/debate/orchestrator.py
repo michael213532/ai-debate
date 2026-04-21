@@ -741,9 +741,14 @@ class DebateOrchestrator:
                     context += f"\n📣 MENTION BUDGET: {_mention_count}/3 @-mentions used. Default: no @ on your turn. Only @ if you genuinely want that bee to answer next.\n\n"
 
                 context += (
-                    "🚫 ANTI-REPETITION: Read the RECENT CHAT above. Do NOT just rephrase a point another bee already made. "
-                    "Bring a NEW angle from YOUR specific expertise/lens (different facet, concrete fact, counter-consideration, specific example). "
-                    "If you have nothing new to add, output a very short SHORT or skip the point entirely.\n\n"
+                    "💬 CONVERSATION MODE: Read the RECENT CHAT above and ENGAGE with it — don't just drop an independent take. "
+                    "Pick the move that actually fits:\n"
+                    "  • agree + extend ('exactly, and also X')\n"
+                    "  • concede + counter ('ok that tracks for X, but Y is where it breaks')\n"
+                    "  • compromise / tradeoff ('if X matters go A, if Y matters go B')\n"
+                    "  • disagree specifically (engage with their reasoning, not just 'nah')\n"
+                    "BANNED: restating someone else's point in your own slang with zero addition. "
+                    "If you've got nothing new, briefly co-sign and stay short, or skip.\n\n"
                 )
 
                 # Check how recently the user jumped in — if within last 3 messages,
@@ -787,9 +792,9 @@ class DebateOrchestrator:
                 elif last:
                     context += (
                         f"\n👆 Most recent message was from **{last['model_name']}**. "
-                        f"Default: just drop your own take on the question. "
-                        f"Only react to them if you STRONGLY disagree/agree — and if you do, use REPLY_TO: {last['model_name']} to quote them. "
-                        f"Do NOT name-drop them in your SHORT text (no 'Sunny was right' style). Just say what YOU think.\n\n"
+                        f"Respond to what they actually said — co-sign it, concede a piece and push back, find a tradeoff, or push against their specific reasoning. "
+                        f"If it's a direct quote-reply, set REPLY_TO: {last['model_name']}. "
+                        f"Don't name-drop them in prose ('Sunny was right' style) — just engage with the point.\n\n"
                     )
 
                 if forbidden:
@@ -822,7 +827,12 @@ class DebateOrchestrator:
             else:
                 context += "You're the first to speak. Drop your take on the question.\n\n"
 
-            context += "Pick ONE side from the user's options. NEVER 'both' or 'it depends'."
+            context += (
+                "Pick ONE side from the user's options as your SIDE label — commit, don't sit on the fence. "
+                "But inside SHORT/LONG you CAN acknowledge tradeoffs or concede where the other side has a point, "
+                "as long as you still land on a lean. 'If X matters, A — but I'd lean A overall' is fine. "
+                "Pure 'both are great' / 'it depends, can't say' is not."
+            )
             return context
 
         async def _get_bee_once(bee: dict, context: str):
@@ -1178,15 +1188,20 @@ If they asked "Cola vs Pepsi", SIDE is "Cola" or "Pepsi". Never "coconut water" 
 - Lowercase, contractions, fragments all fine. Talk like a smart friend texting, not an AI assistant.
 - Slang is seasoning, not substance. Don't lead with "fr"/"bro"/"ngl"/"lowkey". Most messages should have zero filler slang.
 - Emojis in moderation (roughly every 3-4 messages).
-- NO em-dashes, NO semicolons, NO "I think"/"In my opinion"/"honestly,"/"fair but"/"you've got a point"/"Well,"/"Actually,".
+- NO em-dashes, NO semicolons, NO "I think"/"In my opinion"/"honestly,"/"Well,"/"Actually,".
 - NO LinkedIn voice, NO ChatGPT voice.
 
 🎨 VARY HOW YOU REFER TO THE OPTIONS.
 Do NOT always use the possessive form ("LA's traffic" / "NYC's rent" / "iPhone's battery"). That sounds robotic when every bee does it.
 Mix it up naturally: "living in LA", "the west coast", "out there", "the city", "if you go Apple", "the other option", "over there", pronouns ("it's got", "they're known for"), or just name the thing ("traffic in LA", "rent in New York"). Real people vary their phrasing constantly.
 
-🚫 DON'T REPEAT WHAT OTHERS ALREADY SAID.
-Read the recent chat. If another bee already made the point you were going to make, do NOT just rephrase it in your own slang/personality. Bring a NEW angle from YOUR specific expertise. If you agree broadly, your take needs to add something they missed (a concrete fact, a counter-consideration, a specific example, an angle from your domain). If you've got nothing new, stay quiet — empty SHORT is better than echoing someone.
+💬 CONVERSE, DON'T JUST DECLARE.
+This is a conversation, not a stack of independent hot takes. Read the recent chat and actually respond to it. Real debates have agreement, pushback, concessions, and compromise — not just 5 bees taking different positions.
+- Agree + extend: if someone's point is right, co-sign it and push further ("yeah that's the actual answer, and also X"). You don't need to manufacture disagreement to justify your turn.
+- Concede + counter: acknowledge what's right in their take before pushing back ("ok that tracks for X, but Y is where it falls apart"). Softening before the counter sounds human. Pure "nah wrong" sounds robotic.
+- Compromise / tradeoff: if the honest answer is conditional, say so. "if you care about X go A, if Y matters more go B" is a legitimate SHORT — still commits to a lean, still engages with reality.
+- Disagree specifically: engage with their actual reasoning, don't just restate your position louder. Tell them WHY they're wrong about the specific thing.
+- The only thing banned: parroting another bee's point in your own slang without adding anything. If you have nothing new to add, briefly agree ("💯" / "exactly") and stay short, or skip the point.
 
 🚫 DON'T NAME-DROP OTHER BEES. Avoid phrases like "Sunny was spot on" / "Jordan's right" / "agreeing with Murphy" / "BFF nailed it". Naming them in prose sounds forced. Just say what YOU think.
 
