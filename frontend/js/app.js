@@ -34,7 +34,7 @@ const PERSONALITY_ICON_MAP = {
 
 function getBeeIconPath(personalityId) {
     const iconName = PERSONALITY_ICON_MAP[personalityId] || 'default bee icon';
-    return `/images/bee-icons/${iconName}.png?v=3`;
+    return `/images/bee-icons/${iconName}.png?v=2`;
 }
 
 // Built-in hive themes: gradient + accent color
@@ -980,11 +980,10 @@ if (chatInput) {
         // Auto-resize
         chatInput.style.height = 'auto';
         chatInput.style.height = Math.min(chatInput.scrollHeight, 150) + 'px';
-        // Hide quick template chips when typing — use a class (not display:none)
-        // so the marquee animation keeps running while hidden and never restarts.
+        // Hide quick template chips when typing
         const quickTemplates = document.getElementById('quick-templates');
         if (quickTemplates) {
-            quickTemplates.classList.toggle('is-hidden', !!chatInput.value.trim());
+            quickTemplates.style.display = chatInput.value.trim() ? 'none' : '';
         }
     });
 
@@ -1531,7 +1530,7 @@ const BEE_COLORS = {
     // Chaos Hive - warm reds/oranges
     'chaos-optimist': { bg: 'rgba(34, 197, 94, 0.15)', border: '#22c55e', text: '#16a34a' },      // Green
     'chaos-pessimist': { bg: 'rgba(239, 68, 68, 0.15)', border: '#ef4444', text: '#dc2626' },     // Red
-    'chaos-realist': { bg: 'rgba(20, 184, 166, 0.15)', border: '#14b8a6', text: '#14b8a6' },     // Teal
+    'chaos-realist': { bg: 'rgba(107, 114, 128, 0.15)', border: '#6b7280', text: '#4b5563' },     // Gray
     'chaos-contrarian': { bg: 'rgba(249, 115, 22, 0.15)', border: '#f97316', text: '#ea580c' },   // Orange
     'chaos-cynic': { bg: 'rgba(162, 28, 175, 0.15)', border: '#a21caf', text: '#86198f' },        // Fuchsia
 
@@ -1559,12 +1558,12 @@ const BEE_COLORS = {
     // Generations Hive - varied
     'gen-z': { bg: 'rgba(236, 72, 153, 0.15)', border: '#ec4899', text: '#db2777' },              // Pink
     'gen-millennial': { bg: 'rgba(250, 204, 21, 0.15)', border: '#facc15', text: '#eab308' },     // Amber
-    'gen-x': { bg: 'rgba(249, 115, 22, 0.15)', border: '#f97316', text: '#f97316' },             // Orange
+    'gen-x': { bg: 'rgba(107, 114, 128, 0.15)', border: '#6b7280', text: '#4b5563' },             // Gray
     'gen-boomer': { bg: 'rgba(59, 130, 246, 0.15)', border: '#3b82f6', text: '#2563eb' },         // Blue
     'gen-future': { bg: 'rgba(6, 182, 212, 0.15)', border: '#06b6d4', text: '#0891b2' },          // Cyan
 
     // Courtroom Hive - formal colors
-    'court-judge': { bg: 'rgba(148, 163, 184, 0.15)', border: '#94a3b8', text: '#cbd5e1' },      // Slate (dark-mode friendly)
+    'court-judge': { bg: 'rgba(30, 41, 59, 0.15)', border: '#1e293b', text: '#0f172a' },          // Slate
     'court-prosecutor': { bg: 'rgba(239, 68, 68, 0.15)', border: '#ef4444', text: '#dc2626' },    // Red
     'court-defense': { bg: 'rgba(59, 130, 246, 0.15)', border: '#3b82f6', text: '#2563eb' },      // Blue
     'court-witness': { bg: 'rgba(250, 204, 21, 0.15)', border: '#facc15', text: '#ca8a04' },      // Yellow
@@ -1632,7 +1631,6 @@ let currentQuestion = '';
 window.selectedHiveId = selectedHiveId;
 window.customHives = customHives;
 window.selectedSpecialBees = selectedSpecialBees;
-window.selectedPersonalities = selectedPersonalities;
 
 // Load selected hive from localStorage
 function loadSelectedHive() {
@@ -1705,101 +1703,6 @@ async function fetchHives() {
     }
 }
 
-// ============ DEBATE VIBES ============
-const FALLBACK_VIBES = [
-    { id: 'group-chat', name: 'Group Chat', emoji: '💬', description: 'Casual iMessage banter. Short quips, reactions, interruptions.' },
-    { id: 'brawl', name: 'Brawl', emoji: '🥊', description: 'Chaos. Bees interrupt and pile on.' },
-    { id: 'courtroom', name: 'Courtroom', emoji: '⚖️', description: 'Formal proceedings. Prosecution vs defense.' },
-    { id: 'boardroom', name: 'Boardroom', emoji: '💼', description: 'Executive meeting. Strategic plays.' },
-    { id: 'panel-show', name: 'Panel Show', emoji: '🎤', description: 'Game-show panel. Rapid takes.' }
-];
-let allVibes = [...FALLBACK_VIBES];
-let selectedVibeId = loadSelectedVibe();
-window.allVibes = allVibes;
-window.selectedVibeId = selectedVibeId;
-
-function loadSelectedVibe() {
-    try { return localStorage.getItem('selectedVibe') || 'group-chat'; }
-    catch (e) { return 'group-chat'; }
-}
-function saveSelectedVibe() {
-    try { localStorage.setItem('selectedVibe', selectedVibeId); } catch (e) {}
-}
-
-async function fetchVibes() {
-    try {
-        const response = await fetch(`${API_BASE}/api/vibes`);
-        if (response.ok) {
-            const data = await response.json();
-            if (Array.isArray(data) && data.length > 0) {
-                allVibes = data;
-                window.allVibes = allVibes;
-            }
-        }
-    } catch (error) {
-        console.error('Error fetching vibes:', error);
-    }
-    updateVibeChip();
-}
-
-function updateVibeChip() {
-    const emojiEl = document.getElementById('vibe-chip-emoji');
-    const nameEl = document.getElementById('vibe-chip-name');
-    const vibe = allVibes.find(v => v.id === selectedVibeId) || allVibes[0];
-    if (emojiEl && vibe) emojiEl.textContent = vibe.emoji;
-    if (nameEl && vibe) nameEl.textContent = vibe.name;
-}
-
-function openVibeModal() {
-    const modal = document.getElementById('vibe-modal');
-    if (!modal) return;
-    renderVibeOptions('vibe-grid', (vibeId) => {
-        selectVibe(vibeId);
-        closeVibeModal();
-    });
-    modal.classList.add('active');
-}
-function closeVibeModal() {
-    const modal = document.getElementById('vibe-modal');
-    if (modal) modal.classList.remove('active');
-}
-
-function renderVibeOptions(gridId, onSelect, currentId) {
-    const grid = document.getElementById(gridId);
-    if (!grid) return;
-    const activeId = currentId || selectedVibeId;
-    grid.innerHTML = allVibes.map(v => `
-        <button type="button" class="vibe-option ${v.id === activeId ? 'selected' : ''}" data-vibe-id="${escapeHtml(v.id)}">
-            <span class="vibe-option-emoji">${v.emoji || '💬'}</span>
-            <div class="vibe-option-text">
-                <span class="vibe-option-name">${escapeHtml(v.name || '')}</span>
-                <span class="vibe-option-desc">${escapeHtml(v.description || '')}</span>
-            </div>
-        </button>
-    `).join('');
-    grid.querySelectorAll('.vibe-option').forEach(btn => {
-        btn.addEventListener('click', () => {
-            const id = btn.dataset.vibeId;
-            grid.querySelectorAll('.vibe-option').forEach(b => b.classList.remove('selected'));
-            btn.classList.add('selected');
-            if (typeof onSelect === 'function') onSelect(id);
-        });
-    });
-}
-
-function selectVibe(vibeId) {
-    selectedVibeId = vibeId;
-    window.selectedVibeId = vibeId;
-    saveSelectedVibe();
-    updateVibeChip();
-}
-
-window.openVibeModal = openVibeModal;
-window.closeVibeModal = closeVibeModal;
-window.selectVibe = selectVibe;
-window.renderVibeOptions = renderVibeOptions;
-window.updateVibeChip = updateVibeChip;
-
 // Fallback special bees data in case API fails
 const FALLBACK_SPECIAL_BEES = [
     { id: "special-devils-advocate", name: "Devil's Advocate", human_name: "Lucifer", emoji: "😈", description: "Challenges consensus, prevents echo chambers", is_special: true },
@@ -1830,7 +1733,6 @@ async function fetchPersonalities() {
     await fetchHives();
     await fetchSpecialBees();
     await fetchCustomHives();
-    await fetchVibes();
     updateAllPersonalities();
 }
 
@@ -1904,36 +1806,27 @@ function confirmHiveSelection() {
 }
 
 function selectHive(hiveId) {
-    // If clicking Select on the already-current hive, DO NOT reset the
-    // user's in-modal toggles — just close the modal. Previously this was
-    // overwriting selectedPersonalities with the full hive bee list,
-    // undoing any bees the user had just toggled off.
-    const wasAlreadySelected = hiveId === selectedHiveId;
-
     selectedHiveId = hiveId;
     window.selectedHiveId = hiveId;
     saveSelectedHive();
     updateAllPersonalities();
 
-    if (!wasAlreadySelected) {
-        // Switching to a different hive — seed selectedPersonalities from
-        // the user's stored per-hive toggles (if any), else default to all.
-        const storedSelections = window._hiveBeeSelections && window._hiveBeeSelections[hiveId];
-        if (storedSelections && storedSelections.length > 0) {
-            selectedPersonalities = [...storedSelections]; window.selectedPersonalities = selectedPersonalities;
+    // Use stored per-hive selections if available, otherwise all bees
+    const storedSelections = window._hiveBeeSelections && window._hiveBeeSelections[hiveId];
+    if (storedSelections && storedSelections.length > 0) {
+        selectedPersonalities = [...storedSelections];
+    } else {
+        const customHive = customHives.find(h => h.id === hiveId);
+        if (customHive) {
+            selectedPersonalities = customHive.bees.map(p => p.id);
         } else {
-            const customHive = customHives.find(h => h.id === hiveId);
-            if (customHive) {
-                selectedPersonalities = customHive.bees.map(p => p.id); window.selectedPersonalities = selectedPersonalities;
-            } else {
-                const hive = allHives.find(h => h.id === hiveId);
-                if (hive) {
-                    selectedPersonalities = hive.personalities.map(p => p.id); window.selectedPersonalities = selectedPersonalities;
-                }
+            const hive = allHives.find(h => h.id === hiveId);
+            if (hive) {
+                selectedPersonalities = hive.personalities.map(p => p.id);
             }
         }
     }
-    // Always make sure special bees are represented regardless of path
+    // Add any selected special bees
     selectedSpecialBees.forEach(specialId => {
         if (!selectedPersonalities.includes(specialId)) {
             selectedPersonalities.push(specialId);
@@ -1965,11 +1858,11 @@ function selectHiveInModal(hiveId) {
     } else {
         const customHive = customHives.find(h => h.id === hiveId);
         if (customHive) {
-            selectedPersonalities = customHive.bees.map(p => p.id); window.selectedPersonalities = selectedPersonalities;
+            selectedPersonalities = customHive.bees.map(p => p.id);
         } else {
             const hive = allHives.find(h => h.id === hiveId);
             if (hive) {
-                selectedPersonalities = hive.personalities.map(p => p.id); window.selectedPersonalities = selectedPersonalities;
+                selectedPersonalities = hive.personalities.map(p => p.id);
             }
         }
     }
@@ -2162,12 +2055,7 @@ function closeHivesModal() {
     if (modal) {
         modal.classList.remove('active');
     }
-    // If we were picking a hive from inside the Remix flow, refresh remix UI.
-    if (window._remixPickingHive && typeof window.updateRemixHiveButton === 'function') {
-        window._remixPickingHive = false;
-        window.updateRemixHiveButton();
-    }
-    // If retry flag was set (from legacy "Try Another Hive" button), auto-send
+    // If retry flag was set (from "Try Another Hive" button), auto-send
     if (window._retryAfterHiveSelect && typeof retryWithNewHive === 'function') {
         setTimeout(() => retryWithNewHive(), 100);
     }
@@ -2188,21 +2076,18 @@ function expandHiveCard(hiveId) {
 
 // Render honeycomb hexagon grid (7 slots: rows of 2-3-2)
 function renderHoneycombHex(hiveBees, specialBees, isCustom) {
-    // Only show bees the user has actually selected — deselected bees are
-    // dropped from the panel entirely, empty slots fill the rest.
+    // Build list of all bees with active status (only include active/selected ones)
     const allBeeSlots = [];
     hiveBees.forEach(p => {
-        if (selectedPersonalities.includes(p.id)) {
-            allBeeSlots.push({ bee: p, active: true, isCustom });
-        }
+        const active = selectedPersonalities.includes(p.id);
+        allBeeSlots.push({ bee: p, active, isCustom });
     });
     specialBees.forEach(p => {
-        if (selectedPersonalities.includes(p.id)) {
-            allBeeSlots.push({ bee: p, active: true, isCustom: false });
-        }
+        const active = selectedPersonalities.includes(p.id);
+        allBeeSlots.push({ bee: p, active, isCustom: false });
     });
 
-    // Pad to 7 slots with empty hexes
+    // Pad to 7 slots
     while (allBeeSlots.length < 7) {
         allBeeSlots.push({ bee: null, active: false, isCustom: false });
     }
@@ -2426,13 +2311,7 @@ function renderHivesModal() {
                 </div>`;
             } else {
                 // Collapsed: horizontal row - [info] [previews] [button]
-                // For the currently-selected hive, only preview bees the user
-                // actually has selected so toggling in the modal immediately
-                // updates the card preview. Other hives show all their bees.
-                const previewBees = isSelected
-                    ? bees.filter(p => selectedPersonalities.includes(p.id))
-                    : bees;
-                const previewHtml = renderBeePreviewIcons(previewBees, isCustom || isFav);
+                const previewHtml = renderBeePreviewIcons(bees, isCustom || isFav);
 
                 return `
                 <div class="hive-card ${isSelected ? 'selected' : ''} ${themed}" ${styleAttr} onclick="expandHiveCard('${hive.id}')">
@@ -2647,7 +2526,7 @@ function renderPersonalitySelector(suggestedIds = []) {
 
     // Pre-select suggested personalities
     if (suggestedIds.length > 0 && selectedPersonalities.length === 0) {
-        selectedPersonalities = suggestedIds.slice(0, 3); window.selectedPersonalities = selectedPersonalities;
+        selectedPersonalities = suggestedIds.slice(0, 3);
     }
 
     allPersonalities.forEach(personality => {
@@ -2737,7 +2616,7 @@ async function handleQuestionSubmit(question) {
     // If no personalities selected yet, auto-select defaults
     if (selectedPersonalities.length < 2) {
         const suggested = await fetchPersonalitySuggestions(currentQuestion);
-        selectedPersonalities = suggested.slice(0, 3); window.selectedPersonalities = selectedPersonalities;
+        selectedPersonalities = suggested.slice(0, 3);
         saveSelectedBees();
         renderVoicesBar();
     }
@@ -2845,8 +2724,7 @@ async function startDebateWithPersonalities() {
                 models: modelsConfig,
                 rounds: 1,
                 summarizer_index: summarizerIndex,
-                detail_mode: detailMode,
-                vibe: selectedVibeId || 'group-chat'
+                detail_mode: detailMode
             }
         };
 
@@ -2919,11 +2797,9 @@ function attachQuestionFlowListeners() {
             if (chatInput) {
                 chatInput.value = question;
                 chatInput.focus();
-                // Blur the chip so :focus/:hover/:active don't stick on mobile
-                btn.blur();
-                // Hide chips immediately (class keeps marquee animation running)
+                // Hide chips immediately
                 const quickTemplates = document.getElementById('quick-templates');
-                if (quickTemplates) quickTemplates.classList.add('is-hidden');
+                if (quickTemplates) quickTemplates.style.display = 'none';
                 // Trigger input event to enable send button
                 chatInput.dispatchEvent(new Event('input'));
             }
@@ -2964,19 +2840,16 @@ function setupQuickTemplatesMarquee() {
                 if (chatInput) {
                     chatInput.value = question;
                     chatInput.focus();
-                    clone.blur();
-                    strip.classList.add('is-hidden');
+                    strip.style.display = 'none';
                     chatInput.dispatchEvent(new Event('input'));
                 }
             });
             track.appendChild(clone);
         });
         // Measure the EXACT distance from the first original to the first clone
-        // (this includes the inter-chip gap so the loop is seamless).
-        // Use getBoundingClientRect for sub-pixel precision — rounding here causes a
-        // visible 1px jump at the wrap point every loop.
+        // (this includes the inter-chip gap so the loop is seamless)
         const firstClone = track.children[originals.length];
-        const distance = firstClone.getBoundingClientRect().left - firstOriginal.getBoundingClientRect().left;
+        const distance = firstClone.offsetLeft - firstOriginal.offsetLeft;
         strip.style.setProperty('--marquee-distance', distance + 'px');
         track.dataset.marqueeReady = '1';
         // Force reflow then restart the animation cleanly
@@ -3235,7 +3108,7 @@ async function initVoicesBar() {
 
         const hasInvalidIds = selectedPersonalities.some(id => !validIds.has(id));
         if (hasInvalidIds || selectedPersonalities.length === 0) {
-            selectedPersonalities = customHive.bees.map(p => p.id); window.selectedPersonalities = selectedPersonalities;
+            selectedPersonalities = customHive.bees.map(p => p.id);
             selectedSpecialBees = [];
             saveSelectedBees();
             saveSelectedSpecialBees();
@@ -3247,7 +3120,7 @@ async function initVoicesBar() {
 
         const hasInvalidIds = selectedPersonalities.some(id => !validIds.has(id));
         if (hasInvalidIds || selectedPersonalities.length === 0) {
-            selectedPersonalities = builtInHive.personalities.map(p => p.id); window.selectedPersonalities = selectedPersonalities;
+            selectedPersonalities = builtInHive.personalities.map(p => p.id);
             selectedSpecialBees = [];
             saveSelectedBees();
             saveSelectedSpecialBees();
@@ -3258,7 +3131,7 @@ async function initVoicesBar() {
         saveSelectedHive();
         const defaultHive = allHives.find(h => h.id === 'chaos');
         if (defaultHive) {
-            selectedPersonalities = defaultHive.personalities.map(p => p.id); window.selectedPersonalities = selectedPersonalities;
+            selectedPersonalities = defaultHive.personalities.map(p => p.id);
             selectedSpecialBees = [];
             saveSelectedBees();
             saveSelectedSpecialBees();
@@ -4359,7 +4232,7 @@ function endTryIt(returnToExplore) {
     // Restore state
     if (window._savedHiveId) selectHive(window._savedHiveId);
     if (window._savedPersonalities) {
-        selectedPersonalities = window._savedPersonalities; window.selectedPersonalities = selectedPersonalities;
+        selectedPersonalities = window._savedPersonalities;
         saveSelectedBees();
     }
 
@@ -4497,7 +4370,7 @@ function renderDecisions(decisions) {
                         <button class="decision-side-btn" onclick="tryDecision('${d.id}')">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></svg>
                         </button>
-                        <span class="decision-side-label">Remix</span>
+                        <span class="decision-side-label">Try</span>
                     </div>
                 </div>
             </div>
@@ -4551,15 +4424,19 @@ async function toggleDecisionLike(decisionId, btn) {
 }
 
 function tryDecision(decisionId) {
-    // Repurposed as Remix: open the remix modal pre-loaded with this
-    // decision's topic so the user can run the same question in a new
-    // hive+vibe combo.
     const d = decisionsData.find(x => x.id === decisionId);
     if (!d) return;
+
     closeDecisionsFeed();
     switchMainView('debates');
-    window.lastSentMessage = d.topic;
-    if (typeof openRemixModal === 'function') openRemixModal();
+
+    // Put the question in the chat input and let user send it
+    const chatInput = document.getElementById('chat-input');
+    if (chatInput) {
+        chatInput.value = d.topic;
+        chatInput.focus();
+        chatInput.dispatchEvent(new Event('input'));
+    }
 }
 
 function shareDecision(decisionId) {
@@ -4862,7 +4739,7 @@ function renderBeecisions(decisions) {
                     <button class="decision-side-btn" onclick="tryBeecision('${d.id}')">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></svg>
                     </button>
-                    <span class="decision-side-label">Remix</span>
+                    <span class="decision-side-label">Try</span>
                 </div>
             </div>
         </div>`;
@@ -4923,14 +4800,18 @@ async function toggleBeecisionLike(decisionId, btn) {
 }
 
 function tryBeecision(decisionId) {
-    // Repurposed as Remix: open the remix modal pre-loaded with this
-    // decision's topic so the user can run it in a new hive+vibe combo.
+    // Switch to debates view and put the question in chat
     switchMainView('debates');
+    // Need to find the decision - refetch if needed
     fetch(`${API_BASE}/api/decisions/${decisionId}`, {
         headers: localStorage.getItem('token') ? { 'Authorization': `Bearer ${localStorage.getItem('token')}` } : {}
     }).then(r => r.json()).then(d => {
-        window.lastSentMessage = d.topic;
-        if (typeof openRemixModal === 'function') openRemixModal();
+        const chatInput = document.getElementById('chat-input');
+        if (chatInput) {
+            chatInput.value = d.topic;
+            chatInput.focus();
+            chatInput.dispatchEvent(new Event('input'));
+        }
     }).catch(() => {});
 }
 

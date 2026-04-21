@@ -27,7 +27,6 @@ except ImportError as e:
     async def get_user_memory_context(user_id): return ""
     async def delete_user_fact(user_id, fact_id): return False
     async def clear_user_memory(user_id): return 0
-from .vibes import list_vibes, extract_short
 from .schemas import (
     CreateDebateRequest,
     DebateResponse,
@@ -113,13 +112,6 @@ async def get_user_api_keys(user_id: str) -> dict[str, str]:
     if XAI_API_KEY:
         keys["xai"] = XAI_API_KEY
     return keys
-
-
-# Vibes endpoint — debate format presets (Group Chat, Brawl, Courtroom, etc.)
-@router.get("/api/vibes")
-async def api_list_vibes():
-    """List all available debate vibes (public endpoint)."""
-    return list_vibes()
 
 
 # Hives endpoints
@@ -372,14 +364,11 @@ async def continue_debate(
         existing_messages = await cursor.fetchall()
 
         # Build context from previous messages
-        # Messages may be stored as JSON (new vibe format) or plain text (legacy).
-        # Use extract_short() so only the punchy 2-sentence take goes into context.
         original_topic = debate_row["topic"]
         previous_context = f"Previous conversation:\nUser: {original_topic}\n"
         for msg in existing_messages:
             if msg["round"] > 0:  # Skip summary (round 0)
-                content = extract_short(msg["content"])
-                previous_context += f"{msg['model_name']}: {content}\n"
+                previous_context += f"{msg['model_name']}: {msg['content']}\n"
 
         # Get max round number to continue from
         cursor = await db.execute(
