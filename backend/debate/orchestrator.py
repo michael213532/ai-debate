@@ -734,12 +734,10 @@ class DebateOrchestrator:
                 _mention_count = sum(
                     1 for m in _bee_msgs if "@" in (m.get("content") or "")
                 )
-                if _mention_count == 0 and len(_bee_msgs) >= 3:
-                    context += f"\n📣 MENTION BUDGET: zero @-mentions so far. Target is 2-3 total for the whole chat. You CAN drop ONE @BeeName if you genuinely want another bee to weigh in.\n\n"
-                elif _mention_count >= 3:
-                    context += f"\n📣 MENTION BUDGET: {_mention_count} @-mentions already this chat. DO NOT use another @. Just drop your take.\n\n"
-                elif _mention_count >= 1:
-                    context += f"\n📣 MENTION BUDGET: {_mention_count}/3 @-mentions used. Default: no @ on your turn. Only @ if you genuinely want that bee to answer next.\n\n"
+                if _mention_count == 0 and len(_bee_msgs) >= 2:
+                    context += f"\n📣 No @-mentions yet this chat — if you want to pull another bee into your take, drop an @BeeName on this turn. Otherwise just go.\n\n"
+                elif _mention_count < 3:
+                    context += f"\n📣 {_mention_count}/3 @-mentions used so far. Feel free to @BeeName if it fits, or skip.\n\n"
 
                 context += (
                     "💬 CONVERSATION MODE: Read the RECENT CHAT above and ENGAGE with it — don't just drop an independent take. "
@@ -1051,16 +1049,10 @@ class DebateOrchestrator:
                 _has_mention = bool(mention_pattern.search(short or "")) or bool(mention_pattern.search(long or ""))
                 if _has_mention:
                     if _mentions_so_far >= 3:
-                        # Budget full (cap at 3): strip every mention.
+                        # Hard cap at 3 per debate. Let everything through before that.
                         short = _strip_mentions(short)
                         long = _strip_mentions(long)
                         print(f"[mentions] HARD CAP hit ({_mentions_so_far} used) — stripped from {speaker['display_name']}")
-                    elif _rand.random() < 0.30:
-                        # Budget has room: light probabilistic wipe — just spaces them out
-                        # so they don't all cluster at the start.
-                        short = _strip_mentions(short)
-                        long = _strip_mentions(long)
-                        print(f"[mentions] probabilistic strip ({_mentions_so_far} used) — {speaker['display_name']}")
                     else:
                         print(f"[mentions] LET THROUGH ({_mentions_so_far + 1} total after this) — {speaker['display_name']}")
 
@@ -1276,7 +1268,7 @@ This is a conversation, not a stack of independent hot takes. Read the recent ch
 
 🔁 REPLY_TO: quote-reply field. Fill with another bee's name ONLY if your message is a direct reaction to ONE of their earlier messages. Use sparingly. Otherwise leave blank.
 
-@ MENTION: Use @BeeName inside SHORT when you genuinely want that bee to weigh in next. Target: 2-3 @-mentions TOTAL across the whole debate. Not per message. Default on any given turn is NO @. See the mention-counter below for current state.
+@ MENTION: Across a debate you should @BeeName roughly 2-3 times total — use it naturally when you want a specific other bee to react to your take, or when you're directly responding to something they said. Don't use it every turn; use it when it actually fits. Just drop the @Name inline in your SHORT (e.g. "pizza wins easy @Sunny"). The backend caps this automatically so don't worry about the count.
 
 🚫 DO NOT META-NARRATE THE CONVERSATION.
 Never use words like "handoff", "hand off", "hand it to", "passing it to", "over to you", "your turn", "pass the mic", "taking the mic", "floor is yours", "thoughts?", "what do you think?", "curious what X thinks". That's AI meta-commentary about the chat, not an actual take.
