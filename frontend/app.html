@@ -6533,18 +6533,18 @@
         .bee-join-toast {
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 14px;
             background: var(--surface-light, #2b2f36);
             color: var(--text-primary, #fff);
-            padding: 8px 14px 8px 10px;
-            border-radius: 10px;
-            border-left: 3px solid var(--bee-accent, #fde047);
-            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
+            padding: 14px 22px 14px 16px;
+            border-radius: 14px;
+            border-left: 4px solid var(--bee-accent, #fde047);
+            box-shadow: 0 10px 28px rgba(0, 0, 0, 0.4);
             font-weight: 500;
-            font-size: 0.9rem;
+            font-size: 1.05rem;
             animation: beeJoinToastIn 0.35s cubic-bezier(0.2, 1, 0.3, 1),
                        beeJoinToastOut 0.3s 2.7s cubic-bezier(0.4, 0, 1, 1) forwards;
-            max-width: 320px;
+            max-width: 420px;
         }
         @keyframes beeJoinToastIn {
             from { transform: translateX(110%); opacity: 0; }
@@ -6555,12 +6555,12 @@
             to { transform: translateX(110%); opacity: 0; }
         }
         .bee-join-toast-avatar {
-            width: 28px;
-            height: 28px;
+            width: 44px;
+            height: 44px;
             border-radius: 50%;
             flex-shrink: 0;
             background: #fff5d9;
-            padding: 1px;
+            padding: 2px;
         }
         [data-theme="dark"] .bee-join-toast-avatar {
             background: transparent;
@@ -6572,13 +6572,13 @@
             min-width: 0;
         }
         .bee-join-toast-everyone {
-            font-size: 0.72rem;
+            font-size: 0.82rem;
             color: var(--bee-accent, #fde047);
             font-weight: 700;
             letter-spacing: 0.02em;
         }
         .bee-join-toast-name {
-            font-size: 0.92rem;
+            font-size: 1.1rem;
             font-weight: 700;
             color: var(--text-primary, #fff);
             white-space: nowrap;
@@ -6617,9 +6617,9 @@
         @media (max-width: 500px) {
             .vibe-modal { padding: 0; align-items: flex-end; }
             .vibe-modal-content { max-width: 100%; max-height: 92vh; border-radius: 20px 20px 0 0; }
-            .bee-join-toast { font-size: 0.85rem; padding: 7px 12px 7px 9px; }
-            .bee-join-toast-avatar { width: 24px; height: 24px; }
-            .bee-join-toast-name { font-size: 0.88rem; }
+            .bee-join-toast { font-size: 0.98rem; padding: 11px 16px 11px 12px; gap: 11px; max-width: 340px; }
+            .bee-join-toast-avatar { width: 36px; height: 36px; }
+            .bee-join-toast-name { font-size: 1rem; }
             .chat-messages[data-vibe="group-chat"] .message.ai-individual { max-width: 94%; }
         }
     </style>
