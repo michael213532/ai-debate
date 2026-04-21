@@ -1133,40 +1133,53 @@ class DebateOrchestrator:
 
         system_prompt = (
             "You are a domain expert briefing a panel of personalities about to debate this topic. "
-            "Produce the kind of short research memo an informed adult would want before giving a take: "
+            "You have LIVE WEB SEARCH enabled — USE IT to fact-check any specific claim before writing. "
+            "Never state a number, statistic, quote, version, or event you haven't verified against a search result. "
+            "If you can't verify a specific figure, frame it qualitatively ('generally considered faster', 'widely adopted') instead of inventing a number.\n\n"
+            "Produce a short research memo an informed adult would want before taking a side: "
             "real numbers, real mechanisms, real tradeoffs, specific named things — not generic fluff.\n\n"
             "Structure (numbered list, 8-10 points total, no intro, no summary):\n"
-            "  1-3. KEY FACTS — concrete data, figures, features, or rules that actually matter here. Name real products, laws, studies, price points, stats.\n"
+            "  1-3. KEY FACTS — concrete data, figures, features, or rules that actually matter here. Only state specifics you found in search; otherwise go qualitative.\n"
             "  4-6. REAL TRADEOFFS — what you gain vs. what you give up on each option. Each point should name BOTH sides of a specific axis.\n"
             "  7-8. HIDDEN CONSIDERATIONS — non-obvious factors most people miss. Second-order effects, edge cases, context-dependent things.\n"
             "  9-10. EXPERT-LEVEL ANGLES — what someone with actual domain experience (economist, doctor, engineer, etc) would flag that a layperson wouldn't.\n\n"
             "Each point: one tight sentence. Specific, substantive, something a debater could actually USE. "
-            "If the topic is personal/subjective (e.g. pizza vs burgers), still give real substance — nutrition, history, variety, price-per-portion, regional preferences, etc."
+            "If the topic is personal/subjective (e.g. pizza vs burgers), still give real substance — nutrition, history, variety, price-per-portion, regional preferences, etc. Do NOT include citations or URLs in the memo itself; downstream consumers only need the facts."
         )
         user_message = f"Topic / question: {self.topic}\n\nProduce the research memo:"
         messages = [{"role": "user", "content": user_message}]
 
-        # Try grok-4 first (smart). Fall back to bees' fast model on any error.
-        async def _run_with(model_id: str) -> str:
+        async def _run_with(model_id: str, use_search: bool) -> str:
             provider_class = ProviderRegistry.get(provider_name)
             provider = provider_class(self.api_keys[provider_name])
             out = ""
-            async for chunk in provider.generate_stream(model_id, messages, system_prompt, None):
+            if use_search and hasattr(provider, "generate_stream_with_search"):
+                gen = provider.generate_stream_with_search(model_id, messages, system_prompt)
+            else:
+                gen = provider.generate_stream(model_id, messages, system_prompt, None)
+            async for chunk in gen:
                 if self._stopped:
                     break
                 out += chunk
             return out.strip()
 
         if provider_name == "xai":
+            # Try: grok-4 + Live Search (best). Fall back: grok-4 no search. Fall back: bee model.
             try:
-                result = await _run_with("grok-4")
+                result = await _run_with("grok-4", use_search=True)
                 if result:
                     return result
             except Exception as e:
-                print(f"[grounding] grok-4 failed, falling back: {e}")
+                print(f"[grounding] grok-4+search failed, trying grok-4 alone: {e}")
+            try:
+                result = await _run_with("grok-4", use_search=False)
+                if result:
+                    return result
+            except Exception as e:
+                print(f"[grounding] grok-4 failed, falling back to bee model: {e}")
 
         try:
-            return await _run_with(first["model_id"])
+            return await _run_with(first["model_id"], use_search=False)
         except Exception as e:
             print(f"[grounding] fallback also failed: {e}")
             return ""
