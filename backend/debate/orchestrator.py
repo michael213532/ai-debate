@@ -1054,10 +1054,14 @@ class DebateOrchestrator:
                         # Budget full: strip every mention.
                         short = _strip_mentions(short)
                         long = _strip_mentions(long)
-                    elif _rand.random() < 0.75:
-                        # Budget has room: probabilistic wipe to keep frequency at 1-2/debate.
+                        print(f"[mentions] HARD CAP hit ({_mentions_so_far} used) — stripped from {speaker['display_name']}")
+                    elif _rand.random() < 0.90:
+                        # Budget has room: aggressive probabilistic wipe so the per-debate avg lands near 1.
                         short = _strip_mentions(short)
                         long = _strip_mentions(long)
+                        print(f"[mentions] probabilistic strip ({_mentions_so_far} used) — {speaker['display_name']}")
+                    else:
+                        print(f"[mentions] LET THROUGH ({_mentions_so_far + 1} total after this) — {speaker['display_name']}")
 
                 await _commit_turn(speaker, side, short, long, reply_to, reactions)
                 speak_counts[speaker["personality_id"]] += 1
