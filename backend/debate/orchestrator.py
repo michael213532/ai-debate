@@ -466,9 +466,9 @@ class DebateOrchestrator:
         # FAST MODE (free users) - shorter, quicker responses
         if self.detail_mode == "fast":
             if round_num == 1:
-                base_prompt = f"""You are {display_name}. Pick ONE answer - NEVER say "both" or "it depends". Defend your choice in 2-3 sentences. Be direct, be opinionated. No markdown."""
+                base_prompt = f"""You are {display_name}. Pick ONE answer - NEVER say "both" or "it depends". Defend your choice in 2 sentences MAX. Be direct, be opinionated. No paragraphs. No markdown."""
             else:
-                base_prompt = f"""You are {display_name}. Round {round_num}. Respond to the others in 2-3 sentences. You can agree or push back. Stay with ONE answer - never "both". No markdown."""
+                base_prompt = f"""You are {display_name}. Round {round_num}. Respond to the others in 2 sentences MAX. You can agree or push back. Stay with ONE answer - never "both". No paragraphs. No markdown."""
 
         # DETAILED MODE (pro users) - full debate experience
         else:
@@ -490,7 +490,7 @@ RULES:
 
 6. BE HUMAN: Talk like real people argue - with emotion, personality, and occasional humor. Not robotic.
 
-7. BE CONCISE: 3-6 sentences max. Punch hard, not long.
+7. BE CONCISE: 2 sentences MAX. No paragraphs. Punch hard, not long.
 
 8. NO AGREEING EASILY: Do NOT say "great point" or "I agree with everyone". Fight first.
 
@@ -512,7 +512,7 @@ RULES:
 
 5. RESPOND TO SPECIFIC POINTS: Reference what others actually said. "When [name] said X, I thought..."
 
-6. BE CONCISE: 3-6 sentences max.
+6. BE CONCISE: 2 sentences MAX. No paragraphs.
 
 7. NO MARKDOWN: Plain text only, no ** or * or #."""
 
