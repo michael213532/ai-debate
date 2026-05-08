@@ -128,8 +128,8 @@ const beeQueue = {
     _typewrite(modelName, fullText) {
         return new Promise(resolve => {
             let i = 0;
-            const CHARS = 2;
-            const MS = 22;
+            const CHARS = 4;
+            const MS = 12;
             this._timer = setInterval(() => {
                 if (this.stopped || i >= fullText.length) {
                     clearInterval(this._timer);
