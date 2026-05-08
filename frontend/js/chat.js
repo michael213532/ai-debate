@@ -128,8 +128,8 @@ const beeQueue = {
     _typewrite(modelName, fullText) {
         return new Promise(resolve => {
             let i = 0;
-            const CHARS = 4;
-            const MS = 12;
+            const CHARS = 2;
+            const MS = 22;
             this._timer = setInterval(() => {
                 if (this.stopped || i >= fullText.length) {
                     clearInterval(this._timer);
@@ -1069,10 +1069,7 @@ function addAiDiscussionMessage(modelName, provider, content, personalityId, rol
             <span class="ai-provider-tag">${escapeHtml(provider)}</span>
         </div>
         <div class="message-content clamped"></div>
-        <button class="reply-to-bee-btn" data-bee-name="${escapeHtml(modelName)}" data-personality="${escapeHtml(personalityId || '')}">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 17 4 12 9 7"/><path d="M20 18v-2a4 4 0 0 0-4-4H4"/></svg>
-            Reply
-        </button>
+        <button class="reply-to-bee-btn" data-bee-name="${escapeHtml(modelName)}" data-personality="${escapeHtml(personalityId || '')}">Reply</button>
     `;
     container.appendChild(msg);
     // Attach reply click handler via event listener (safer than inline onclick)
@@ -2137,10 +2134,7 @@ function addHistoryAiMessage(modelName, provider, content) {
             <span class="ai-provider-tag">${escapeHtml(provider)}</span>
         </div>
         <div class="message-content">${escapeHtml(cleanContent)}</div>
-        <button class="reply-to-bee-btn" data-bee-name="${escapeHtml(modelName)}" data-personality="${escapeHtml(personalityId || '')}">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 17 4 12 9 7"/><path d="M20 18v-2a4 4 0 0 0-4-4H4"/></svg>
-            Reply
-        </button>
+        <button class="reply-to-bee-btn" data-bee-name="${escapeHtml(modelName)}" data-personality="${escapeHtml(personalityId || '')}">Reply</button>
     `;
     container.appendChild(msg);
 
@@ -2163,6 +2157,9 @@ function clearTikTokVerdictOverlay() {
     container.querySelectorAll('.ttv-hidden-by-verdict').forEach(el => {
         el.classList.remove('ttv-hidden-by-verdict');
     });
+    teardownVerdictScrollHandler();
+    const inputArea = document.getElementById('chat-input-area');
+    if (inputArea) inputArea.classList.remove('verdict-hidden');
 }
 
 const TTV_BEE_NAME_TO_ID = {
@@ -2307,12 +2304,17 @@ function renderHiveVerdict(verdict, fromHistory = false) {
 
     if (!fromHistory) {
         container.scrollTop = 0; // panel sits at the top of the chat area
+        // Keep the textbar hidden as long as the panel is up; clearing the
+        // overlay (next sendMessage / Try Another Hive) restores it. We
+        // intentionally skip setupVerdictScrollHandler so scroll-to-bottom
+        // doesn't reveal the textbar over the final card.
+        const inputArea = document.getElementById('chat-input-area');
+        if (inputArea) inputArea.classList.add('verdict-hidden');
         const pitches = [440, 587, 740];
         picked.forEach((_, i) => {
             setTimeout(() => playTtvBuzz(pitches[i % pitches.length]), i * 1500 + 50);
         });
         setTimeout(() => playTtvBuzz(880), picked.length * 1500 + 50);
-        setupVerdictScrollHandler();
     }
 }
 

@@ -2198,11 +2198,10 @@
             pointer-events: none;
         }
 
-        /* Reply button on each bee message */
+        /* Reply button on each bee message — identical pill to .show-more-btn */
         .reply-to-bee-btn {
             display: none;
             align-items: center;
-            gap: 6px;
             background: none;
             border: 1px solid var(--border-color);
             touch-action: manipulation;
@@ -2219,10 +2218,6 @@
             background: var(--primary-color);
             color: #ffffff;
             border-color: var(--primary-color);
-        }
-        .reply-to-bee-btn svg {
-            width: 16px;
-            height: 16px;
         }
         .message.ai-individual:not(.streaming) .reply-to-bee-btn {
             display: inline-flex;
@@ -6661,7 +6656,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <script src="/js/app.js?v=53"></script>
     <script src="/js/bee-designer.js?v=3"></script>
-    <script src="/js/chat.js?v=52"></script>
+    <script src="/js/chat.js?v=53"></script>
     <script>
         // Models bar collapse/expand via header dropdown
         const setupSection = document.getElementById('setup-section');
