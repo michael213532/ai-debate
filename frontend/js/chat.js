@@ -2149,17 +2149,22 @@ function addHistoryAiMessage(modelName, provider, content) {
 
 // ============ HIVE VERDICT RENDERING ============
 
-// Remove any existing TikTok-verdict overlay and re-show the messages it hid.
+// Remove the TikTok-verdict overlay. Snaps the chat scroll to the bottom
+// so the user lands on their latest question, not the top of the debate.
 function clearTikTokVerdictOverlay() {
+    // Fresh overlays live on document.body; history-mode panels live in chat-messages.
+    document.querySelectorAll('.tiktok-verdict').forEach(el => el.remove());
     const container = document.getElementById('chat-messages');
     if (!container) return;
-    container.querySelectorAll('.tiktok-verdict').forEach(el => el.remove());
+    // Belt-and-suspenders: also strip the legacy hidden class if any leftover state exists.
     container.querySelectorAll('.ttv-hidden-by-verdict').forEach(el => {
         el.classList.remove('ttv-hidden-by-verdict');
     });
     teardownVerdictScrollHandler();
     const inputArea = document.getElementById('chat-input-area');
     if (inputArea) inputArea.classList.remove('verdict-hidden');
+    // Bring user back to the latest message in the debate.
+    requestAnimationFrame(() => scrollToBottom(container));
 }
 
 const TTV_BEE_NAME_TO_ID = {
@@ -2228,13 +2233,10 @@ function renderHiveVerdict(verdict, fromHistory = false) {
     const container = document.getElementById('chat-messages');
     if (!container) return;
 
-    // Fresh verdicts: hide debate above so the panel starts at the top.
-    // History loads: keep the conversation visible above the inline panel.
-    if (!fromHistory) {
-        container.querySelectorAll(':scope > *').forEach(el => {
-            el.classList.add('ttv-hidden-by-verdict');
-        });
-    }
+    // Fresh verdicts: render as a full-viewport fixed overlay (covers chat
+    // and the right-side panel). No need to hide siblings — the overlay
+    // sits above everything via z-index.
+    // History loads: render inline so the conversation stays visible above.
 
     const votes = verdict.votes || [];
     const totalVotes = votes.length || 1;
@@ -2307,16 +2309,12 @@ function renderHiveVerdict(verdict, fromHistory = false) {
         </div>
     `;
 
-    container.appendChild(verdictEl);
-
-    if (!fromHistory) {
-        container.scrollTop = 0; // panel sits at the top of the chat area
-        // Keep the textbar hidden as long as the panel is up; clearing the
-        // overlay (next sendMessage / Try Another Hive) restores it. We
-        // intentionally skip setupVerdictScrollHandler so scroll-to-bottom
-        // doesn't reveal the textbar over the final card.
-        const inputArea = document.getElementById('chat-input-area');
-        if (inputArea) inputArea.classList.add('verdict-hidden');
+    // Append to body so the fixed overlay floats above any layout containers.
+    // History loads still go into chat-messages so they sit inline.
+    if (fromHistory) {
+        container.appendChild(verdictEl);
+    } else {
+        document.body.appendChild(verdictEl);
         const pitches = [440, 587, 740];
         const PRE_MS = PREROLL * 1000;
         const STAG_MS = STAGGER * 1000;

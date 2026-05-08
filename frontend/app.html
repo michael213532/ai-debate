@@ -2909,26 +2909,39 @@
             margin-top: 8px;
         }
 
-        /* === TikTok-style verdict panel ===
-           Inline in chat-messages so the input bar below stays visible.
-           Fills the chat area (min-height) and centers a 9:16 frame. */
+        /* === TikTok-style verdict overlay ===
+           Full-viewport fixed modal that covers the chat AND the right panel,
+           so the verdict feels like it takes over the whole screen. */
         .ttv-hidden-by-verdict { display: none !important; }
         .tiktok-verdict {
-            position: relative;
+            position: fixed;
+            inset: 0;
+            z-index: 9999;
             display: flex;
             align-items: center;
             justify-content: center;
-            min-height: calc(100vh - 280px);
-            min-height: calc(100dvh - 280px);
-            margin: -24px -24px 0;
             padding: 16px;
+            margin: 0;
+            max-width: none;
+            border: none;
+            border-radius: 0;
+            background: radial-gradient(ellipse at center, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0.92) 100%);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
             animation: ttvBgFade 0.35s ease-out both;
         }
         @keyframes ttvBgFade { from { opacity: 0; } to { opacity: 1; } }
         .tiktok-verdict.ttv-from-history {
-            min-height: 480px;
-            animation: none;
+            position: relative;
+            inset: auto;
+            z-index: auto;
+            background: transparent;
+            backdrop-filter: none;
+            -webkit-backdrop-filter: none;
+            padding: 0;
             margin-top: 16px;
+            animation: none;
+            min-height: 480px;
         }
         .tiktok-verdict .ttv-frame {
             position: relative;
@@ -6712,7 +6725,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <script src="/js/app.js?v=53"></script>
     <script src="/js/bee-designer.js?v=3"></script>
-    <script src="/js/chat.js?v=55"></script>
+    <script src="/js/chat.js?v=56"></script>
     <script>
         // Models bar collapse/expand via header dropdown
         const setupSection = document.getElementById('setup-section');
