@@ -2387,6 +2387,8 @@ function teardownVerdictScrollHandler() {
 
 // Open hives modal for retry - after selecting a new hive, auto-send the same question
 function openHivesModalForRetry() {
+    // Drop the verdict overlay first — its z-index (9999) sits above the hives modal.
+    clearTikTokVerdictOverlay();
     if (typeof window.openHivesModal === 'function') {
         // Set flag so that when hive is selected + modal closed, it auto-sends
         window._retryAfterHiveSelect = true;
