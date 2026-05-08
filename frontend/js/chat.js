@@ -2297,8 +2297,11 @@ function renderHiveVerdict(verdict, fromHistory = false) {
                 </div>
             </div>
             <div class="ttv-actions" style="--ttv-actions-delay:${actionsDelay.toFixed(2)}s;">
-                <button class="verdict-action-btn try-another-hive" onclick="openHivesModalForRetry()">
-                    <img src="/images/bee-icons/default bee icon.png" alt="" style="width: 28px; height: 28px; vertical-align: middle; margin-right: 6px; border-radius: 50%;"> Try Another Hive
+                <button class="ttv-btn ttv-btn-primary" onclick="openHivesModalForRetry()">
+                    <img src="/images/bee-icons/default bee icon.png" alt="" style="width: 26px; height: 26px; vertical-align: middle; margin-right: 8px; border-radius: 50%;"> Try Another Hive
+                </button>
+                <button class="ttv-btn ttv-btn-secondary" onclick="clearTikTokVerdictOverlay()">
+                    Ask a Follow-Up
                 </button>
             </div>
         </div>
