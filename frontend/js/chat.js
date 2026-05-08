@@ -2163,6 +2163,15 @@ function clearTikTokVerdictOverlay() {
     teardownVerdictScrollHandler();
     const inputArea = document.getElementById('chat-input-area');
     if (inputArea) inputArea.classList.remove('verdict-hidden');
+    // Force-clear any leftover debate-running state on the question header
+    // (the pause pill + pulsing bubble) in case debate_end was racing the
+    // user clicking Ask Follow-Up.
+    container.querySelectorAll('.question-header-text.debate-running').forEach(el => {
+        el.classList.remove('debate-running');
+        el.onclick = null;
+    });
+    const floatingStopBtn = document.getElementById('floating-stop-btn');
+    if (floatingStopBtn) floatingStopBtn.classList.remove('visible');
     // Bring user back to the latest message in the debate.
     requestAnimationFrame(() => scrollToBottom(container));
 }
