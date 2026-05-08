@@ -1130,7 +1130,7 @@
             display: flex;
             align-items: center;
             gap: 8px;
-            padding: 8px 10px;
+            padding: 8px 32px 8px 10px;
             background: var(--surface);
             border: 2px solid var(--border-color);
             border-radius: 10px;
@@ -1158,7 +1158,7 @@
             font-size: 0.65rem;
             color: #ffffff;
             font-weight: 700;
-            background: var(--primary-color);
+            background: var(--hive-accent, var(--primary-color));
             width: 18px;
             height: 18px;
             border-radius: 50%;
@@ -1178,14 +1178,14 @@
         }
 
         .hive-bee-toggle .bee-toggle-name {
-            font-size: 1rem;
+            font-size: 0.95rem;
             font-weight: 700;
             color: var(--text-primary);
             line-height: 1.2;
         }
 
         .hive-bee-toggle .bee-toggle-desc {
-            font-size: 0.92rem;
+            font-size: 0.88rem;
             color: var(--text-primary);
             line-height: 1.4;
             opacity: 0.85;
@@ -1226,7 +1226,7 @@
             display: flex;
             align-items: center;
             gap: 8px;
-            padding: 8px 10px;
+            padding: 8px 32px 8px 10px;
             background: var(--surface);
             border: 2px solid var(--border-color);
             border-radius: 10px;
@@ -1254,7 +1254,7 @@
             font-size: 0.65rem;
             color: #ffffff;
             font-weight: 700;
-            background: var(--primary-color);
+            background: var(--hive-accent, var(--primary-color));
             width: 18px;
             height: 18px;
             border-radius: 50%;
@@ -1537,7 +1537,7 @@
             border-radius: 50%;
             background: rgba(255, 255, 255, 0.95);
             border: none;
-            color: #1a1a1a;
+            color: #c2410c;
             align-items: center;
             justify-content: center;
             cursor: pointer;
@@ -1662,6 +1662,9 @@
             mask-image: linear-gradient(90deg, transparent 0, #000 8%, #000 92%, transparent 100%);
             -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 8%, #000 92%, transparent 100%);
             --marquee-distance: 0px;
+            /* Promote to its own compositor layer so the masked transform doesn't repaint each frame */
+            transform: translateZ(0);
+            isolation: isolate;
         }
 
         .quick-templates-track {
@@ -1673,6 +1676,7 @@
             animation: quick-templates-marquee 14s linear infinite;
             will-change: transform;
             backface-visibility: hidden;
+            transform: translate3d(0, 0, 0);
         }
 
         .quick-templates:hover .quick-templates-track,
@@ -2184,6 +2188,16 @@
             display: none !important;
         }
 
+        /* Hide input area during verdict reveal — toggled by scroll position */
+        .chat-input-area {
+            transition: transform 0.25s ease, opacity 0.25s ease;
+        }
+        .chat-input-area.verdict-hidden:not(.replying):not(.debate-active) {
+            transform: translateY(120%);
+            opacity: 0;
+            pointer-events: none;
+        }
+
         /* Reply button on each bee message */
         .reply-to-bee-btn {
             display: none;
@@ -2193,11 +2207,12 @@
             border: 1px solid var(--border-color);
             touch-action: manipulation;
             color: var(--text-secondary);
-            font-size: 0.9rem;
-            padding: 6px 16px;
+            font-size: 0.8rem;
+            padding: 5px 14px;
             border-radius: 16px;
             cursor: pointer;
-            margin-top: 8px;
+            margin-top: 6px;
+            font-family: inherit;
             transition: all 0.15s;
         }
         .reply-to-bee-btn:hover {
@@ -2299,7 +2314,6 @@
             border-radius: 8px;
             object-fit: contain;
             flex-shrink: 0;
-            mix-blend-mode: multiply;
         }
 
         .bee-avatar-sm {
@@ -2310,7 +2324,6 @@
             flex-shrink: 0;
             vertical-align: middle;
             margin-right: 2px;
-            mix-blend-mode: multiply;
         }
 
         /* Bee icon in voices bar chips */
@@ -2320,7 +2333,6 @@
             border-radius: 8px;
             object-fit: contain;
             flex-shrink: 0;
-            mix-blend-mode: multiply;
         }
 
         .message.ai-individual .ai-name-info {
@@ -2355,36 +2367,66 @@
             animation: blink 1s infinite;
         }
 
-        /* Buzz thinking indicator (under question bubble) */
+        /* Buzz thinking indicator — bees fly in one by one to "join the debate",
+           then a centered phrase fades in below them */
         .buzz-thinking {
             display: flex;
+            flex-direction: column;
             align-items: center;
             justify-content: center;
-            padding: 18px 0;
+            padding: 32px 0 20px;
+            gap: 16px;
         }
         .buzz-thinking-bees {
             display: flex;
-            align-items: center;
+            align-items: flex-end;
             justify-content: center;
-            gap: 6px;
+            gap: 12px;
+            min-height: 88px;
         }
-        .buzz-thinking-bees img {
-            width: 48px;
-            height: 48px;
+        .buzz-thinking-bees img.buzz-bee {
+            width: 72px;
+            height: 72px;
             border-radius: 50%;
             object-fit: contain;
-            animation: beeBounce 3.5s ease-in-out infinite;
+            opacity: 0;
+            transform: translateY(40px) scale(0.4) rotate(-15deg);
+            animation:
+                beeFlyIn 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards,
+                beeHover 2.4s ease-in-out infinite;
+            animation-delay:
+                calc(var(--i, 0) * 0.45s),
+                calc(var(--i, 0) * 0.45s + 0.7s);
+            filter: drop-shadow(0 4px 10px rgba(234, 88, 12, 0.25));
+            will-change: transform, opacity;
         }
-        .buzz-thinking-bees img:nth-child(1) { animation-delay: 0s; }
-        .buzz-thinking-bees img:nth-child(2) { animation-delay: 0.5s; }
-        .buzz-thinking-bees img:nth-child(3) { animation-delay: 1.0s; }
-        .buzz-thinking-bees img:nth-child(4) { animation-delay: 1.5s; }
-        .buzz-thinking-bees img:nth-child(5) { animation-delay: 2.0s; }
-        .buzz-thinking-bees img:nth-child(6) { animation-delay: 2.5s; }
-        .buzz-thinking-bees img:nth-child(7) { animation-delay: 3.0s; }
-        @keyframes beeBounce {
-            0%, 10%, 100% { transform: translateY(0); }
-            5% { transform: translateY(-12px); }
+        @keyframes beeFlyIn {
+            0%   { opacity: 0; transform: translateY(40px) scale(0.4) rotate(-15deg); }
+            60%  { opacity: 1; transform: translateY(-8px) scale(1.12) rotate(4deg); }
+            100% { opacity: 1; transform: translateY(0) scale(1) rotate(0); }
+        }
+        @keyframes beeHover {
+            0%, 100% { transform: translateY(0); }
+            50%      { transform: translateY(-7px); }
+        }
+        .buzz-thinking-text {
+            font-size: 1rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+            letter-spacing: 0.01em;
+            text-align: center;
+            opacity: 0;
+            animation: buzzTextFadeIn 0.6s ease 0.5s forwards;
+        }
+        @keyframes buzzTextFadeIn {
+            0%   { opacity: 0; transform: translateY(6px); }
+            100% { opacity: 0.9; transform: translateY(0); }
+        }
+        @media (max-width: 768px) {
+            .buzz-thinking { padding: 26px 0 18px; gap: 14px; }
+            .buzz-thinking-bees { gap: 10px; min-height: 72px; }
+            .buzz-thinking-bees img.buzz-bee { width: 56px; height: 56px; }
+            .buzz-thinking-text { font-size: 0.92rem; }
         }
 
         /* Thinking dots animation */
@@ -2406,8 +2448,8 @@
             30% { transform: translateY(-6px); opacity: 1; }
         }
 
-        /* 3-line clamp for finished bee responses */
-        .message.ai-individual:not(.streaming) .message-content.clamped {
+        /* 3-line clamp for bee responses (applied during streaming and after) */
+        .message.ai-individual .message-content.clamped {
             display: -webkit-box;
             -webkit-line-clamp: 3;
             -webkit-box-orient: vertical;
@@ -2635,7 +2677,8 @@
             width: 100%;
             height: 100%;
             clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
-            background: linear-gradient(180deg, #fde68a 0%, #facc15 100%);
+            /* Deeper, richer amber rim — gives the hexagon a thicker beveled "frame" */
+            background: linear-gradient(160deg, #f4b423 0%, #d97706 55%, #b45309 100%);
             border: none;
             display: flex;
             align-items: center;
@@ -2643,22 +2686,34 @@
             position: relative;
             transition: all 0.25s ease;
             overflow: hidden;
+            filter: drop-shadow(0 3px 5px rgba(180, 83, 9, 0.28)) drop-shadow(0 1px 1px rgba(0, 0, 0, 0.1));
         }
         .hex-shape::before {
             content: '';
             position: absolute;
-            inset: 3px;
+            inset: 4px;
             clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
-            background: linear-gradient(180deg, #fef9c3 0%, #fde68a 100%);
+            /* Inner cell — warm honey gradient */
+            background: linear-gradient(165deg, #fef3c7 0%, #fde68a 35%, #fcd34d 70%, #f59e0b 100%);
             z-index: 0;
+        }
+        /* Top-left specular highlight — gives the glossy 3D feel */
+        .hex-shape::after {
+            content: '';
+            position: absolute;
+            inset: 4px;
+            clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+            background: linear-gradient(155deg, rgba(255, 255, 255, 0.55) 0%, rgba(255, 255, 255, 0.15) 28%, rgba(255, 255, 255, 0) 50%);
+            pointer-events: none;
+            z-index: 2;
         }
         /* Filled hexagons keep the inner lighter fill visible behind bee */
         .hex-shape.hex-empty::before {
-            background: linear-gradient(180deg, #fef9c3 0%, #fde68a 60%);
-            opacity: 0.5;
+            background: linear-gradient(165deg, #fef3c7 0%, #fde68a 60%, #fcd34d 100%);
+            opacity: 0.6;
         }
         .hex-shape.hex-empty {
-            opacity: 0.45;
+            opacity: 0.55;
         }
         .hex-bee-icon {
             width: calc(100% - 8px);
@@ -2680,10 +2735,12 @@
         .honeycomb-label .empty-hive-name {
             font-size: 1.5rem;
             font-weight: 700;
+            color: var(--text-primary);
             display: flex;
             align-items: center;
             justify-content: center;
             gap: 6px;
+            line-height: 1.15;
         }
         .hive-name-arrow {
             opacity: 0.7;
@@ -2693,9 +2750,12 @@
         }
         .honeycomb-label .empty-hive-desc {
             font-size: 1rem;
-            opacity: 0.75;
-            color: var(--text-secondary);
-            margin-top: 4px;
+            opacity: 1;
+            color: #475569;
+            margin-top: 2px;
+        }
+        [data-theme="dark"] .honeycomb-label .empty-hive-desc {
+            color: #cbd5e1;
         }
 
         .empty-chat h2 {
@@ -2719,6 +2779,25 @@
             border-color: var(--primary-color);
             background: rgba(250, 204, 21, 0.1);
         }
+
+        /* Pastel-tinted quick-template chips above input */
+        .quick-templates .question-template {
+            color: #1f2937;
+            border-color: transparent;
+        }
+        .quick-templates .question-template.qt-peach   { background: #fde2cf; }
+        .quick-templates .question-template.qt-yellow  { background: #fdecb1; }
+        .quick-templates .question-template.qt-blue    { background: #cfe6f7; }
+        .quick-templates .question-template.qt-pink    { background: #f8d2dd; }
+        .quick-templates .question-template.qt-mint    { background: #cfeedd; }
+        .quick-templates .question-template.qt-lilac   { background: #e1d5f5; }
+        .quick-templates .question-template.qt-peach:hover  { background: #fbd0b3; border-color: transparent; }
+        .quick-templates .question-template.qt-yellow:hover { background: #fce18a; border-color: transparent; }
+        .quick-templates .question-template.qt-blue:hover   { background: #b5d8f1; border-color: transparent; }
+        .quick-templates .question-template.qt-pink:hover   { background: #f4b9cb; border-color: transparent; }
+        .quick-templates .question-template.qt-mint:hover   { background: #b3e3cb; border-color: transparent; }
+        .quick-templates .question-template.qt-lilac:hover  { background: #cdbcec; border-color: transparent; }
+        [data-theme="dark"] .quick-templates .question-template { color: #1f2937; }
 
         /* Personality cards */
         .personality-card {
@@ -2835,6 +2914,174 @@
             margin-top: 8px;
         }
 
+        /* === TikTok-style verdict panel ===
+           Inline in chat-messages so the input bar below stays visible.
+           Fills the chat area (min-height) and centers a 9:16 frame. */
+        .ttv-hidden-by-verdict { display: none !important; }
+        .tiktok-verdict {
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: calc(100vh - 240px);
+            min-height: calc(100dvh - 240px);
+            margin: -24px -24px 0;
+            padding: 16px;
+            animation: ttvBgFade 0.35s ease-out both;
+        }
+        @keyframes ttvBgFade { from { opacity: 0; } to { opacity: 1; } }
+        .tiktok-verdict.ttv-from-history {
+            min-height: 480px;
+            animation: none;
+            margin-top: 16px;
+        }
+        .tiktok-verdict .ttv-frame {
+            position: relative;
+            aspect-ratio: 9 / 16;
+            height: min(calc(100vh - 32px), calc((100vw - 32px) * 16 / 9));
+            max-height: calc(100vh - 32px);
+            max-width: calc(100vw - 32px);
+            border-radius: 28px;
+            overflow: hidden;
+            background: linear-gradient(160deg, #fef3c7 0%, #fcd34d 45%, #f59e0b 100%);
+            box-shadow: 0 30px 80px rgba(0,0,0,0.55), inset 0 0 0 2px rgba(255,255,255,0.35);
+            display: flex;
+            flex-direction: column;
+            padding: 18px 16px;
+        }
+        .tiktok-verdict .ttv-header {
+            text-align: center;
+            margin-bottom: 6px;
+            flex-shrink: 0;
+        }
+        .tiktok-verdict .ttv-hive-badge {
+            display: inline-block;
+            padding: 5px 14px;
+            border-radius: 999px;
+            background: rgba(0,0,0,0.18);
+            color: #1a1a1a;
+            font-weight: 700;
+            font-size: 0.78rem;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+        .tiktok-verdict .ttv-stack {
+            position: relative;
+            flex: 1;
+            min-height: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .tiktok-verdict .ttv-msg {
+            position: absolute;
+            width: 86%;
+            max-width: 340px;
+            background: var(--ttv-color);
+            color: #1a1a1a;
+            border-radius: 22px;
+            padding: 18px 18px 22px;
+            box-shadow: 0 14px 36px rgba(0,0,0,0.4), inset 0 0 0 2px rgba(255,255,255,0.5);
+            text-align: center;
+            opacity: 0;
+            transform: translateY(calc(var(--ttv-y) - 220px)) rotate(0deg) scale(0.3);
+            z-index: var(--ttv-z, 1);
+            animation: ttvFlyIn 0.55s cubic-bezier(0.34, 1.56, 0.64, 1) var(--ttv-delay) forwards;
+        }
+        .tiktok-verdict.ttv-from-history .ttv-msg {
+            opacity: 1;
+            transform: translateY(var(--ttv-y)) rotate(var(--ttv-tilt)) scale(1);
+            animation: none;
+        }
+        @keyframes ttvFlyIn {
+            0%   { opacity: 0; transform: translateY(calc(var(--ttv-y) - 220px)) rotate(0deg) scale(0.3); }
+            55%  { opacity: 1; transform: translateY(calc(var(--ttv-y) + 6px)) rotate(var(--ttv-tilt)) scale(1.06); }
+            100% { opacity: 1; transform: translateY(var(--ttv-y)) rotate(var(--ttv-tilt)) scale(1); }
+        }
+        .tiktok-verdict .ttv-msg-avi {
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            margin-bottom: 4px;
+            background: rgba(255,255,255,0.4);
+        }
+        .tiktok-verdict .ttv-msg-name {
+            font-size: 0.78rem;
+            font-weight: 700;
+            opacity: 0.65;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .tiktok-verdict .ttv-msg-text {
+            font-size: clamp(1.1rem, 4.2vh, 1.7rem);
+            font-weight: 800;
+            line-height: 1.15;
+            word-break: break-word;
+        }
+        .tiktok-verdict .ttv-final {
+            position: absolute;
+            width: 92%;
+            max-width: 360px;
+            background: linear-gradient(160deg, #1f1d1b 0%, #2a241d 100%);
+            color: #facc15;
+            border: 3px solid #facc15;
+            border-radius: 22px;
+            padding: 22px 18px;
+            box-shadow: 0 24px 60px rgba(250,204,21,0.45), inset 0 0 0 2px rgba(0,0,0,0.3);
+            text-align: center;
+            opacity: 0;
+            transform: scale(0) rotate(-12deg);
+            z-index: 99;
+            animation: ttvFinalPop 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) var(--ttv-final-delay) forwards;
+        }
+        .tiktok-verdict.ttv-from-history .ttv-final {
+            opacity: 1;
+            transform: scale(1) rotate(0);
+            animation: none;
+        }
+        @keyframes ttvFinalPop {
+            0%   { opacity: 0; transform: scale(0) rotate(-12deg); }
+            60%  { opacity: 1; transform: scale(1.08) rotate(2deg); }
+            100% { opacity: 1; transform: scale(1) rotate(0); }
+        }
+        .tiktok-verdict .ttv-final-label {
+            font-size: 0.78rem;
+            font-weight: 700;
+            opacity: 0.85;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+        }
+        .tiktok-verdict .ttv-final-decision {
+            font-size: clamp(1.4rem, 5.5vh, 2.4rem);
+            font-weight: 900;
+            line-height: 1.05;
+            margin-bottom: 8px;
+            color: #ffffff;
+        }
+        .tiktok-verdict .ttv-final-pct {
+            font-size: 0.95rem;
+            font-weight: 700;
+            opacity: 0.85;
+        }
+        .tiktok-verdict .ttv-actions {
+            margin-top: 12px;
+            text-align: center;
+            opacity: 0;
+            flex-shrink: 0;
+            animation: ttvActionsFade 0.4s ease-out var(--ttv-actions-delay) forwards;
+        }
+        .tiktok-verdict.ttv-from-history .ttv-actions {
+            opacity: 1;
+            animation: none;
+        }
+        @keyframes ttvActionsFade { to { opacity: 1; } }
+        .tiktok-verdict .ttv-actions .verdict-action-btn {
+            font-size: 0.95rem;
+            padding: 10px 20px;
+        }
+
         .verdict-hint {
             margin-top: 12px;
             padding: 10px 14px;
@@ -2876,11 +3123,21 @@
         }
 
         .verdict-action-btn.try-another-hive {
-            background: linear-gradient(135deg, rgba(250, 204, 21, 0.1), rgba(234, 179, 8, 0.1));
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            border-color: transparent;
+            color: #ffffff;
+            font-size: 1.05rem;
+            font-weight: 600;
+            padding: 12px 24px;
+            box-shadow: 0 2px 8px rgba(217, 119, 6, 0.25);
         }
 
         .verdict-action-btn.try-another-hive:hover {
-            background: linear-gradient(135deg, rgba(250, 204, 21, 0.2), rgba(234, 179, 8, 0.2));
+            background: linear-gradient(135deg, #f59e0b, #b45309);
+            border-color: transparent;
+            color: #ffffff;
+            box-shadow: 0 4px 12px rgba(217, 119, 6, 0.35);
+            transform: translateY(-1px);
         }
 
         /* Setup Section */
@@ -3365,9 +3622,6 @@
             .bee-avatar-sm { width: 36px; height: 36px; }
             .voice-bee-icon { width: 36px; height: 36px; }
 
-            /* Reply button - bigger touch target */
-            .reply-to-bee-btn { padding: 8px 14px; min-height: 36px; }
-
             /* === INPUT AREA === */
             .chat-input-area {
                 position: fixed;
@@ -3520,11 +3774,9 @@
             .hive-card:not(.expanded) { gap: 14px; }
             .hive-card-bees-expanded { grid-template-columns: 1fr; gap: 8px; }
             .hive-modal-addon-bees { grid-template-columns: 1fr; gap: 8px; }
-            .hive-bee-toggle { padding: 12px 14px; gap: 12px; }
+            .hive-bee-toggle { padding: 12px 36px 12px 14px; gap: 12px; }
             .hive-bee-toggle .bee-toggle-icon { width: 66px; height: 72px; clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%); }
-            .hive-bee-toggle .bee-toggle-name { font-size: 0.92rem; }
-            .hive-bee-toggle .bee-toggle-desc { font-size: 0.78rem; opacity: 0.9; }
-            .addon-bee-toggle { padding: 12px 14px; gap: 12px; }
+            .addon-bee-toggle { padding: 12px 36px 12px 14px; gap: 12px; }
             .addon-bee-toggle .bee-toggle-icon { width: 66px; height: 72px; clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%); }
             .bee-preview-item { width: 52px; height: 58px; min-width: 52px; min-height: 58px; max-width: 52px; max-height: 58px; }
             .bee-preview-icon { width: 48px; height: 48px; max-width: 48px; max-height: 48px; }
@@ -3692,8 +3944,6 @@
             .hive-card-name { font-size: 1rem; }
             .hive-card-desc { font-size: 0.82rem; }
             .hive-bee-toggle .bee-toggle-icon { width: 56px; height: 62px; }
-            .hive-bee-toggle .bee-toggle-name { font-size: 0.85rem; }
-            .hive-bee-toggle .bee-toggle-desc { font-size: 0.72rem; }
             .addon-bee-toggle .bee-toggle-icon { width: 56px; height: 62px; }
             .mode-selector-dropdown { left: auto; right: 0; min-width: calc(100vw - 20px); }
             .attachment-dropdown { min-width: 130px; }
@@ -3893,7 +4143,6 @@
             scroll-snap-align: start;
             scroll-snap-stop: always;
             min-height: 100%;
-            height: 100%;
             flex-shrink: 0;
             display: flex;
             flex-direction: column;
@@ -4196,7 +4445,6 @@
             scroll-snap-align: start;
             scroll-snap-stop: always;
             min-height: 100%;
-            height: 100%;
             flex-shrink: 0;
             display: flex;
             flex-direction: column;
@@ -4209,7 +4457,6 @@
             display: flex;
             flex-direction: column;
             padding: 20px 56px 20px 20px;
-            overflow-y: auto;
             min-width: 0;
             background: var(--surface);
             border-bottom: 1px solid var(--border-color);
@@ -4639,7 +4886,6 @@
             .decision-card {
                 padding: 0;
                 min-height: 100%;
-                height: 100%;
             }
             .decision-card-content {
                 padding: 16px 50px 12px 14px;
@@ -5523,11 +5769,12 @@
                     <!-- Quick question templates -->
                     <div id="quick-templates" class="quick-templates">
                         <div class="quick-templates-track">
-                            <button class="question-template" data-question="Who's right? ">Who's right?</button>
-                            <button class="question-template" data-question="Am I wrong? ">Am I wrong?</button>
-                            <button class="question-template" data-question="This or that? ">This or that?</button>
-                            <button class="question-template" data-question="Be honest.. ">Be honest..</button>
-                            <button class="question-template" data-question="Say it straight ">Say it straight</button>
+                            <button class="question-template qt-mint"   data-question="Who's right? ">Who's right?</button>
+                            <button class="question-template qt-lilac"  data-question="Am I wrong? ">Am I wrong?</button>
+                            <button class="question-template qt-peach"  data-question="This or that? ">This or that?</button>
+                            <button class="question-template qt-yellow" data-question="Be honest.. ">Be honest..</button>
+                            <button class="question-template qt-blue"   data-question="Say it straight ">Say it straight</button>
+                            <button class="question-template qt-pink"   data-question="Who knows? ">Who knows?</button>
                         </div>
                     </div>
                     <!-- Images Preview -->
@@ -5556,7 +5803,7 @@
                             </button>
                             <div class="chat-buttons-spacer"></div>
                             <button id="send-btn" class="start-debate-btn" disabled aria-label="Ask the Hive" title="Ask the Hive">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
                             </button>
                         </div>
                     </div>
@@ -5917,23 +6164,31 @@
                 <div class="tutorial-step" data-step="1">
                     <div style="text-align: center; margin-bottom: 20px;">
                         <div style="font-size: 2.5rem; margin-bottom: 12px;">🐝</div>
-                        <p style="color: var(--text-secondary); font-size: 1rem;">
-                            Welcome to Beecision! Here's how it works:
+                        <p style="color: var(--text-primary); font-size: 1.1rem; font-weight: 600; margin: 0 0 4px 0;">
+                            Welcome to the hive
+                        </p>
+                        <p style="color: var(--text-secondary); font-size: 0.95rem; margin: 0;">
+                            Every question deserves Beecision
                         </p>
                     </div>
                     <div style="background: var(--surface-light); border-radius: 8px; padding: 16px; margin-bottom: 16px;">
                         <ol style="margin: 0; padding-left: 20px; color: var(--text-secondary); font-size: 0.9rem; line-height: 1.8;">
-                            <li><strong>Pick a hive</strong> - Choose a group of AI bees</li>
-                            <li><strong>Ask the hive</strong> - Type your question</li>
-                            <li><strong>Watch them debate</strong> - Each bee responds in turn</li>
-                            <li><strong>Get the verdict</strong> - The hive decides together</li>
+                            <li><strong>Pick your hive</strong> &bull; Your team of AI bees</li>
+                            <li><strong>Ask</strong> &bull; One question for all</li>
+                            <li><strong>Watch them debate</strong> &bull; Bee by bee</li>
+                            <li><strong>Get the beecision</strong> &bull; The hive has spoken</li>
                         </ol>
                     </div>
                 </div>
 
                 <!-- Navigation -->
                 <div style="display: flex; justify-content: center; margin-top: 20px;">
-                    <button id="tutorial-next" class="btn btn-primary" style="padding: 10px 32px;">Let's Go!</button>
+                    <button id="tutorial-next" class="btn btn-primary" style="padding: 10px 32px; display: inline-flex; align-items: center; gap: 8px;">
+                        Let's Beecide
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M5 12h14M13 5l7 7-7 7"/>
+                        </svg>
+                    </button>
                 </div>
             </div>
         </div>
@@ -6404,9 +6659,9 @@
     </style>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-    <script src="/js/app.js?v=43"></script>
+    <script src="/js/app.js?v=53"></script>
     <script src="/js/bee-designer.js?v=3"></script>
-    <script src="/js/chat.js?v=40"></script>
+    <script src="/js/chat.js?v=51"></script>
     <script>
         // Models bar collapse/expand via header dropdown
         const setupSection = document.getElementById('setup-section');

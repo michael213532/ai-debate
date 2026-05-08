@@ -100,40 +100,18 @@ const beeQueue = {
 
             if (bee.error) {
                 addAiDiscussionError(bee.modelName, bee.error);
-                await this._wait(300);
                 continue;
             }
 
-            // Create bubble with thinking dots
+            // Create empty bubble and typewrite straight into it — no thinking-dots
+            // pause and no inter-bee gap, so the conversation flows continuously.
             addAiDiscussionMessage(bee.modelName, bee.provider, '', bee.personalityId, bee.roleName);
-            updateChatStatus(`${bee.modelName} is thinking...`);
-
-            // Show thinking dots
-            const msgEl = this._getStreamingMsg(bee.modelName);
-            if (msgEl) {
-                const content = msgEl.querySelector('.message-content');
-                if (content) content.innerHTML = '<span class="typing-dots"><span>.</span><span>.</span><span>.</span></span>';
-            }
-
-            await this._wait(700);
-            if (this.stopped) break;
-
-            // Remove dots, typewrite the text
-            const msgEl2 = this._getStreamingMsg(bee.modelName);
-            if (msgEl2) {
-                const content = msgEl2.querySelector('.message-content');
-                if (content) {
-                    content.innerHTML = '';
-                    content.textContent = '';
-                }
-            }
+            updateChatStatus(`${bee.modelName} is responding...`);
 
             await this._typewrite(bee.modelName, bee.text);
             if (this.stopped) break;
 
-            // Finish this bee
             finishAiDiscussion(bee.modelName);
-            await this._wait(400);
         }
         this.playing = false;
         // Check if more bees arrived while we were playing (next round)
@@ -150,8 +128,8 @@ const beeQueue = {
     _typewrite(modelName, fullText) {
         return new Promise(resolve => {
             let i = 0;
-            const CHARS = 4;
-            const MS = 12;
+            const CHARS = 2;
+            const MS = 22;
             this._timer = setInterval(() => {
                 if (this.stopped || i >= fullText.length) {
                     clearInterval(this._timer);
@@ -417,6 +395,9 @@ async function sendMessage() {
 
     console.log('[sendMessage] Starting - continuingDebateId:', window.continuingDebateId, 'currentSessionId:', currentSessionId);
 
+    // Tear down any prior TikTok-verdict overlay so the new debate is visible.
+    clearTikTokVerdictOverlay();
+
     // Store for retry functionality
     lastSentMessage = message;
 
@@ -454,13 +435,14 @@ async function sendMessage() {
     updateChatStatus('Starting discussion...');
 
     try {
-        // Free users: force all models to grok-3-mini
+        // Free users: force all models to grok-4-fast-reasoning
+        // (grok-3-mini was removed from this xAI account; this is now the only model available)
         if (subscriptionStatus?.status !== 'active') {
             selectedModels = selectedModels.map(m => ({
                 ...m,
                 provider: 'xai',
-                model_id: 'grok-3-mini',
-                model_name: 'Grok 3 Mini'
+                model_id: 'grok-4-fast-reasoning',
+                model_name: 'Grok 4 Fast'
             }));
         }
 
@@ -1010,14 +992,17 @@ function showBuzzThinking() {
     }
     if (beeIcons.length === 0) beeIcons = ['/images/bee-icons/default bee icon.png'];
 
-    const beesHtml = beeIcons.map(src =>
-        `<img src="${src}" alt="" onerror="this.src='/images/bee-icons/default bee icon.png'">`
+    const beesHtml = beeIcons.map((src, i) =>
+        `<img class="buzz-bee" style="--i:${i}" src="${src}" alt="" onerror="this.src='/images/bee-icons/default bee icon.png'">`
     ).join('');
 
     const el = document.createElement('div');
     el.className = 'buzz-thinking';
     el.id = 'buzz-thinking-indicator';
-    el.innerHTML = `<div class="buzz-thinking-bees">${beesHtml}</div>`;
+    el.innerHTML = `
+        <div class="buzz-thinking-bees">${beesHtml}</div>
+        <div class="buzz-thinking-text">The Hive is Buzzing into the debate</div>
+    `;
     container.appendChild(el);
     console.log('[BuzzThinking] Element appended, beeIcons:', beeIcons.length, 'innerHTML length:', el.innerHTML.length);
     scrollToBottom(container);
@@ -1083,7 +1068,7 @@ function addAiDiscussionMessage(modelName, provider, content, personalityId, rol
             </div>
             <span class="ai-provider-tag">${escapeHtml(provider)}</span>
         </div>
-        <div class="message-content"></div>
+        <div class="message-content clamped"></div>
         <button class="reply-to-bee-btn" data-bee-name="${escapeHtml(modelName)}" data-personality="${escapeHtml(personalityId || '')}">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 17 4 12 9 7"/><path d="M20 18v-2a4 4 0 0 0-4-4H4"/></svg>
             Reply
@@ -1129,7 +1114,8 @@ function finishAiDiscussion(modelName) {
         if (content) {
             content.textContent = content.textContent.replace(/\*\*/g, '');
 
-            // Clamp to 3 lines with "Show more" toggle
+            // Apply 3-line clamp once streaming is done, then add "Show more" toggle
+            // if content overflows.
             content.classList.add('clamped');
             requestAnimationFrame(() => {
                 if (content.scrollHeight > content.clientHeight + 1) {
@@ -1195,6 +1181,8 @@ function setInputLocked(locked) {
     const chatMessages = document.getElementById('chat-messages');
 
     if (locked) {
+        // Starting new debate — tear down any verdict scroll handler from prior debate
+        teardownVerdictScrollHandler();
         // Hide entire input area and show pause button inside question bubble
         sendBtn.classList.add('stop-mode');
         if (inputArea) inputArea.classList.add('debate-active');
@@ -1209,7 +1197,7 @@ function setInputLocked(locked) {
     } else {
         // Show input area and hide pause button
         sendBtn.classList.remove('stop-mode');
-        sendBtn.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>';
+        sendBtn.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>';
         input.placeholder = 'Ask the hive...';
         if (inputArea) inputArea.classList.remove('debate-active');
         if (floatingStopBtn) floatingStopBtn.classList.remove('visible');
@@ -2167,44 +2155,98 @@ function addHistoryAiMessage(modelName, provider, content) {
 
 // ============ HIVE VERDICT RENDERING ============
 
+// Remove any existing TikTok-verdict overlay and re-show the messages it hid.
+function clearTikTokVerdictOverlay() {
+    const container = document.getElementById('chat-messages');
+    if (!container) return;
+    container.querySelectorAll('.tiktok-verdict').forEach(el => el.remove());
+    container.querySelectorAll('.ttv-hidden-by-verdict').forEach(el => {
+        el.classList.remove('ttv-hidden-by-verdict');
+    });
+}
+
+const TTV_BEE_NAME_TO_ID = {
+    'Sunny': 'chaos-optimist', 'Murphy': 'chaos-pessimist', 'Jordan': 'chaos-realist', 'Rebel': 'chaos-contrarian', 'Cyndi': 'chaos-cynic',
+    'BFF': 'friend-bestie', 'Truth': 'friend-honest', 'Giggles': 'friend-funny', 'Sage': 'friend-wise', 'Fixer': 'friend-practical',
+    'Brick': 'billionaire-builder', 'Money': 'billionaire-investor', 'Chess': 'billionaire-strategist', 'Blitz': 'billionaire-disruptor', 'Dream': 'billionaire-visionary',
+    'Anon': 'internet-redditor', 'Clout': 'internet-influencer', 'Dev': 'internet-coder', 'Pixel': 'internet-gamer', 'Flame': 'internet-troll',
+    'Zoey': 'gen-z', 'Avery': 'gen-millennial', 'Dale': 'gen-x', 'Walt': 'gen-boomer', 'Neo': 'gen-future',
+    'Honor': 'court-judge', 'Blade': 'court-prosecutor', 'Haven': 'court-defense', 'Echo': 'court-witness', 'Will': 'court-jury',
+    'Lucifer': 'special-devils-advocate', 'Joker': 'special-wild-card'
+};
+
+// Diversify by vote.choice — one bee per unique choice (most contradictory).
+// Falls back to first three votes if there's only one choice.
+function pickContradictoryVotes(votes) {
+    if (!votes || votes.length === 0) return [];
+    const byChoice = {};
+    votes.forEach(v => {
+        const c = (v.choice || 'Unknown').toLowerCase().trim();
+        if (!byChoice[c]) byChoice[c] = [];
+        byChoice[c].push(v);
+    });
+    const picked = [];
+    for (const c of Object.keys(byChoice)) {
+        if (picked.length >= 3) break;
+        picked.push(byChoice[c][0]);
+    }
+    if (picked.length < 3) {
+        const used = new Set(picked);
+        for (const v of votes) {
+            if (picked.length >= 3) break;
+            if (!used.has(v)) picked.push(v);
+        }
+    }
+    return picked.slice(0, 3);
+}
+
+// Short cheerful buzz via Web Audio (no asset). Pitch in Hz.
+function playTtvBuzz(pitch) {
+    try {
+        const Ctor = window.AudioContext || window.webkitAudioContext;
+        if (!Ctor) return;
+        const ctx = new Ctor();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(pitch, ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(pitch * 1.45, ctx.currentTime + 0.06);
+        osc.frequency.exponentialRampToValueAtTime(pitch * 0.95, ctx.currentTime + 0.16);
+        gain.gain.setValueAtTime(0, ctx.currentTime);
+        gain.gain.linearRampToValueAtTime(0.12, ctx.currentTime + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.18);
+        osc.connect(gain).connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.2);
+        setTimeout(() => { try { ctx.close(); } catch (e) {} }, 400);
+    } catch (e) { /* ignore */ }
+}
+
 /**
- * Render the Hive Verdict card after debate completes
- * @param {Object} verdict - The verdict object from backend
- * @param {Array} verdict.votes - Array of { name, emoji, choice, reason }
- * @param {string} verdict.hive_decision - The consensus decision
- * @param {number} verdict.confidence - 0-100 confidence percentage
- * @param {Array} verdict.key_reasons - Array of reason strings
+ * Render the Hive Verdict as a TikTok-style 9:16 stack: 3 contradictory cards
+ * fly in (one every 1.5s, with a buzz), then the final decision lands on top.
  */
 function renderHiveVerdict(verdict, fromHistory = false) {
     if (!verdict) return;
-
     const container = document.getElementById('chat-messages');
-    const verdictEl = document.createElement('div');
-    verdictEl.className = 'hive-verdict hive-verdict-viral';
+    if (!container) return;
 
-    const beeNameToId = {
-        'Sunny': 'chaos-optimist', 'Murphy': 'chaos-pessimist', 'Jordan': 'chaos-realist', 'Rebel': 'chaos-contrarian', 'Cyndi': 'chaos-cynic',
-        'BFF': 'friend-bestie', 'Truth': 'friend-honest', 'Giggles': 'friend-funny', 'Sage': 'friend-wise', 'Fixer': 'friend-practical',
-        'Brick': 'billionaire-builder', 'Money': 'billionaire-investor', 'Chess': 'billionaire-strategist', 'Blitz': 'billionaire-disruptor', 'Dream': 'billionaire-visionary',
-        'Anon': 'internet-redditor', 'Clout': 'internet-influencer', 'Dev': 'internet-coder', 'Pixel': 'internet-gamer', 'Flame': 'internet-troll',
-        'Zoey': 'gen-z', 'Avery': 'gen-millennial', 'Dale': 'gen-x', 'Walt': 'gen-boomer', 'Neo': 'gen-future',
-        'Honor': 'court-judge', 'Blade': 'court-prosecutor', 'Haven': 'court-defense', 'Echo': 'court-witness', 'Will': 'court-jury',
-        'Lucifer': 'special-devils-advocate', 'Joker': 'special-wild-card'
-    };
-    const splitColors = ['#facc15', '#8b5cf6', '#3b82f6', '#10b981', '#ef4444', '#ec4899', '#06b6d4'];
+    // Fresh verdicts: hide debate above so the panel starts at the top.
+    // History loads: keep the conversation visible above the inline panel.
+    if (!fromHistory) {
+        container.querySelectorAll(':scope > *').forEach(el => {
+            el.classList.add('ttv-hidden-by-verdict');
+        });
+    }
 
     const votes = verdict.votes || [];
     const totalVotes = votes.length || 1;
-
-    // Count votes per choice
     const choiceCounts = {};
-    votes.forEach(vote => {
-        const c = vote.choice || 'Unknown';
+    votes.forEach(v => {
+        const c = v.choice || 'Unknown';
         choiceCounts[c] = (choiceCounts[c] || 0) + 1;
     });
     const choices = Object.keys(choiceCounts);
-
-    // Winner
     const winnerChoice = verdict.hive_decision || choices[0] || 'No consensus';
     let winnerPct = verdict.confidence || 0;
     if (!winnerPct && choices.length > 0) {
@@ -2212,7 +2254,6 @@ function renderHiveVerdict(verdict, fromHistory = false) {
         winnerPct = Math.round((maxCount / totalVotes) * 100);
     }
 
-    // Get current hive name
     let hiveName = '';
     const hiveId = window.selectedHiveId || localStorage.getItem('selectedHive') || 'chaos';
     if (window.allHives) {
@@ -2220,91 +2261,119 @@ function renderHiveVerdict(verdict, fromHistory = false) {
         if (hive) hiveName = hive.name;
     }
 
-    const titleText = verdict.title || '';
+    const picked = pickContradictoryVotes(votes);
+    const COLORS = ['#fde047', '#f472b6', '#22d3ee']; // yellow / magenta / cyan
+    const TILTS = [-7, 6, -4];
+    const OFFSETS_Y = [-44, 0, 44];
+    const STAGGER = fromHistory ? 0 : 1.5;
 
-    // Timing for animations
-    const speedFactor = fromHistory ? 0.3 : 1;
-    const chatStart = 0.3 * speedFactor;
-    const chatDuration = 3.0 * speedFactor;
-    const chatStep = votes.length > 1 ? chatDuration / (votes.length - 1) : 0;
-
-    // Build mini group-chat
-    const chatHtml = votes.map((vote, i) => {
-        const pid = beeNameToId[vote.name] || getPersonalityFromName(vote.name || '') || '';
+    const cardHtml = picked.map((vote, i) => {
+        const pid = TTV_BEE_NAME_TO_ID[vote.name] || getPersonalityFromName(vote.name || '') || '';
         const iconPath = pid ? getBeeIconPath(pid) : '/images/bee-icons/default bee icon.png';
-        const colors = pid ? getPersonalityColor(pid) : { text: 'var(--text-secondary)' };
-        const isLeft = i % 2 === 0;
-        const delay = (chatStart + i * chatStep).toFixed(2);
-        return `<div class="bc-chat-msg ${isLeft ? 'bc-left' : 'bc-right'}" style="animation-delay:${delay}s">
-            <img class="bc-chat-avi" src="${iconPath}" alt="" onerror="this.src='/images/bee-icons/default bee icon.png'">
-            <div class="bc-chat-bubble">
-                <span class="bc-chat-name" style="color:${colors.text}">${escapeHtml(vote.name || '')}</span>
-                <span class="bc-chat-text">${escapeHtml(vote.reason || vote.choice || '')}</span>
-            </div>
+        const reason = (vote.reason || vote.choice || '').trim();
+        return `<div class="ttv-msg" style="--ttv-color:${COLORS[i % COLORS.length]};--ttv-delay:${(i * STAGGER).toFixed(2)}s;--ttv-tilt:${TILTS[i] || 0}deg;--ttv-y:${OFFSETS_Y[i] || 0}px;--ttv-z:${i + 1};">
+            <img class="ttv-msg-avi" src="${iconPath}" alt="" onerror="this.src='/images/bee-icons/default bee icon.png'">
+            <div class="ttv-msg-name">${escapeHtml(vote.name || '')}</div>
+            <div class="ttv-msg-text">${escapeHtml(reason)}</div>
         </div>`;
     }).join('');
 
-    // Vote bars
-    const barStart = (chatStart + chatDuration + 0.8) * speedFactor;
-    const barStep = choices.length > 1 ? (1.0 * speedFactor) / (choices.length - 1) : 0;
-    const barHtml = choices.map((c, i) => {
-        const pct = Math.round((choiceCounts[c] / totalVotes) * 100);
-        const color = splitColors[i % splitColors.length];
-        const barDelay = (barStart + i * barStep).toFixed(2);
-        return `<div class="bc-bar-row" style="animation-delay:${barDelay}s">
-            <span class="bc-bar-label">${escapeHtml(c)}</span>
-            <div class="bc-bar-track"><div class="bc-bar-fill" style="--bar-pct:${pct}%;background:${color};animation-delay:${barDelay}s"></div></div>
-            <span class="bc-bar-pct">${pct}%</span>
-        </div>`;
-    }).join('');
+    const finalDelay = fromHistory ? 0 : (picked.length * STAGGER);
+    const actionsDelay = finalDelay + (fromHistory ? 0 : 0.8);
 
-    // Reveal timing
-    const revealDelay = (barStart + 1.5 * speedFactor).toFixed(2);
-    const actionsDelay = (parseFloat(revealDelay) + 0.8 * speedFactor).toFixed(2);
-
-    // Check if needs more info
-    const needsMoreInfo = verdict.hive_decision &&
-        (verdict.hive_decision.toLowerCase().includes('options needed') ||
-         verdict.hive_decision.toLowerCase().includes('more info') ||
-         verdict.hive_decision.toLowerCase().includes('need more'));
-
-    const followUpHint = needsMoreInfo
-        ? `<div class="verdict-hint">Type your follow-up question below to continue the discussion</div>`
-        : '';
-
+    const verdictEl = document.createElement('div');
+    verdictEl.className = 'hive-verdict tiktok-verdict';
+    if (fromHistory) verdictEl.classList.add('ttv-from-history');
     verdictEl.innerHTML = `
-        <div class="bc-card bc-playing">
-            <div class="bc-hook">
-                ${hiveName ? `<span class="decision-hive-badge" ${typeof getHiveBadgeStyle === 'function' ? getHiveBadgeStyle(hiveName) : ''}>${escapeHtml(hiveName)}</span>` : ''}
-                ${titleText ? `<div class="bc-hook-title">${escapeHtml(titleText)}</div>` : ''}
+        <div class="ttv-frame">
+            ${hiveName ? `<div class="ttv-header"><span class="ttv-hive-badge" ${typeof getHiveBadgeStyle === 'function' ? getHiveBadgeStyle(hiveName) : ''}>${escapeHtml(hiveName)}</span></div>` : ''}
+            <div class="ttv-stack">
+                ${cardHtml}
+                <div class="ttv-final" style="--ttv-final-delay:${finalDelay.toFixed(2)}s;">
+                    <div class="ttv-final-label">The Hive Has Spoken</div>
+                    <div class="ttv-final-decision">${escapeHtml(winnerChoice)}</div>
+                    <div class="ttv-final-pct">${winnerPct}% confidence</div>
+                </div>
             </div>
-            <div class="bc-chat">${chatHtml}</div>
-            <div class="bc-bars">${barHtml}</div>
-            <div class="bc-reveal" style="animation-delay:${revealDelay}s">
-                <div class="bc-winner">${escapeHtml(winnerChoice)}</div>
-                <div class="bc-winner-pct">${winnerPct}%</div>
-            </div>
-            <div class="verdict-actions bc-verdict-actions" style="opacity:0;animation:bcSlideIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) ${actionsDelay}s both;">
+            <div class="ttv-actions" style="--ttv-actions-delay:${actionsDelay.toFixed(2)}s;">
                 <button class="verdict-action-btn try-another-hive" onclick="openHivesModalForRetry()">
-                    <img src="/images/bee-icons/default bee icon.png" alt="" style="width: 42px; height: 42px; vertical-align: middle; margin-right: 6px; border-radius: 50%;"> Try Another Hive
+                    <img src="/images/bee-icons/default bee icon.png" alt="" style="width: 28px; height: 28px; vertical-align: middle; margin-right: 6px; border-radius: 50%;"> Try Another Hive
                 </button>
             </div>
-            ${followUpHint}
         </div>
     `;
 
-    // Hide the question bubble when verdict is shown
-    container.querySelectorAll('.question-header').forEach(h => {
-        h.style.position = 'relative';
-        h.style.opacity = '0';
-        h.style.pointerEvents = 'none';
-        h.style.height = '0';
-        h.style.padding = '0';
-        h.style.overflow = 'hidden';
-    });
-
     container.appendChild(verdictEl);
-    scrollToBottom(container);
+
+    if (!fromHistory) {
+        container.scrollTop = 0; // panel sits at the top of the chat area
+        const pitches = [440, 587, 740];
+        picked.forEach((_, i) => {
+            setTimeout(() => playTtvBuzz(pitches[i % pitches.length]), i * 1500 + 50);
+        });
+        setTimeout(() => playTtvBuzz(880), picked.length * 1500 + 50);
+        setupVerdictScrollHandler();
+    }
+}
+
+// Verdict scroll handler — keeps the textbar hidden during/after verdict reveal,
+// only revealing it once the user has scrolled to the bottom of the verdict.
+let _verdictScrollState = null;
+
+function setupVerdictScrollHandler() {
+    teardownVerdictScrollHandler();
+
+    const inputArea = document.getElementById('chat-input-area');
+    const container = document.getElementById('chat-messages');
+    if (!inputArea || !container) return;
+
+    inputArea.classList.add('verdict-hidden');
+
+    const state = { armed: false, armTimer: null };
+    _verdictScrollState = state;
+
+    const checkScroll = () => {
+        if (!state.armed) return;
+        const atBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 60;
+        if (atBottom) {
+            inputArea.classList.remove('verdict-hidden');
+        } else {
+            inputArea.classList.add('verdict-hidden');
+        }
+    };
+
+    const arm = () => {
+        if (state.armed) return;
+        state.armed = true;
+        if (state.armTimer) { clearTimeout(state.armTimer); state.armTimer = null; }
+        container.removeEventListener('wheel', arm);
+        container.removeEventListener('touchmove', arm);
+        document.removeEventListener('keydown', arm);
+        checkScroll();
+    };
+
+    state.checkScroll = checkScroll;
+    state.arm = arm;
+    state.armTimer = setTimeout(arm, 5000);
+
+    container.addEventListener('wheel', arm, { passive: true });
+    container.addEventListener('touchmove', arm, { passive: true });
+    document.addEventListener('keydown', arm);
+    container.addEventListener('scroll', checkScroll, { passive: true });
+}
+
+function teardownVerdictScrollHandler() {
+    const inputArea = document.getElementById('chat-input-area');
+    const container = document.getElementById('chat-messages');
+    if (_verdictScrollState && container) {
+        if (_verdictScrollState.armTimer) clearTimeout(_verdictScrollState.armTimer);
+        container.removeEventListener('scroll', _verdictScrollState.checkScroll);
+        container.removeEventListener('wheel', _verdictScrollState.arm);
+        container.removeEventListener('touchmove', _verdictScrollState.arm);
+        document.removeEventListener('keydown', _verdictScrollState.arm);
+        _verdictScrollState = null;
+    }
+    if (inputArea) inputArea.classList.remove('verdict-hidden');
 }
 
 // Open hives modal for retry - after selecting a new hive, auto-send the same question
