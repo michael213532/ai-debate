@@ -2262,20 +2262,23 @@ function renderHiveVerdict(verdict, fromHistory = false) {
     const COLORS = ['#fde047', '#f472b6', '#22d3ee']; // yellow / magenta / cyan
     const TILTS = [-7, 6, -4];
     const OFFSETS_Y = [-44, 0, 44];
-    const STAGGER = fromHistory ? 0 : 1.5;
+    // Pre-roll so user notices the panel before cards start flying in,
+    // then 2.6s per card so each is readable.
+    const PREROLL = fromHistory ? 0 : 1.0;
+    const STAGGER = fromHistory ? 0 : 2.6;
 
     const cardHtml = picked.map((vote, i) => {
         const pid = TTV_BEE_NAME_TO_ID[vote.name] || getPersonalityFromName(vote.name || '') || '';
         const iconPath = pid ? getBeeIconPath(pid) : '/images/bee-icons/default bee icon.png';
         const reason = (vote.reason || vote.choice || '').trim();
-        return `<div class="ttv-msg" style="--ttv-color:${COLORS[i % COLORS.length]};--ttv-delay:${(i * STAGGER).toFixed(2)}s;--ttv-tilt:${TILTS[i] || 0}deg;--ttv-y:${OFFSETS_Y[i] || 0}px;--ttv-z:${i + 1};">
+        return `<div class="ttv-msg" style="--ttv-color:${COLORS[i % COLORS.length]};--ttv-delay:${(PREROLL + i * STAGGER).toFixed(2)}s;--ttv-tilt:${TILTS[i] || 0}deg;--ttv-y:${OFFSETS_Y[i] || 0}px;--ttv-z:${i + 1};">
             <img class="ttv-msg-avi" src="${iconPath}" alt="" onerror="this.src='/images/bee-icons/default bee icon.png'">
             <div class="ttv-msg-name">${escapeHtml(vote.name || '')}</div>
             <div class="ttv-msg-text">${escapeHtml(reason)}</div>
         </div>`;
     }).join('');
 
-    const finalDelay = fromHistory ? 0 : (picked.length * STAGGER);
+    const finalDelay = fromHistory ? 0 : (PREROLL + picked.length * STAGGER);
     const actionsDelay = finalDelay + (fromHistory ? 0 : 0.8);
 
     const verdictEl = document.createElement('div');
@@ -2283,6 +2286,7 @@ function renderHiveVerdict(verdict, fromHistory = false) {
     if (fromHistory) verdictEl.classList.add('ttv-from-history');
     verdictEl.innerHTML = `
         <div class="ttv-frame">
+            <button class="ttv-close" type="button" aria-label="Close" onclick="clearTikTokVerdictOverlay()">&times;</button>
             ${hiveName ? `<div class="ttv-header"><span class="ttv-hive-badge" ${typeof getHiveBadgeStyle === 'function' ? getHiveBadgeStyle(hiveName) : ''}>${escapeHtml(hiveName)}</span></div>` : ''}
             <div class="ttv-stack">
                 ${cardHtml}
@@ -2311,10 +2315,12 @@ function renderHiveVerdict(verdict, fromHistory = false) {
         const inputArea = document.getElementById('chat-input-area');
         if (inputArea) inputArea.classList.add('verdict-hidden');
         const pitches = [440, 587, 740];
+        const PRE_MS = PREROLL * 1000;
+        const STAG_MS = STAGGER * 1000;
         picked.forEach((_, i) => {
-            setTimeout(() => playTtvBuzz(pitches[i % pitches.length]), i * 1500 + 50);
+            setTimeout(() => playTtvBuzz(pitches[i % pitches.length]), PRE_MS + i * STAG_MS + 50);
         });
-        setTimeout(() => playTtvBuzz(880), picked.length * 1500 + 50);
+        setTimeout(() => playTtvBuzz(880), PRE_MS + picked.length * STAG_MS + 50);
     }
 }
 
