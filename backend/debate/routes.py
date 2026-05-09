@@ -332,21 +332,28 @@ async def create_debate(
 async def continue_debate(
     debate_id: str,
     request: CreateDebateRequest,
-    current_user: User = Depends(get_current_user)
+    req: Request,
+    current_user: Optional[User] = Depends(get_current_user_optional)
 ):
     """Continue an existing debate with a new message."""
     # Free users cannot attach images
-    if request.images and current_user.subscription_status != "active":
+    if request.images and (current_user is None or current_user.subscription_status != "active"):
         raise HTTPException(
             status_code=status.HTTP_402_PAYMENT_REQUIRED,
             detail="Image attachments are a Pro feature. Upgrade to Pro to use images."
         )
 
+    if current_user:
+        owner_id = current_user.id
+    else:
+        client_ip = req.headers.get("x-forwarded-for", req.client.host if req.client else "unknown").split(",")[0].strip()
+        owner_id = f"guest:{client_ip}"
+
     async with get_db() as db:
         # Verify debate exists and belongs to user
         cursor = await db.execute(
             "SELECT * FROM debates WHERE id = ? AND user_id = ?",
-            (debate_id, current_user.id)
+            (debate_id, owner_id)
         )
         debate_row = await cursor.fetchone()
 

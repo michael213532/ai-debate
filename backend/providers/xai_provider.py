@@ -51,6 +51,58 @@ class XAIProvider(BaseProvider):
                         if chunk["choices"][0]["delta"].get("content"):
                             yield chunk["choices"][0]["delta"]["content"]
 
+    async def fetch_grounding(self, topic: str, model: str = "grok-4-fast-reasoning") -> str:
+        """Fetch grounded background facts for a topic via xAI Responses API + web_search.
+
+        Returns a short factual brief (or empty string if no fresh facts are needed
+        or the call fails). Bees can then reference these facts instead of guessing.
+        Cost is incurred only when web_search actually fires (tool_choice=auto).
+        """
+        instructions = (
+            "You are a research assistant producing a short factual brief for an AI debate. "
+            "If the user's question depends on current, real-world information (people, "
+            "products, prices, events, dates, statistics, current state of things), search "
+            "the web and return 2-4 short bullet points of verified facts that the debaters "
+            "should know. If the question is opinion- or values-based and does not depend on "
+            "current facts, return exactly the string NO_FACTS_NEEDED. Do not editorialize. "
+            "Do not give recommendations. Bullet points only or NO_FACTS_NEEDED."
+        )
+        try:
+            async with httpx.AsyncClient() as client:
+                resp = await client.post(
+                    f"{self.BASE_URL}/responses",
+                    headers={
+                        "Authorization": f"Bearer {self.api_key}",
+                        "Content-Type": "application/json"
+                    },
+                    json={
+                        "model": model,
+                        "instructions": instructions,
+                        "input": [{"role": "user", "content": topic}],
+                        "tools": [{"type": "web_search", "search_context_size": "low"}],
+                        "tool_choice": "auto",
+                        "max_tool_calls": 2,  # cap web_search calls to keep cost predictable
+                        "stream": False
+                    },
+                    timeout=45.0
+                )
+                if resp.status_code != 200:
+                    return ""
+                data = resp.json()
+                # Walk the output array for the assistant message
+                text_parts = []
+                for item in data.get("output", []):
+                    if item.get("type") == "message":
+                        for c in item.get("content", []):
+                            if c.get("type") == "output_text":
+                                text_parts.append(c.get("text", ""))
+                text = "\n".join(p for p in text_parts if p).strip()
+                if not text or "NO_FACTS_NEEDED" in text:
+                    return ""
+                return text
+        except Exception:
+            return ""
+
     async def test_connection(self) -> tuple[bool, str]:
         """Test xAI API connection. Returns (success, error_message)."""
         try:
@@ -62,7 +114,7 @@ class XAIProvider(BaseProvider):
                         "Content-Type": "application/json"
                     },
                     json={
-                        "model": "grok-3-mini",
+                        "model": "grok-4-fast-reasoning",
                         "messages": [{"role": "user", "content": "Hi"}],
                         "max_tokens": 10
                     },

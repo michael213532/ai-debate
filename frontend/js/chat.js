@@ -25,6 +25,7 @@ const beeQueue = {
     _timer: null,
     _pendingVerdict: null,
     _pendingDebateEnd: false,
+    _verdictPhase: false,
 
     reset() {
         this.stop();
@@ -33,6 +34,7 @@ const beeQueue = {
         this.stopped = false;
         this._pendingVerdict = null;
         this._pendingDebateEnd = false;
+        this._verdictPhase = false;
     },
 
     stop() {
@@ -114,10 +116,23 @@ const beeQueue = {
             finishAiDiscussion(bee.modelName);
         }
         this.playing = false;
-        // Check if more bees arrived while we were playing (next round)
+        // Snapshot before flush — if anything was already queued, the flush will
+        // handle the UI (verdict overlay or _handleDebateEnd) and we shouldn't
+        // also show a spinner.
+        const flushWasPending = !!(this._pendingVerdict || this._pendingDebateEnd);
+        // Check if more bees arrived while we were playing (next round) — this
+        // re-enters _playAll synchronously and flips this.playing back to true.
         this._checkAllDone();
         // If no more bees to play, flush pending verdict and debate_end
         this._flushPending();
+        // If we're still idle and the debate isn't ending, we're sitting in a
+        // between-round or pre-verdict gap. Show the buzz spinner so the wait
+        // feels purposeful instead of broken. Next _playAll or _handleDebateEnd
+        // will hide it. verdict_start/round_start will refresh the caption.
+        if (!this.playing && this.bees.length === 0 && !this.stopped && !flushWasPending) {
+            showBuzzThinking();
+            setBuzzThinkingText(this._verdictPhase ? 'Counting votes…' : 'More bees are buzzing in…');
+        }
     },
 
     _getStreamingMsg(modelName) {
@@ -130,6 +145,17 @@ const beeQueue = {
             let i = 0;
             const CHARS = 2;
             const MS = 22;
+            const container = document.getElementById('chat-messages');
+            // Throttle scroll to one rAF tick to avoid forced sync reflow every 22ms
+            let scrollScheduled = false;
+            const scheduleScroll = () => {
+                if (scrollScheduled) return;
+                scrollScheduled = true;
+                requestAnimationFrame(() => {
+                    scrollScheduled = false;
+                    scrollToBottom(container);
+                });
+            };
             this._timer = setInterval(() => {
                 if (this.stopped || i >= fullText.length) {
                     clearInterval(this._timer);
@@ -142,6 +168,7 @@ const beeQueue = {
                             if (content) content.textContent += fullText.slice(i);
                         }
                     }
+                    scheduleScroll();
                     resolve();
                     return;
                 }
@@ -150,7 +177,7 @@ const beeQueue = {
                 if (msg) {
                     const content = msg.querySelector('.message-content');
                     if (content) content.textContent += fullText.slice(i, end);
-                    scrollToBottom(document.getElementById('chat-messages'));
+                    scheduleScroll();
                 }
                 i = end;
             }, MS);
@@ -645,6 +672,9 @@ function handleWebSocketMessage(message) {
         case 'round_start':
             updateChatStatus('Getting opinions...');
             updateBuzzProgress('debate');
+            if (message.round && message.round > 1) {
+                setBuzzThinkingText(`Round ${message.round} — bees are thinking…`);
+            }
             break;
 
         case 'model_start':
@@ -714,6 +744,8 @@ function handleWebSocketMessage(message) {
 
         case 'verdict_start':
             updateChatStatus('Generating Hive Verdict...');
+            beeQueue._verdictPhase = true;
+            setBuzzThinkingText('Counting votes…');
             break;
 
         case 'verdict':
@@ -1028,6 +1060,14 @@ function updateBuzzProgress(step) {
 function hideBuzzThinking() {
     const el = document.getElementById('buzz-thinking-indicator');
     if (el) el.remove();
+}
+
+// Update the spinner caption in-place (no-op if spinner isn't showing)
+function setBuzzThinkingText(text) {
+    const el = document.getElementById('buzz-thinking-indicator');
+    if (!el) return;
+    const t = el.querySelector('.buzz-thinking-text');
+    if (t) t.textContent = text;
 }
 
 // Add AI discussion message to main chat (inline)

@@ -42,6 +42,7 @@ class DebateOrchestrator:
         self.user_memory_context = user_memory_context  # Memory context to inject
         self.is_pro = is_pro  # Pro subscription status
         self.detail_mode = detail_mode  # "fast" or "detailed"
+        self.background_facts: str = ""  # Web-grounded facts injected into round-1 context
 
         # Reorder models: special bees always last, vision-capable first when images attached
         self._reorder_models()
@@ -156,6 +157,11 @@ class DebateOrchestrator:
                     ("running", self.debate_id)
                 )
                 await db.commit()
+
+            # Pre-flight: fetch grounded facts from the web (xAI Responses API +
+            # web_search). Runs once per debate. Returns "" for opinion questions
+            # that don't need facts, so cost is only incurred when truly needed.
+            await self._fetch_background_facts()
 
             # Always run 3 rounds for both new debates and continuations
             round_num = self.start_round
@@ -468,7 +474,13 @@ class DebateOrchestrator:
             if round_num == 1:
                 base_prompt = f"""You are {display_name}. Pick ONE answer - NEVER say "both" or "it depends". Defend your choice in 2 sentences MAX. Be direct, be opinionated. No paragraphs. No markdown."""
             else:
-                base_prompt = f"""You are {display_name}. Round {round_num}. Respond to the others in 2 sentences MAX. You can agree or push back. Stay with ONE answer - never "both". No paragraphs. No markdown."""
+                base_prompt = f"""You are {display_name}. Round {round_num}. Respond to the others in 2 sentences MAX.
+
+Rules:
+- DON'T just agree with another bee. If you agree, add a NEW angle, push the idea further, or commit harder. Never just restate what they said.
+- DON'T start with "I agree with [name]" or "[name] is right". State your point directly.
+- DON'T repeat phrasing or openers another bee already used in this debate.
+- Stay with ONE answer - never "both". No paragraphs. No markdown."""
 
         # DETAILED MODE (pro users) - full debate experience
         else:
@@ -502,15 +514,15 @@ RULES:
 This is ROUND {round_num}. You've heard what others think. Respond naturally like a real person would.
 
 RULES:
-1. BE YOURSELF: You might agree if someone made a killer point. Or you might double down on your position. Do what feels right.
+1. DON'T JUST AGREE: If someone already said your point, you must either push it further with a NEW angle, OR commit to a different stance. Never restate what another bee already said. Never start with "I agree with [name]" or "[name] is right".
 
-2. IF YOU AGREE: Say it naturally. "Actually [name], that's a good point, I'm changing my mind because..." or "Okay you convinced me"
+2. DON'T PARROT OPENERS: If another bee already used a phrase or opener this debate, pick a different one. Vary your phrasing every round.
 
-3. IF YOU DISAGREE: Keep fighting! "Nah I still think..." or "That doesn't change anything because..."
+3. IF YOU CHANGE YOUR MIND: Do it because of a specific argument they made, and explain WHY in your own words. Don't just say "okay you convinced me".
 
-4. BE HUMAN: Some people are stubborn, some change their minds easily. Be natural, not robotic.
+4. IF YOU DISAGREE: Keep fighting. Push back on a specific point they made.
 
-5. RESPOND TO SPECIFIC POINTS: Reference what others actually said. "When [name] said X, I thought..."
+5. BE HUMAN: Real people don't all agree. Some are stubborn, some shift. Be natural, not hive-minded.
 
 6. BE CONCISE: 2 sentences MAX. No paragraphs.
 
@@ -518,11 +530,36 @@ RULES:
 
         # Add personality role if specified
         if personality_role:
-            base_prompt += f"\n\n{personality_role}"
+            base_prompt += (
+                "\n\n--- YOUR PERSONALITY ---\n"
+                "The role description below contains EXAMPLE phrases in quotes. "
+                "Those examples show the VIBE — they are NOT a script. "
+                "DO NOT copy any quoted phrase from your role description verbatim. "
+                "Never start a message with crutches like \"Girl,\" \"Babe,\" \"WAIT,\" \"Look,\" or any other opener that appears in quotes below — rephrase using your own words. "
+                "Vary your openers across rounds. Speak in the personality's tone, not its sample lines.\n\n"
+                f"{personality_role}"
+            )
         elif role:
             base_prompt += f"\n\nYour perspective/role: {role}"
 
         return base_prompt
+
+    async def _fetch_background_facts(self):
+        """Fetch grounded facts about the topic via xAI web_search, before round 1.
+
+        Stores result in self.background_facts. Best-effort: failures are silent
+        and just leave facts empty so the debate proceeds with no grounding.
+        """
+        if "xai" not in self.api_keys:
+            return
+        try:
+            provider_class = ProviderRegistry.get("xai")
+            provider = provider_class(self.api_keys["xai"])
+            facts = await provider.fetch_grounding(self.topic)
+            self.background_facts = facts or ""
+        except Exception as e:
+            print(f"[grounding] fetch_background_facts failed: {e}")
+            self.background_facts = ""
 
     def _build_context(self, round_num: int, model_index: int, current_display_name: str = "") -> str:
         """Build context string from previous messages.
@@ -539,6 +576,15 @@ RULES:
         # If there's previous conversation context (from history), include it as background
         if self.previous_context:
             context += f"BACKGROUND - {self.previous_context}\n---\n\n"
+
+        # Inject web-grounded facts on round 1 of the current question only.
+        # Round 2+ bees already see round-1 responses (which were grounded).
+        if round_num == self.start_round and self.background_facts:
+            context += (
+                "VERIFIED FACTS (from a fresh web search — trust these over your "
+                "training memory; do NOT contradict them):\n"
+                f"{self.background_facts}\n---\n\n"
+            )
 
         context += f"USER'S CURRENT MESSAGE: {self.topic}\n\n"
 

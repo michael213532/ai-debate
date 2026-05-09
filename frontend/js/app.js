@@ -34,7 +34,7 @@ const PERSONALITY_ICON_MAP = {
 
 function getBeeIconPath(personalityId) {
     const iconName = PERSONALITY_ICON_MAP[personalityId] || 'default bee icon';
-    return `/images/bee-icons/${iconName}.png?v=2`;
+    return `/images/bee-icons/${iconName}.png?v=3`;
 }
 
 // Built-in hive themes: gradient + accent color
@@ -63,7 +63,7 @@ function getHiveStyle(hiveId, customColor) {
 function hiveCardStyleAttr(hiveId, customColor) {
     const theme = getHiveStyle(hiveId, customColor);
     if (!theme) return '';
-    return `style="background:${theme.gradient};border-color:${theme.accent}44;"`;
+    return `style="background:${theme.gradient};border-color:${theme.accent}44;--hive-accent:${theme.accent};"`;
 }
 
 function hiveCardTextClass(hiveId, customColor) {
@@ -2830,27 +2830,47 @@ function setupQuickTemplatesMarquee() {
         track.style.animation = 'none';
         const firstOriginal = track.children[0];
         const originals = Array.from(track.children);
-        originals.forEach(el => {
-            const clone = el.cloneNode(true);
-            clone.setAttribute('aria-hidden', 'true');
-            clone.setAttribute('tabindex', '-1');
-            clone.addEventListener('click', () => {
-                const question = clone.dataset.question;
-                const chatInput = document.getElementById('chat-input');
-                if (chatInput) {
-                    chatInput.value = question;
-                    chatInput.focus();
-                    strip.style.display = 'none';
-                    chatInput.dispatchEvent(new Event('input'));
-                }
+
+        const cloneOneSet = () => {
+            originals.forEach(el => {
+                const clone = el.cloneNode(true);
+                clone.setAttribute('aria-hidden', 'true');
+                clone.setAttribute('tabindex', '-1');
+                clone.addEventListener('click', () => {
+                    const question = clone.dataset.question;
+                    const chatInput = document.getElementById('chat-input');
+                    if (chatInput) {
+                        chatInput.value = question;
+                        chatInput.focus();
+                        strip.style.display = 'none';
+                        chatInput.dispatchEvent(new Event('input'));
+                    }
+                });
+                track.appendChild(clone);
             });
-            track.appendChild(clone);
-        });
-        // Measure the EXACT distance from the first original to the first clone
-        // (this includes the inter-chip gap so the loop is seamless)
+        };
+
+        // First clone gives us a measurable second set so we can compute one-set width.
+        // Use getBoundingClientRect for sub-pixel precision: chip widths/gaps can be
+        // fractional pixels, and the loop seam visually misaligns by however much we
+        // round away. Pass the precise float to the CSS variable so translate distance
+        // matches the true chip-pattern repeat exactly.
+        cloneOneSet();
         const firstClone = track.children[originals.length];
-        const distance = firstClone.offsetLeft - firstOriginal.offsetLeft;
-        strip.style.setProperty('--marquee-distance', distance + 'px');
+        const oneSetWidth = firstClone
+            ? firstClone.getBoundingClientRect().left - firstOriginal.getBoundingClientRect().left
+            : 0;
+        const stripWidth = strip.getBoundingClientRect().width;
+        // Bail if measurement failed — leave the 2-set fallback in place
+        if (oneSetWidth > 0 && Number.isFinite(oneSetWidth)) {
+            // setsNeeded covers strip + one set so wrap is invisible. Cap at 8 for sanity.
+            const raw = Math.ceil((stripWidth + oneSetWidth) / oneSetWidth) + 1;
+            const setsNeeded = Math.min(8, Math.max(2, raw));
+            for (let i = 2; i < setsNeeded; i++) cloneOneSet();
+            strip.style.setProperty('--marquee-distance', oneSetWidth.toFixed(3) + 'px');
+            // Speed proportional to width so chips travel at a consistent ~50px/s on any viewport
+            track.style.animationDuration = (oneSetWidth / 50).toFixed(2) + 's';
+        }
         track.dataset.marqueeReady = '1';
         // Force reflow then restart the animation cleanly
         void track.offsetWidth;

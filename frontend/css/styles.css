@@ -174,7 +174,7 @@ a:hover {
 
 .btn-primary {
     background-color: var(--primary-color);
-    color: #1a1a1a;
+    color: #ffffff;
 }
 
 .btn-primary:hover {
@@ -418,7 +418,7 @@ a:hover {
 .model-checkbox.selected .checkmark {
     background-color: var(--primary-color);
     border-color: var(--primary-color);
-    color: #1a1a1a;
+    color: #ffffff;
     font-size: 0.8rem;
 }
 
@@ -514,7 +514,7 @@ a:hover {
 
 .panel-status.speaking {
     background-color: var(--primary-color);
-    color: #1a1a1a;
+    color: #ffffff;
     animation: pulse 1.5s infinite;
 }
 
@@ -733,7 +733,7 @@ a:hover {
 .get-key-btn {
     display: inline-block;
     background: var(--primary-color);
-    color: #1a1a1a !important;
+    color: #ffffff !important;
     font-size: 0.9rem;
     font-weight: 600;
     padding: 8px 16px;
